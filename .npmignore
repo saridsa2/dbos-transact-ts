@@ -20,6 +20,7 @@ publish/
 tests/
 coverage/
 packages/
+apps/studio/
 dist/packages/
 
 # ignore any packed packages in the repo

@@ -1,0 +1,36 @@
+name: Flow Studio
+on:
+  push:
+    paths: ['apps/studio/**', 'src/**', '.github/workflows/studio.yml']
+  pull_request:
+    paths: ['apps/studio/**', 'src/**', '.github/workflows/studio.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: dbos
+          POSTGRES_DB: studio
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d studio"
+          --health-interval 2s --health-timeout 2s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/studio/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npx tsc --project tsconfig.json
+      - run: npm run build --workspace packages/nodepg-datasource
+      - run: npm ci
+        working-directory: apps/studio
+      - run: npm test && npm run test:integration && npm run build
+        working-directory: apps/studio

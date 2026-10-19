@@ -1,0 +1,985 @@
+{
+  "reviewFixtureVersion": 1,
+  "status": "design-only-not-runtime-graph",
+  "purpose": "Review editor interactions and execution semantics before implementing the new authoring contract. These fixtures are examples, not a production serialization schema or evidence of runtime conformance.",
+  "notation": {
+    "references": "Symbolic design references use stable IDs; textual expression syntax remains separate.",
+    "presence": "present carries value; absent is known omission/skipped; unresolved lacks data needed for evaluation.",
+    "profiles": "Profile IDs describe capabilities, not a selected sandbox backend.",
+    "fixtures": "fixture.* offerings and captured results are local design data, not installed adapters.",
+    "scopes": "Template IDs denote lexical scopes; runtime invocation/iteration IDs additionally identify their instances."
+  },
+  "cases": [
+    {
+      "id": "order-request",
+      "title": "One structured request, one invocation",
+      "sample": {
+        "id": "sample-order",
+        "revision": 1,
+        "input": {
+          "orderId": "O-42",
+          "city": "Pune"
+        },
+        "recordedOutputs": {
+          "pricing": {
+            "total": 42
+          }
+        }
+      },
+      "scopes": [
+        {
+          "id": "root",
+          "kind": "workflow",
+          "parentId": null
+        }
+      ],
+      "nodes": [
+        {
+          "id": "pricing",
+          "offering": {
+            "id": "fixture.pricing",
+            "version": 1
+          },
+          "scopeId": "root",
+          "outputPorts": [
+            {
+              "id": "value",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "total": {
+                    "type": "number"
+                  }
+                }
+              },
+              "cardinality": "single",
+              "presence": "required"
+            }
+          ]
+        },
+        {
+          "id": "request",
+          "offering": {
+            "id": "core.construct-data",
+            "version": 1
+          },
+          "scopeId": "root",
+          "inputPorts": [
+            {
+              "id": "input",
+              "schema": {
+                "type": "object"
+              },
+              "cardinality": "single",
+              "presence": "required"
+            }
+          ],
+          "outputPorts": [
+            {
+              "id": "value",
+              "schema": {
+                "type": "object",
+                "required": ["currency", "total", "delivery", "tags"],
+                "additionalProperties": false,
+                "properties": {
+                  "currency": {
+                    "const": "USD"
+                  },
+                  "total": {
+                    "type": "number"
+                  },
+                  "delivery": {
+                    "type": "object",
+                    "required": ["city"],
+                    "properties": {
+                      "city": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "cardinality": "single",
+              "presence": "required"
+            }
+          ],
+          "parameters": {
+            "value": {
+              "mode": "fixed",
+              "construction": "object",
+              "fields": [
+                {
+                  "id": "field-currency",
+                  "name": "currency",
+                  "parameter": {
+                    "mode": "fixed",
+                    "value": "USD"
+                  }
+                },
+                {
+                  "id": "field-total",
+                  "name": "total",
+                  "parameter": {
+                    "mode": "expression",
+                    "expression": {
+                      "kind": "reference",
+                      "owner": "node",
+                      "id": "pricing",
+                      "portId": "value",
+                      "path": ["total"]
+                    }
+                  }
+                },
+                {
+                  "id": "field-delivery",
+                  "name": "delivery",
+                  "parameter": {
+                    "mode": "fixed",
+                    "construction": "object",
+                    "fields": [
+                      {
+                        "id": "field-city",
+                        "name": "city",
+                        "parameter": {
+                          "mode": "expression",
+                          "expression": {
+                            "kind": "reference",
+                            "owner": "workflow-input",
+                            "id": "root",
+                            "path": ["city"]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "field-tags",
+                  "name": "tags",
+                  "parameter": {
+                    "mode": "fixed",
+                    "construction": "array",
+                    "items": [
+                      {
+                        "id": "tag-fixed",
+                        "parameter": {
+                          "mode": "fixed",
+                          "value": "web"
+                        }
+                      },
+                      {
+                        "id": "tag-mapped",
+                        "parameter": {
+                          "mode": "expression",
+                          "expression": {
+                            "kind": "reference",
+                            "owner": "workflow-input",
+                            "id": "root",
+                            "path": ["orderId"]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "source": {
+            "nodeId": "pricing",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "request",
+            "portId": "input"
+          }
+        }
+      ],
+      "expected": {
+        "preview": {
+          "currency": "USD",
+          "total": 42,
+          "delivery": {
+            "city": "Pune"
+          },
+          "tags": ["web", "O-42"]
+        },
+        "constructedValues": 1,
+        "hypotheticalDownstreamInvocations": 1,
+        "externalCalls": 0
+      },
+      "interactionChecks": [
+        "Map pricing.total into Total without string conversion",
+        "Change Delivery.city without losing Total expression",
+        "Switch whole object to Expression and restore its Fixed draft",
+        "Apply, Save draft and reopen preserve stable child IDs"
+      ]
+    },
+    {
+      "id": "document-collection",
+      "title": "Visible iteration with isolated state",
+      "sample": {
+        "id": "sample-documents",
+        "revision": 1,
+        "input": {
+          "documents": [
+            {
+              "id": "a",
+              "title": "Guide",
+              "text": "first"
+            },
+            {
+              "id": "b",
+              "title": "FAQ",
+              "text": "second"
+            },
+            {
+              "id": "c",
+              "title": "Notes",
+              "text": "third"
+            }
+          ]
+        }
+      },
+      "scopes": [
+        {
+          "id": "root",
+          "kind": "workflow",
+          "parentId": null
+        },
+        {
+          "id": "documents-body",
+          "kind": "iteration-template",
+          "parentId": "root",
+          "captures": [],
+          "itemSchema": {
+            "type": "object",
+            "required": ["id", "title", "text"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            }
+          },
+          "indexSchema": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "variables": [
+            {
+              "id": "current-document",
+              "name": "currentDocumentId",
+              "schema": {
+                "type": "string"
+              },
+              "initial": {
+                "mode": "expression",
+                "expression": {
+                  "kind": "reference",
+                  "owner": "item",
+                  "id": "documents-body",
+                  "path": ["id"]
+                }
+              },
+              "writable": true
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "documents",
+          "offering": {
+            "id": "core.input",
+            "version": 1
+          },
+          "scopeId": "root",
+          "outputPorts": [
+            {
+              "id": "value",
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "cardinality": "collection",
+              "presence": "required"
+            }
+          ]
+        },
+        {
+          "id": "for-documents",
+          "offering": {
+            "id": "core.for-each",
+            "version": 1
+          },
+          "scopeId": "root",
+          "inputPorts": [
+            {
+              "id": "input",
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "cardinality": "collection",
+              "presence": "required"
+            }
+          ],
+          "parameters": {
+            "collection": {
+              "mode": "expression",
+              "expression": {
+                "kind": "reference",
+                "owner": "workflow-input",
+                "id": "root",
+                "path": ["documents"]
+              }
+            }
+          },
+          "bodyScopeId": "documents-body",
+          "bodyEntryNodeId": "normalize",
+          "bodyResultNodeId": "normalize",
+          "policy": {
+            "concurrency": 2,
+            "maxItems": 100,
+            "resultOrder": "input"
+          }
+        },
+        {
+          "id": "normalize",
+          "offering": {
+            "id": "code.pure-transform",
+            "version": 1
+          },
+          "scopeId": "documents-body",
+          "code": {
+            "language": "typescript",
+            "profile": {
+              "id": "pure-transform",
+              "version": 1
+            },
+            "source": "return { id: input.id, title: input.title.toUpperCase() };"
+          },
+          "parameters": {
+            "input": {
+              "mode": "expression",
+              "expression": {
+                "kind": "reference",
+                "owner": "item",
+                "id": "documents-body",
+                "path": []
+              }
+            }
+          },
+          "outputPorts": [
+            {
+              "id": "value",
+              "schema": {
+                "type": "object",
+                "required": ["id", "title"],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "cardinality": "single",
+              "presence": "required"
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "source": {
+            "nodeId": "documents",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "for-documents",
+            "portId": "input"
+          }
+        }
+      ],
+      "expected": {
+        "result": [
+          {
+            "id": "a",
+            "title": "GUIDE"
+          },
+          {
+            "id": "b",
+            "title": "FAQ"
+          },
+          {
+            "id": "c",
+            "title": "NOTES"
+          }
+        ],
+        "childInvocations": 3,
+        "maxConcurrentChildren": 2,
+        "selectedRecordedContext": {
+          "scopeTemplateId": "documents-body",
+          "iterationIndex": 1,
+          "itemId": "b",
+          "visibleLocalVariables": {
+            "current-document": "b"
+          }
+        },
+        "emptyInputResult": []
+      },
+      "interactionChecks": [
+        "Open inner graph shows iteration breadcrumb",
+        "Schema mode offers item and index without requiring a run",
+        "Selecting iteration 1 uses its input and variables together",
+        "Code repeats through For each, with no per-item setting in Code",
+        "Completion order c,a,b still collects a,b,c"
+      ]
+    },
+    {
+      "id": "parallel-enrichment",
+      "title": "Isolated branches and explicit merge",
+      "sample": {
+        "id": "sample-parallel",
+        "revision": 1,
+        "input": {
+          "orderId": "O-42"
+        },
+        "recordedOutputs": {
+          "customer-result": {
+            "accountId": "A-9"
+          },
+          "inventory-result": {
+            "available": true
+          }
+        }
+      },
+      "scopes": [
+        {
+          "id": "root",
+          "kind": "workflow",
+          "parentId": null,
+          "variables": [
+            {
+              "id": "account-id",
+              "name": "accountId",
+              "schema": {
+                "type": ["string", "null"]
+              },
+              "initial": {
+                "mode": "fixed",
+                "value": null
+              },
+              "writable": true
+            }
+          ]
+        },
+        {
+          "id": "customer-branch",
+          "kind": "branch",
+          "parentId": "root",
+          "captures": [
+            {
+              "sourceVariableId": "account-id",
+              "access": "read-only"
+            }
+          ]
+        },
+        {
+          "id": "inventory-branch",
+          "kind": "branch",
+          "parentId": "root",
+          "captures": [
+            {
+              "sourceVariableId": "account-id",
+              "access": "read-only"
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "fork",
+          "offering": {
+            "id": "core.parallel",
+            "version": 1
+          },
+          "scopeId": "root",
+          "branches": [
+            {
+              "id": "customer",
+              "scopeId": "customer-branch",
+              "resultNodeId": "customer-result"
+            },
+            {
+              "id": "inventory",
+              "scopeId": "inventory-branch",
+              "resultNodeId": "inventory-result"
+            }
+          ]
+        },
+        {
+          "id": "customer-result",
+          "offering": {
+            "id": "fixture.customer",
+            "version": 1
+          },
+          "scopeId": "customer-branch"
+        },
+        {
+          "id": "inventory-result",
+          "offering": {
+            "id": "fixture.inventory",
+            "version": 1
+          },
+          "scopeId": "inventory-branch"
+        },
+        {
+          "id": "merge",
+          "offering": {
+            "id": "core.merge",
+            "version": 1
+          },
+          "scopeId": "root",
+          "parameters": {
+            "output": {
+              "mode": "fixed",
+              "construction": "object",
+              "fields": [
+                {
+                  "id": "field-accountId",
+                  "name": "accountId",
+                  "parameter": {
+                    "mode": "expression",
+                    "expression": {
+                      "kind": "reference",
+                      "owner": "branch-result",
+                      "id": "customer",
+                      "path": ["accountId"]
+                    }
+                  }
+                },
+                {
+                  "id": "field-available",
+                  "name": "available",
+                  "parameter": {
+                    "mode": "expression",
+                    "expression": {
+                      "kind": "reference",
+                      "owner": "branch-result",
+                      "id": "inventory",
+                      "path": ["available"]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sources": [
+            {
+              "branchId": "customer",
+              "fromParallelNodeId": "fork"
+            },
+            {
+              "branchId": "inventory",
+              "fromParallelNodeId": "fork"
+            }
+          ],
+          "waitPolicy": "all-selected",
+          "failurePolicy": "fail-unhandled",
+          "parentUpdates": [
+            {
+              "variableId": "account-id",
+              "value": {
+                "mode": "expression",
+                "expression": {
+                  "kind": "reference",
+                  "owner": "branch-result",
+                  "id": "customer",
+                  "path": ["accountId"]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "source": {
+            "nodeId": "fork",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "merge",
+            "portId": "input"
+          }
+        }
+      ],
+      "expected": {
+        "parentVariablesBeforeMerge": {
+          "account-id": null
+        },
+        "parentVariablesAfterMerge": {
+          "account-id": "A-9"
+        },
+        "result": {
+          "accountId": "A-9",
+          "available": true
+        },
+        "duplicateParentTargetDiagnostic": "duplicate-update-target",
+        "directBranchParentWriteDiagnostic": "read-only-variable",
+        "completionOrderIndependent": true
+      },
+      "interactionChecks": [
+        "Branch tree marks inherited accountId read-only",
+        "Merge maps branch exports rather than sibling node internals",
+        "Two mappings to account-id show an exact field conflict",
+        "Unresolved/failed source prevents every parent update from committing"
+      ]
+    },
+    {
+      "id": "handled-review",
+      "title": "Skipped output differs from null",
+      "sample": {
+        "id": "sample-review",
+        "revision": 1,
+        "input": {
+          "confidence": 0.4
+        }
+      },
+      "scopes": [
+        {
+          "id": "root",
+          "kind": "workflow",
+          "parentId": null
+        }
+      ],
+      "nodes": [
+        {
+          "id": "confidence",
+          "offering": {
+            "id": "core.decision",
+            "version": 1
+          },
+          "scopeId": "root",
+          "condition": {
+            "operator": "less-than",
+            "left": {
+              "mode": "expression",
+              "expression": {
+                "kind": "reference",
+                "owner": "workflow-input",
+                "id": "root",
+                "path": ["confidence"]
+              }
+            },
+            "right": {
+              "mode": "fixed",
+              "value": 0.8
+            }
+          }
+        },
+        {
+          "id": "review",
+          "offering": {
+            "id": "core.human-review",
+            "version": 1
+          },
+          "scopeId": "root"
+        },
+        {
+          "id": "automatic",
+          "offering": {
+            "id": "core.construct-data",
+            "version": 1
+          },
+          "scopeId": "root"
+        },
+        {
+          "id": "choose",
+          "offering": {
+            "id": "core.construct-data",
+            "version": 1
+          },
+          "scopeId": "root",
+          "parameters": {
+            "value": {
+              "mode": "expression",
+              "expression": {
+                "kind": "select-present",
+                "sources": [
+                  {
+                    "mode": "expression",
+                    "expression": {
+                      "kind": "reference",
+                      "owner": "node",
+                      "id": "review",
+                      "portId": "value",
+                      "path": []
+                    }
+                  },
+                  {
+                    "mode": "expression",
+                    "expression": {
+                      "kind": "reference",
+                      "owner": "node",
+                      "id": "automatic",
+                      "portId": "value",
+                      "path": []
+                    }
+                  }
+                ],
+                "ifNone": "error"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "source": {
+            "nodeId": "confidence",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "review",
+            "portId": "input"
+          },
+          "outcome": "true"
+        },
+        {
+          "source": {
+            "nodeId": "confidence",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "automatic",
+            "portId": "input"
+          },
+          "outcome": "false"
+        },
+        {
+          "source": {
+            "nodeId": "review",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "choose",
+            "portId": "input"
+          }
+        },
+        {
+          "source": {
+            "nodeId": "automatic",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "choose",
+            "portId": "input"
+          }
+        }
+      ],
+      "recordedContext": {
+        "review": {
+          "status": "succeeded",
+          "output": {
+            "presence": "present",
+            "value": {
+              "approved": true,
+              "comment": null
+            }
+          },
+          "provenance": "human-decision-fixture"
+        },
+        "automatic": {
+          "status": "skipped",
+          "output": {
+            "presence": "absent",
+            "reason": "unselected-outcome"
+          }
+        }
+      },
+      "expected": {
+        "result": {
+          "approved": true,
+          "comment": null
+        },
+        "previewCreatesHumanDecision": false,
+        "beforeReview": {
+          "presence": "unresolved",
+          "reason": "waiting-for-human"
+        },
+        "automaticValueIsNull": false
+      },
+      "interactionChecks": [
+        "Show automatic output as Skipped/Absent",
+        "Keep review.comment visible as present Null",
+        "Missing human decision shows waiting/unresolved rather than a success sample",
+        "Selecting captured data never submits a human decision"
+      ]
+    },
+    {
+      "id": "code-recovery",
+      "title": "Checkpoint provenance survives a later draft",
+      "sample": {
+        "id": "sample-code",
+        "revision": 1,
+        "input": {
+          "seed": 0.37
+        }
+      },
+      "scopes": [
+        {
+          "id": "root",
+          "kind": "workflow",
+          "parentId": null
+        }
+      ],
+      "nodes": [
+        {
+          "id": "code",
+          "offering": {
+            "id": "code.pure-transform",
+            "version": 1
+          },
+          "scopeId": "root",
+          "code": {
+            "language": "javascript",
+            "profile": {
+              "id": "pure-transform",
+              "version": 1
+            },
+            "source": "return input.seed;",
+            "sourceRevision": "source-1"
+          },
+          "parameters": {
+            "input": {
+              "mode": "expression",
+              "expression": {
+                "kind": "reference",
+                "owner": "workflow-input",
+                "id": "root",
+                "path": []
+              }
+            }
+          }
+        },
+        {
+          "id": "wait",
+          "offering": {
+            "id": "core.delay",
+            "version": 1
+          },
+          "scopeId": "root",
+          "parameters": {
+            "durationMS": {
+              "mode": "fixed",
+              "value": 3000
+            }
+          }
+        },
+        {
+          "id": "result",
+          "offering": {
+            "id": "core.return",
+            "version": 1
+          },
+          "scopeId": "root",
+          "parameters": {
+            "value": {
+              "mode": "expression",
+              "expression": {
+                "kind": "reference",
+                "owner": "node",
+                "id": "code",
+                "portId": "value",
+                "path": []
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "source": {
+            "nodeId": "code",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "wait",
+            "portId": "input"
+          }
+        },
+        {
+          "source": {
+            "nodeId": "wait",
+            "portId": "value"
+          },
+          "target": {
+            "nodeId": "result",
+            "portId": "input"
+          }
+        }
+      ],
+      "recordedContext": {
+        "runId": "review-run-1",
+        "executionPlanRevision": "plan-1",
+        "codeCheckpoint": {
+          "nodeId": "code",
+          "invocationId": "review-run-1/code",
+          "sourceRevision": "source-1",
+          "profile": {
+            "id": "pure-transform",
+            "version": 1
+          },
+          "output": {
+            "presence": "present",
+            "value": 0.37
+          },
+          "status": "succeeded"
+        },
+        "restartAt": "wait",
+        "laterSavedDraft": {
+          "source": "return input.seed + 1;",
+          "sourceRevision": "source-2"
+        }
+      },
+      "expected": {
+        "resumedRunResult": 0.37,
+        "logicalCodeCompletions": 1,
+        "resumedSourceRevision": "source-1",
+        "newDraftPureCodeTestOutput": 1.37,
+        "newTestUsesSourceRevision": "source-2",
+        "testResultReplacesRecordedRun": false
+      },
+      "interactionChecks": [
+        "Recorded configuration is read-only",
+        "Edit workflow opens a separate graph draft",
+        "Test result and workflow result retain separate selectors/provenance",
+        "Source/sample/profile changes mark prior tests stale"
+      ]
+    }
+  ]
+}

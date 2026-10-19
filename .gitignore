@@ -4,6 +4,10 @@ packages/create/templates/**/package-lock.json
 tests/**/package-lock.json
 packages/**/package-lock.json
 .DS_Store
+apps/studio/.next/
+apps/studio/next-env.d.ts
+apps/studio/.env.local
+apps/studio/.env.*.local
 .env
 CLAUDE.md
 tests/temp-dist/
@@ -47,3 +51,6 @@ node_modules/
 *.swp
 *.swo
 packages/create/templates/hello-prisma/prisma/.env
+
+# Local control plane credential encryption key
+apps/studio/.studio/

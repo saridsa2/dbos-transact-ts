@@ -1,0 +1,819 @@
+:root {
+  /* FONT FAMILY */
+  --ui-font-body: 'Inter Variable', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ui-font-display: 'Inter Variable', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ui-font-mono: ui-monospace, 'Roboto Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+
+  /* FONT SIZE */
+  --ui-text-xs: calc(var(--spacing) * 3);
+  --ui-text-xs--line-height: calc(var(--spacing) * 4.5);
+
+  --ui-text-sm: calc(var(--spacing) * 3.5);
+  --ui-text-sm--line-height: calc(var(--spacing) * 5);
+
+  --ui-text-md: calc(var(--spacing) * 4);
+  --ui-text-md--line-height: calc(var(--spacing) * 6);
+
+  --ui-text-lg: calc(var(--spacing) * 4.5);
+  --ui-text-lg--line-height: calc(var(--spacing) * 7);
+
+  --ui-text-xl: calc(var(--spacing) * 5);
+  --ui-text-xl--line-height: calc(var(--spacing) * 7.5);
+
+  --ui-text-display-xs: calc(var(--spacing) * 6);
+  --ui-text-display-xs--line-height: calc(var(--spacing) * 8);
+
+  --ui-text-display-sm: calc(var(--spacing) * 7.5);
+  --ui-text-display-sm--line-height: calc(var(--spacing) * 9.5);
+
+  --ui-text-display-md: calc(var(--spacing) * 9);
+  --ui-text-display-md--line-height: calc(var(--spacing) * 11);
+  --ui-text-display-md--letter-spacing: -0.72px;
+
+  --ui-text-display-lg: calc(var(--spacing) * 12);
+  --ui-text-display-lg--line-height: calc(var(--spacing) * 15);
+  --ui-text-display-lg--letter-spacing: -0.96px;
+
+  --ui-text-display-xl: calc(var(--spacing) * 15);
+  --ui-text-display-xl--line-height: calc(var(--spacing) * 18);
+  --ui-text-display-xl--letter-spacing: -1.2px;
+
+  --ui-text-display-2xl: calc(var(--spacing) * 18);
+  --ui-text-display-2xl--line-height: calc(var(--spacing) * 22.5);
+  --ui-text-display-2xl--letter-spacing: -1.44px;
+
+  /* MAX WIDTH */
+  --ui-max-width-container: 1280px;
+
+  /* BREAKPOINTS */
+  --ui-breakpoint-xxs: 320px;
+  /* This must match the breakpoint in Sonner: https://github.com/emilkowalski/sonner/blob/main/src/styles.css */
+  --ui-breakpoint-xs: 600px;
+
+  /* SHADOW */
+  --ui-shadow-xs: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  --ui-shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --ui-shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --ui-shadow-lg: 0px 12px 16px -4px rgba(0, 0, 0, 0.08), 0px 4px 6px -2px rgba(0, 0, 0, 0.03),
+    0px 2px 2px -1px rgba(0, 0, 0, 0.04);
+  --ui-shadow-xl: 0px 20px 24px -4px rgba(0, 0, 0, 0.08), 0px 8px 8px -4px rgba(0, 0, 0, 0.03),
+    0px 3px 3px -1.5px rgba(0, 0, 0, 0.04);
+  --ui-shadow-2xl: 0px 24px 48px -12px rgba(0, 0, 0, 0.18), 0px 4px 4px -2px rgba(0, 0, 0, 0.04);
+  --ui-shadow-3xl: 0px 32px 64px -12px rgba(0, 0, 0, 0.14), 0px 5px 5px -2.5px rgba(0, 0, 0, 0.04);
+
+  --ui-shadow-skeuomorphic: 0px 0px 0px 1px rgba(0, 0, 0, 0.18) inset, 0px -2px 0px 0px rgba(0, 0, 0, 0.05) inset;
+  --ui-shadow-xs-skeuomorphic: var(--ui-shadow-skeuomorphic), var(--ui-shadow-xs);
+
+  --ui-shadow-modern-mockup-inner-lg: 0px 0px 3.765px 1.255px rgba(10, 13, 18, 0.08) inset,
+    0px 0px 2.51px 1.255px rgba(10, 13, 18, 0.03) inset;
+  --ui-shadow-modern-mockup-inner-md: 0px 0px 1.692px 0.564px rgba(10, 13, 18, 0.08) inset,
+    0px 0px 1.128px 0.564px rgba(10, 13, 18, 0.03) inset;
+  --ui-shadow-modern-mockup-inner-sm: 0px 0px 4.48px 1.493px rgba(10, 13, 18, 0.08) inset,
+    0px 0px 2.987px 1.493px rgba(10, 13, 18, 0.03) inset;
+
+  --ui-shadow-modern-mockup-outer-lg: 0px 7.529px 10.039px -2.51px rgba(10, 13, 18, 0.08),
+    0px 2.51px 3.765px -1.255px rgba(10, 13, 18, 0.03), 0px 1.255px 1.255px -0.627px rgba(10, 13, 18, 0.04);
+  --ui-shadow-modern-mockup-outer-md: 0px 3.385px 4.513px -1.128px rgba(10, 13, 18, 0.08),
+    0px 1.128px 1.692px -0.564px rgba(10, 13, 18, 0.03), 0px 0.564px 0.564px -0.282px rgba(10, 13, 18, 0.04);
+
+  --ui-drop-shadow-iphone-mockup: 20px 12px 18px rgba(16, 24, 40, 0.2);
+
+  /* ANIMATIONS */
+  --ui-animate-marquee: marquee 60s linear infinite;
+  --ui-animate-caret-blink: caret-blink 1s infinite;
+
+  /* BASE COLOR */
+  --ui-color-transparent: rgb(0 0 0 / 0);
+
+  /* These will be inverted in dark mode. */
+  --ui-color-alpha-white: rgb(255 255 255);
+  --ui-color-alpha-black: rgb(0 0 0);
+
+  --ui-color-brand-50: #fcf4ef;
+  --ui-color-brand-100: #f9e7da;
+  --ui-color-brand-200: #f0cbb5;
+  --ui-color-brand-300: #e6a88a;
+  --ui-color-brand-400: #d57e57;
+  --ui-color-brand-500: #b65330;
+  --ui-color-brand-600: #a44324;
+  --ui-color-brand-700: #87371f;
+  --ui-color-brand-800: #6e301f;
+  --ui-color-brand-900: #5b2a1e;
+  --ui-color-brand-950: #32150f;
+
+  /* LIGHT MODE VARIABLES */
+
+  --ui-color-alpha-white: rgb(255 255 255);
+  --ui-color-alpha-black: rgb(0 0 0);
+
+  /* UTILITY COLORS */
+  --ui-color-utility-blue-50: var(--ui-color-blue-50);
+  --ui-color-utility-blue-100: var(--ui-color-blue-100);
+  --ui-color-utility-blue-200: var(--ui-color-blue-200);
+  --ui-color-utility-blue-300: var(--ui-color-blue-300);
+  --ui-color-utility-blue-400: var(--ui-color-blue-400);
+  --ui-color-utility-blue-500: var(--ui-color-blue-500);
+  --ui-color-utility-blue-600: var(--ui-color-blue-600);
+  --ui-color-utility-blue-700: var(--ui-color-blue-700);
+
+  --ui-color-utility-brand-50: var(--ui-color-brand-50);
+  --ui-color-utility-brand-50_alt: var(--ui-color-brand-50);
+  --ui-color-utility-brand-100: var(--ui-color-brand-100);
+  --ui-color-utility-brand-100_alt: var(--ui-color-brand-100);
+  --ui-color-utility-brand-200: var(--ui-color-brand-200);
+  --ui-color-utility-brand-200_alt: var(--ui-color-brand-200);
+  --ui-color-utility-brand-300: var(--ui-color-brand-300);
+  --ui-color-utility-brand-300_alt: var(--ui-color-brand-300);
+  --ui-color-utility-brand-400: var(--ui-color-brand-400);
+  --ui-color-utility-brand-400_alt: var(--ui-color-brand-400);
+  --ui-color-utility-brand-500: var(--ui-color-brand-500);
+  --ui-color-utility-brand-500_alt: var(--ui-color-brand-500);
+  --ui-color-utility-brand-600: var(--ui-color-brand-600);
+  --ui-color-utility-brand-600_alt: var(--ui-color-brand-600);
+  --ui-color-utility-brand-700: var(--ui-color-brand-700);
+  --ui-color-utility-brand-700_alt: var(--ui-color-brand-700);
+  --ui-color-utility-brand-800: var(--ui-color-brand-800);
+  --ui-color-utility-brand-800_alt: var(--ui-color-brand-800);
+  --ui-color-utility-brand-900: var(--ui-color-brand-900);
+  --ui-color-utility-brand-900_alt: var(--ui-color-brand-900);
+
+  --ui-color-utility-neutral-50: var(--ui-color-neutral-50);
+  --ui-color-utility-neutral-100: var(--ui-color-neutral-100);
+  --ui-color-utility-neutral-200: var(--ui-color-neutral-200);
+  --ui-color-utility-neutral-300: var(--ui-color-neutral-300);
+  --ui-color-utility-neutral-400: var(--ui-color-neutral-400);
+  --ui-color-utility-neutral-500: var(--ui-color-neutral-500);
+  --ui-color-utility-neutral-600: var(--ui-color-neutral-600);
+  --ui-color-utility-neutral-700: var(--ui-color-neutral-700);
+  --ui-color-utility-neutral-800: var(--ui-color-neutral-800);
+  --ui-color-utility-neutral-900: var(--ui-color-neutral-900);
+
+  --ui-color-utility-red-50: var(--ui-color-red-50);
+  --ui-color-utility-red-100: var(--ui-color-red-100);
+  --ui-color-utility-red-200: var(--ui-color-red-200);
+  --ui-color-utility-red-300: var(--ui-color-red-300);
+  --ui-color-utility-red-400: var(--ui-color-red-400);
+  --ui-color-utility-red-500: var(--ui-color-red-500);
+  --ui-color-utility-red-600: var(--ui-color-red-600);
+  --ui-color-utility-red-700: var(--ui-color-red-700);
+
+  --ui-color-utility-yellow-50: var(--ui-color-yellow-50);
+  --ui-color-utility-yellow-100: var(--ui-color-yellow-100);
+  --ui-color-utility-yellow-200: var(--ui-color-yellow-200);
+  --ui-color-utility-yellow-300: var(--ui-color-yellow-300);
+  --ui-color-utility-yellow-400: var(--ui-color-yellow-400);
+  --ui-color-utility-yellow-500: var(--ui-color-yellow-500);
+  --ui-color-utility-yellow-600: var(--ui-color-yellow-600);
+  --ui-color-utility-yellow-700: var(--ui-color-yellow-700);
+
+  --ui-color-utility-green-50: var(--ui-color-green-50);
+  --ui-color-utility-green-100: var(--ui-color-green-100);
+  --ui-color-utility-green-200: var(--ui-color-green-200);
+  --ui-color-utility-green-300: var(--ui-color-green-300);
+  --ui-color-utility-green-400: var(--ui-color-green-400);
+  --ui-color-utility-green-500: var(--ui-color-green-500);
+  --ui-color-utility-green-600: var(--ui-color-green-600);
+  --ui-color-utility-green-700: var(--ui-color-green-700);
+
+  --ui-color-utility-orange-50: var(--ui-color-orange-50);
+  --ui-color-utility-orange-100: var(--ui-color-orange-100);
+  --ui-color-utility-orange-200: var(--ui-color-orange-200);
+  --ui-color-utility-orange-300: var(--ui-color-orange-300);
+  --ui-color-utility-orange-400: var(--ui-color-orange-400);
+  --ui-color-utility-orange-500: var(--ui-color-orange-500);
+  --ui-color-utility-orange-600: var(--ui-color-orange-600);
+  --ui-color-utility-orange-700: var(--ui-color-orange-700);
+
+  --ui-color-utility-indigo-50: var(--ui-color-indigo-50);
+  --ui-color-utility-indigo-100: var(--ui-color-indigo-100);
+  --ui-color-utility-indigo-200: var(--ui-color-indigo-200);
+  --ui-color-utility-indigo-300: var(--ui-color-indigo-300);
+  --ui-color-utility-indigo-400: var(--ui-color-indigo-400);
+  --ui-color-utility-indigo-500: var(--ui-color-indigo-500);
+  --ui-color-utility-indigo-600: var(--ui-color-indigo-600);
+  --ui-color-utility-indigo-700: var(--ui-color-indigo-700);
+
+  --ui-color-utility-fuchsia-50: var(--ui-color-fuchsia-50);
+  --ui-color-utility-fuchsia-100: var(--ui-color-fuchsia-100);
+  --ui-color-utility-fuchsia-200: var(--ui-color-fuchsia-200);
+  --ui-color-utility-fuchsia-300: var(--ui-color-fuchsia-300);
+  --ui-color-utility-fuchsia-400: var(--ui-color-fuchsia-400);
+  --ui-color-utility-fuchsia-500: var(--ui-color-fuchsia-500);
+  --ui-color-utility-fuchsia-600: var(--ui-color-fuchsia-600);
+  --ui-color-utility-fuchsia-700: var(--ui-color-fuchsia-700);
+
+  --ui-color-utility-pink-50: var(--ui-color-pink-50);
+  --ui-color-utility-pink-100: var(--ui-color-pink-100);
+  --ui-color-utility-pink-200: var(--ui-color-pink-200);
+  --ui-color-utility-pink-300: var(--ui-color-pink-300);
+  --ui-color-utility-pink-400: var(--ui-color-pink-400);
+  --ui-color-utility-pink-500: var(--ui-color-pink-500);
+  --ui-color-utility-pink-600: var(--ui-color-pink-600);
+  --ui-color-utility-pink-700: var(--ui-color-pink-700);
+
+  --ui-color-utility-purple-50: var(--ui-color-purple-50);
+  --ui-color-utility-purple-100: var(--ui-color-purple-100);
+  --ui-color-utility-purple-200: var(--ui-color-purple-200);
+  --ui-color-utility-purple-300: var(--ui-color-purple-300);
+  --ui-color-utility-purple-400: var(--ui-color-purple-400);
+  --ui-color-utility-purple-500: var(--ui-color-purple-500);
+  --ui-color-utility-purple-600: var(--ui-color-purple-600);
+  --ui-color-utility-purple-700: var(--ui-color-purple-700);
+
+  --ui-color-utility-sky-50: var(--ui-color-sky-50);
+  --ui-color-utility-sky-100: var(--ui-color-sky-100);
+  --ui-color-utility-sky-200: var(--ui-color-sky-200);
+  --ui-color-utility-sky-300: var(--ui-color-sky-300);
+  --ui-color-utility-sky-400: var(--ui-color-sky-400);
+  --ui-color-utility-sky-500: var(--ui-color-sky-500);
+  --ui-color-utility-sky-600: var(--ui-color-sky-600);
+  --ui-color-utility-sky-700: var(--ui-color-sky-700);
+
+  --ui-color-utility-slate-50: var(--ui-color-slate-50);
+  --ui-color-utility-slate-100: var(--ui-color-slate-100);
+  --ui-color-utility-slate-200: var(--ui-color-slate-200);
+  --ui-color-utility-slate-300: var(--ui-color-slate-300);
+  --ui-color-utility-slate-400: var(--ui-color-slate-400);
+  --ui-color-utility-slate-500: var(--ui-color-slate-500);
+  --ui-color-utility-slate-600: var(--ui-color-slate-600);
+  --ui-color-utility-slate-700: var(--ui-color-slate-700);
+
+  --ui-color-utility-emerald-50: var(--ui-color-emerald-50);
+  --ui-color-utility-emerald-100: var(--ui-color-emerald-100);
+  --ui-color-utility-emerald-200: var(--ui-color-emerald-200);
+  --ui-color-utility-emerald-300: var(--ui-color-emerald-300);
+  --ui-color-utility-emerald-400: var(--ui-color-emerald-400);
+  --ui-color-utility-emerald-500: var(--ui-color-emerald-500);
+  --ui-color-utility-emerald-600: var(--ui-color-emerald-600);
+  --ui-color-utility-emerald-700: var(--ui-color-emerald-700);
+
+  --ui-color-utility-amber-50: var(--ui-color-amber-50);
+  --ui-color-utility-amber-100: var(--ui-color-amber-100);
+  --ui-color-utility-amber-200: var(--ui-color-amber-200);
+  --ui-color-utility-amber-300: var(--ui-color-amber-300);
+  --ui-color-utility-amber-400: var(--ui-color-amber-400);
+  --ui-color-utility-amber-500: var(--ui-color-amber-500);
+  --ui-color-utility-amber-600: var(--ui-color-amber-600);
+  --ui-color-utility-amber-700: var(--ui-color-amber-700);
+
+  /* TEXT COLORS */
+  --ui-color-text-primary: var(--ui-color-neutral-900);
+  --ui-color-text-tertiary: var(--ui-color-neutral-600);
+  --ui-color-text-error-primary: var(--ui-color-red-600);
+  --ui-color-text-warning-primary: var(--ui-color-yellow-600);
+  --ui-color-text-success-primary: var(--ui-color-green-600);
+  --ui-color-text-secondary: var(--ui-color-neutral-700);
+  --ui-color-text-secondary_hover: var(--ui-color-neutral-800);
+  --ui-color-text-tertiary_hover: var(--ui-color-neutral-700);
+  --ui-color-text-brand-secondary: var(--ui-color-brand-700);
+  --ui-color-text-placeholder: var(--ui-color-neutral-500);
+  --ui-color-text-brand-tertiary: var(--ui-color-brand-600);
+  --ui-color-text-editor-icon-fg: var(--ui-color-neutral-400);
+  --ui-color-text-editor-icon-fg_active: var(--ui-color-neutral-500);
+  --ui-color-text-quaternary: var(--ui-color-neutral-500);
+  --ui-color-text-brand-primary: var(--ui-color-brand-900);
+  --ui-color-text-primary_on-brand: var(--ui-color-white);
+  --ui-color-text-secondary_on-brand: var(--ui-color-brand-200);
+  --ui-color-text-tertiary_on-brand: var(--ui-color-brand-200);
+  --ui-color-text-quaternary_on-brand: var(--ui-color-brand-300);
+  --ui-color-text-brand-tertiary_alt: var(--ui-color-brand-600);
+  --ui-color-text-error-primary_hover: var(--ui-color-red-700);
+  --ui-color-text-brand-secondary_hover: var(--ui-color-brand-800);
+
+  /* BORDER COLORS */
+  --ui-color-border-primary: var(--ui-color-neutral-300);
+  --ui-color-border-secondary: var(--ui-color-neutral-200);
+  --ui-color-border-secondary_alt: rgb(0 0 0 / 0.1);
+  --ui-color-border-tertiary: var(--ui-color-neutral-100);
+  --ui-color-border-error: var(--ui-color-red-500);
+  --ui-color-border-error_subtle: var(--ui-color-red-300);
+  --ui-color-border-brand: var(--ui-color-brand-500);
+  --ui-color-border-brand_alt: var(--ui-color-brand-600);
+
+  /* FOREGROUND COLORS */
+  --ui-color-fg-secondary: var(--ui-color-neutral-700);
+  --ui-color-fg-warning-primary: var(--ui-color-yellow-600);
+  --ui-color-fg-success-primary: var(--ui-color-green-600);
+  --ui-color-fg-white: var(--ui-color-white);
+  --ui-color-fg-success-secondary: var(--ui-color-green-500);
+  --ui-color-fg-secondary_hover: var(--ui-color-neutral-800);
+  --ui-color-fg-primary: var(--ui-color-neutral-900);
+  --ui-color-fg-brand-secondary: var(--ui-color-brand-500);
+  --ui-color-fg-brand-primary: var(--ui-color-brand-600);
+  --ui-color-fg-quaternary: var(--ui-color-neutral-400);
+  --ui-color-fg-quaternary_hover: var(--ui-color-neutral-500);
+  --ui-color-fg-error-primary: var(--ui-color-red-600);
+  --ui-color-fg-warning-secondary: var(--ui-color-yellow-500);
+  --ui-color-fg-error-secondary: var(--ui-color-red-500);
+  --ui-color-fg-tertiary: var(--ui-color-neutral-600);
+  --ui-color-fg-tertiary_hover: var(--ui-color-neutral-700);
+  --ui-color-fg-brand-primary_alt: var(--ui-color-fg-brand-primary);
+  --ui-color-fg-brand-secondary_alt: var(--ui-color-fg-brand-secondary);
+  --ui-color-fg-brand-secondary_hover: var(--ui-color-brand-600);
+
+  /* BACKGROUND COLORS */
+  --ui-color-bg-primary: var(--ui-color-white);
+  --ui-color-bg-tertiary: var(--ui-color-neutral-100);
+  --ui-color-bg-brand-primary: var(--ui-color-brand-50);
+  --ui-color-bg-error-secondary: var(--ui-color-red-100);
+  --ui-color-bg-warning-primary: var(--ui-color-yellow-50);
+  --ui-color-bg-warning-secondary: var(--ui-color-yellow-100);
+  --ui-color-bg-success-primary: var(--ui-color-green-50);
+  --ui-color-bg-success-secondary: var(--ui-color-green-100);
+  --ui-color-bg-brand-solid: var(--ui-color-brand-600);
+  --ui-color-bg-secondary-solid: var(--ui-color-neutral-600);
+  --ui-color-bg-error-solid: var(--ui-color-red-600);
+  --ui-color-bg-warning-solid: var(--ui-color-yellow-600);
+  --ui-color-bg-success-solid: var(--ui-color-green-600);
+  --ui-color-bg-secondary_hover: var(--ui-color-neutral-100);
+  --ui-color-bg-primary_hover: var(--ui-color-neutral-50);
+  --ui-color-bg-brand-solid_hover: var(--ui-color-brand-700);
+  --ui-color-bg-error-primary: var(--ui-color-red-50);
+  --ui-color-bg-brand-secondary: var(--ui-color-brand-100);
+  --ui-color-bg-secondary: var(--ui-color-neutral-50);
+  --ui-color-bg-quaternary: var(--ui-color-neutral-200);
+  --ui-color-bg-primary_alt: var(--ui-color-white);
+  --ui-color-bg-brand-primary_alt: var(--ui-color-brand-50);
+  --ui-color-bg-secondary_alt: var(--ui-color-neutral-50);
+  --ui-color-bg-overlay: var(--ui-color-neutral-950);
+  --ui-color-bg-brand-section: var(--ui-color-brand-800);
+  --ui-color-bg-brand-section_subtle: var(--ui-color-brand-700);
+  --ui-color-bg-primary-solid: var(--ui-color-neutral-950);
+  --ui-color-bg-error-solid_hover: var(--ui-color-red-700);
+
+  /* COMPONENT COLORS */
+  --ui-color-app-store-badge-border: 166 166 166 1;
+  --ui-color-avatar-styles-bg-neutral: 224 224 224 1;
+  --ui-color-featured-icon-light-fg-brand: var(--ui-color-brand-600);
+  --ui-color-featured-icon-light-fg-error: var(--ui-color-red-600);
+  --ui-color-featured-icon-light-fg-gray: var(--ui-color-neutral-500);
+  --ui-color-featured-icon-light-fg-success: var(--ui-color-green-600);
+  --ui-color-featured-icon-light-fg-warning: var(--ui-color-yellow-600);
+  --ui-color-focus-ring-error: var(--ui-color-red-500);
+  --ui-color-focus-ring: var(--ui-color-brand-500);
+  --ui-color-footer-button-fg: var(--ui-color-brand-200);
+  --ui-color-footer-button-fg_hover: var(--ui-color-white);
+  --ui-color-icon-fg-brand: var(--ui-color-brand-600);
+  --ui-color-icon-fg-brand_on-brand: var(--ui-color-brand-200);
+  --ui-color-screen-mockup-border: var(--ui-color-neutral-900);
+
+  --ui-color-slider-handle-bg: var(--ui-color-white);
+  --ui-color-slider-handle-border: var(--ui-color-brand-600);
+  --ui-color-toggle-border: var(--ui-color-neutral-300);
+  --ui-color-toggle-slim-border_pressed-hover: var(--ui-color-bg-brand-solid_hover);
+  --ui-color-toggle-slim-border_pressed: var(--ui-color-bg-brand-solid);
+  --ui-color-tooltip-supporting-text: var(--ui-color-neutral-300);
+
+  /* BACKGROUND PROPERTY COLORS */
+  --ui-background-color-primary: var(--ui-color-bg-primary);
+  --ui-background-color-tertiary: var(--ui-color-bg-tertiary);
+  --ui-background-color-brand-primary: var(--ui-color-bg-brand-primary);
+  --ui-background-color-error-secondary: var(--ui-color-bg-error-secondary);
+  --ui-background-color-warning-primary: var(--ui-color-bg-warning-primary);
+  --ui-background-color-warning-secondary: var(--ui-color-bg-warning-secondary);
+  --ui-background-color-success-primary: var(--ui-color-bg-success-primary);
+  --ui-background-color-success-secondary: var(--ui-color-bg-success-secondary);
+  --ui-background-color-brand-solid: var(--ui-color-bg-brand-solid);
+  --ui-background-color-secondary-solid: var(--ui-color-bg-secondary-solid);
+  --ui-background-color-error-solid: var(--ui-color-bg-error-solid);
+  --ui-background-color-warning-solid: var(--ui-color-bg-warning-solid);
+  --ui-background-color-success-solid: var(--ui-color-bg-success-solid);
+  --ui-background-color-secondary_hover: var(--ui-color-bg-secondary_hover);
+  --ui-background-color-primary_hover: var(--ui-color-bg-primary_hover);
+  --ui-background-color-brand-solid_hover: var(--ui-color-bg-brand-solid_hover);
+  --ui-background-color-error-primary: var(--ui-color-bg-error-primary);
+  --ui-background-color-brand-secondary: var(--ui-color-bg-brand-secondary);
+  --ui-background-color-secondary: var(--ui-color-bg-secondary);
+  --ui-background-color-quaternary: var(--ui-color-bg-quaternary);
+  --ui-background-color-primary_alt: var(--ui-color-bg-primary_alt);
+  --ui-background-color-brand-primary_alt: var(--ui-color-bg-brand-primary_alt);
+  --ui-background-color-secondary_alt: var(--ui-color-bg-secondary_alt);
+  --ui-background-color-overlay: var(--ui-color-bg-overlay);
+  --ui-background-color-brand-section: var(--ui-color-bg-brand-section);
+  --ui-background-color-brand-section_subtle: var(--ui-color-bg-brand-section_subtle);
+  --ui-background-color-primary-solid: var(--ui-color-bg-primary-solid);
+  --ui-background-color-error-solid_hover: var(--ui-color-bg-error-solid_hover);
+  --ui-background-color-border-brand: var(--ui-color-border-brand);
+  --ui-background-color-border-brand_alt: var(--ui-color-border-brand_alt);
+
+  /* TEXT PROPERTY COLORS */
+  --ui-color-text-white: var(--ui-color-white);
+  --ui-text-color-primary: var(--ui-color-text-primary);
+  --ui-text-color-secondary: var(--ui-color-text-secondary);
+  --ui-text-color-secondary_hover: var(--ui-color-text-secondary_hover);
+  --ui-text-color-tertiary: var(--ui-color-text-tertiary);
+  --ui-text-color-tertiary_hover: var(--ui-color-text-tertiary_hover);
+  --ui-text-color-error-primary: var(--ui-color-text-error-primary);
+  --ui-text-color-warning-primary: var(--ui-color-text-warning-primary);
+  --ui-text-color-success-primary: var(--ui-color-text-success-primary);
+  --ui-text-color-brand-secondary: var(--ui-color-text-brand-secondary);
+  --ui-text-color-placeholder: var(--ui-color-text-placeholder);
+  --ui-text-color-brand-tertiary: var(--ui-color-text-brand-tertiary);
+  --ui-text-color-editor-icon-fg: var(--ui-color-text-editor-icon-fg);
+  --ui-text-color-editor-icon-fg_active: var(--ui-color-text-editor-icon-fg_active);
+  --ui-text-color-quaternary: var(--ui-color-text-quaternary);
+  --ui-text-color-brand-primary: var(--ui-color-text-brand-primary);
+  --ui-text-color-primary_on-brand: var(--ui-color-text-primary_on-brand);
+  --ui-text-color-secondary_on-brand: var(--ui-color-text-secondary_on-brand);
+  --ui-text-color-tertiary_on-brand: var(--ui-color-text-tertiary_on-brand);
+  --ui-text-color-quaternary_on-brand: var(--ui-color-text-quaternary_on-brand);
+  --ui-text-color-brand-tertiary_alt: var(--ui-color-text-brand-tertiary_alt);
+  --ui-text-color-error-primary_hover: var(--ui-color-text-error-primary_hover);
+  --ui-text-color-brand-secondary_hover: var(--ui-color-text-brand-secondary_hover);
+  --ui-text-color-tooltip-supporting-text: var(--ui-color-tooltip-supporting-text);
+
+  /* BORDER PROPERTY COLORS */
+  --ui-border-color-primary: var(--ui-color-border-primary);
+  --ui-border-color-secondary: var(--ui-color-border-secondary);
+  --ui-border-color-secondary_alt: var(--ui-color-border-secondary_alt);
+  --ui-border-color-tertiary: var(--ui-color-border-tertiary);
+  --ui-border-color-error: var(--ui-color-border-error);
+  --ui-border-color-error_subtle: var(--ui-color-border-error_subtle);
+  --ui-border-color-brand: var(--ui-color-border-brand);
+  --ui-border-color-brand_alt: var(--ui-color-border-brand_alt);
+  --ui-border-color-brand-solid: var(--ui-color-bg-brand-solid);
+  --ui-border-color-brand-solid_hover: var(--ui-color-bg-brand-solid_hover);
+
+  /* RING PROPERTY COLORS */
+  --ui-ring-color-primary: var(--ui-color-border-primary);
+  --ui-ring-color-secondary: var(--ui-color-border-secondary);
+  --ui-ring-color-secondary_alt: var(--ui-color-border-secondary_alt);
+  --ui-ring-color-tertiary: var(--ui-color-border-tertiary);
+  --ui-ring-color-error: var(--ui-color-border-error);
+  --ui-ring-color-error_subtle: var(--ui-color-border-error_subtle);
+  --ui-ring-color-brand: var(--ui-color-border-brand);
+  --ui-ring-color-brand_alt: var(--ui-color-border-brand_alt);
+  --ui-ring-color-brand-solid: var(--ui-color-bg-brand-solid);
+  --ui-ring-color-brand-solid_hover: var(--ui-color-bg-brand-solid_hover);
+
+  /* OUTLINE PROPERTY COLORS */
+  --ui-outline-color-primary: var(--ui-color-border-primary);
+  --ui-outline-color-secondary: var(--ui-color-border-secondary);
+  --ui-outline-color-secondary_alt: var(--ui-color-border-secondary_alt);
+  --ui-outline-color-tertiary: var(--ui-color-border-tertiary);
+  --ui-outline-color-error: var(--ui-color-border-error);
+  --ui-outline-color-error_subtle: var(--ui-color-border-error_subtle);
+  --ui-outline-color-brand: var(--ui-color-border-brand);
+  --ui-outline-color-brand_alt: var(--ui-color-border-brand_alt);
+  --ui-outline-color-brand-solid: var(--ui-color-bg-brand-solid);
+  --ui-outline-color-brand-solid_hover: var(--ui-color-bg-brand-solid_hover);
+}
+
+@theme inline {
+  --color-ui-background-color-border-brand: var(--ui-background-color-border-brand);
+  --color-ui-background-color-border-brand_alt: var(--ui-background-color-border-brand_alt);
+  --color-ui-background-color-brand-primary: var(--ui-background-color-brand-primary);
+  --color-ui-background-color-brand-primary_alt: var(--ui-background-color-brand-primary_alt);
+  --color-ui-background-color-brand-secondary: var(--ui-background-color-brand-secondary);
+  --color-ui-background-color-brand-section: var(--ui-background-color-brand-section);
+  --color-ui-background-color-brand-section_subtle: var(--ui-background-color-brand-section_subtle);
+  --color-ui-background-color-brand-solid: var(--ui-background-color-brand-solid);
+  --color-ui-background-color-brand-solid_hover: var(--ui-background-color-brand-solid_hover);
+  --color-ui-background-color-error-primary: var(--ui-background-color-error-primary);
+  --color-ui-background-color-error-secondary: var(--ui-background-color-error-secondary);
+  --color-ui-background-color-error-solid: var(--ui-background-color-error-solid);
+  --color-ui-background-color-error-solid_hover: var(--ui-background-color-error-solid_hover);
+  --color-ui-background-color-overlay: var(--ui-background-color-overlay);
+  --color-ui-background-color-primary: var(--ui-background-color-primary);
+  --color-ui-background-color-primary-solid: var(--ui-background-color-primary-solid);
+  --color-ui-background-color-primary_alt: var(--ui-background-color-primary_alt);
+  --color-ui-background-color-primary_hover: var(--ui-background-color-primary_hover);
+  --color-ui-background-color-quaternary: var(--ui-background-color-quaternary);
+  --color-ui-background-color-secondary: var(--ui-background-color-secondary);
+  --color-ui-background-color-secondary-solid: var(--ui-background-color-secondary-solid);
+  --color-ui-background-color-secondary_alt: var(--ui-background-color-secondary_alt);
+  --color-ui-background-color-secondary_hover: var(--ui-background-color-secondary_hover);
+  --color-ui-background-color-success-primary: var(--ui-background-color-success-primary);
+  --color-ui-background-color-success-secondary: var(--ui-background-color-success-secondary);
+  --color-ui-background-color-success-solid: var(--ui-background-color-success-solid);
+  --color-ui-background-color-tertiary: var(--ui-background-color-tertiary);
+  --color-ui-background-color-warning-primary: var(--ui-background-color-warning-primary);
+  --color-ui-background-color-warning-secondary: var(--ui-background-color-warning-secondary);
+  --color-ui-background-color-warning-solid: var(--ui-background-color-warning-solid);
+  --color-ui-border-color-brand: var(--ui-border-color-brand);
+  --color-ui-border-color-brand-solid: var(--ui-border-color-brand-solid);
+  --color-ui-border-color-brand-solid_hover: var(--ui-border-color-brand-solid_hover);
+  --color-ui-border-color-brand_alt: var(--ui-border-color-brand_alt);
+  --color-ui-border-color-error: var(--ui-border-color-error);
+  --color-ui-border-color-error_subtle: var(--ui-border-color-error_subtle);
+  --color-ui-border-color-primary: var(--ui-border-color-primary);
+  --color-ui-border-color-secondary: var(--ui-border-color-secondary);
+  --color-ui-border-color-secondary_alt: var(--ui-border-color-secondary_alt);
+  --color-ui-border-color-tertiary: var(--ui-border-color-tertiary);
+  --color-ui-color-alpha-black: var(--ui-color-alpha-black);
+  --color-ui-color-alpha-white: var(--ui-color-alpha-white);
+  --color-ui-color-app-store-badge-border: var(--ui-color-app-store-badge-border);
+  --color-ui-color-avatar-styles-bg-neutral: var(--ui-color-avatar-styles-bg-neutral);
+  --color-ui-color-bg-brand-primary: var(--ui-color-bg-brand-primary);
+  --color-ui-color-bg-brand-primary_alt: var(--ui-color-bg-brand-primary_alt);
+  --color-ui-color-bg-brand-secondary: var(--ui-color-bg-brand-secondary);
+  --color-ui-color-bg-brand-section: var(--ui-color-bg-brand-section);
+  --color-ui-color-bg-brand-section_subtle: var(--ui-color-bg-brand-section_subtle);
+  --color-ui-color-bg-brand-solid: var(--ui-color-bg-brand-solid);
+  --color-ui-color-bg-brand-solid_hover: var(--ui-color-bg-brand-solid_hover);
+  --color-ui-color-bg-error-primary: var(--ui-color-bg-error-primary);
+  --color-ui-color-bg-error-secondary: var(--ui-color-bg-error-secondary);
+  --color-ui-color-bg-error-solid: var(--ui-color-bg-error-solid);
+  --color-ui-color-bg-error-solid_hover: var(--ui-color-bg-error-solid_hover);
+  --color-ui-color-bg-overlay: var(--ui-color-bg-overlay);
+  --color-ui-color-bg-primary: var(--ui-color-bg-primary);
+  --color-ui-color-bg-primary-solid: var(--ui-color-bg-primary-solid);
+  --color-ui-color-bg-primary_alt: var(--ui-color-bg-primary_alt);
+  --color-ui-color-bg-primary_hover: var(--ui-color-bg-primary_hover);
+  --color-ui-color-bg-quaternary: var(--ui-color-bg-quaternary);
+  --color-ui-color-bg-secondary: var(--ui-color-bg-secondary);
+  --color-ui-color-bg-secondary-solid: var(--ui-color-bg-secondary-solid);
+  --color-ui-color-bg-secondary_alt: var(--ui-color-bg-secondary_alt);
+  --color-ui-color-bg-secondary_hover: var(--ui-color-bg-secondary_hover);
+  --color-ui-color-bg-success-primary: var(--ui-color-bg-success-primary);
+  --color-ui-color-bg-success-secondary: var(--ui-color-bg-success-secondary);
+  --color-ui-color-bg-success-solid: var(--ui-color-bg-success-solid);
+  --color-ui-color-bg-tertiary: var(--ui-color-bg-tertiary);
+  --color-ui-color-bg-warning-primary: var(--ui-color-bg-warning-primary);
+  --color-ui-color-bg-warning-secondary: var(--ui-color-bg-warning-secondary);
+  --color-ui-color-bg-warning-solid: var(--ui-color-bg-warning-solid);
+  --color-ui-color-border-brand: var(--ui-color-border-brand);
+  --color-ui-color-border-brand_alt: var(--ui-color-border-brand_alt);
+  --color-ui-color-border-error: var(--ui-color-border-error);
+  --color-ui-color-border-error_subtle: var(--ui-color-border-error_subtle);
+  --color-ui-color-border-primary: var(--ui-color-border-primary);
+  --color-ui-color-border-secondary: var(--ui-color-border-secondary);
+  --color-ui-color-border-secondary_alt: var(--ui-color-border-secondary_alt);
+  --color-ui-color-border-tertiary: var(--ui-color-border-tertiary);
+  --color-ui-color-brand-100: var(--ui-color-brand-100);
+  --color-ui-color-brand-200: var(--ui-color-brand-200);
+  --color-ui-color-brand-300: var(--ui-color-brand-300);
+  --color-ui-color-brand-400: var(--ui-color-brand-400);
+  --color-ui-color-brand-50: var(--ui-color-brand-50);
+  --color-ui-color-brand-500: var(--ui-color-brand-500);
+  --color-ui-color-brand-600: var(--ui-color-brand-600);
+  --color-ui-color-brand-700: var(--ui-color-brand-700);
+  --color-ui-color-brand-800: var(--ui-color-brand-800);
+  --color-ui-color-brand-900: var(--ui-color-brand-900);
+  --color-ui-color-brand-950: var(--ui-color-brand-950);
+  --color-ui-color-featured-icon-light-fg-brand: var(--ui-color-featured-icon-light-fg-brand);
+  --color-ui-color-featured-icon-light-fg-error: var(--ui-color-featured-icon-light-fg-error);
+  --color-ui-color-featured-icon-light-fg-gray: var(--ui-color-featured-icon-light-fg-gray);
+  --color-ui-color-featured-icon-light-fg-success: var(--ui-color-featured-icon-light-fg-success);
+  --color-ui-color-featured-icon-light-fg-warning: var(--ui-color-featured-icon-light-fg-warning);
+  --color-ui-color-fg-brand-primary: var(--ui-color-fg-brand-primary);
+  --color-ui-color-fg-brand-primary_alt: var(--ui-color-fg-brand-primary_alt);
+  --color-ui-color-fg-brand-secondary: var(--ui-color-fg-brand-secondary);
+  --color-ui-color-fg-brand-secondary_alt: var(--ui-color-fg-brand-secondary_alt);
+  --color-ui-color-fg-brand-secondary_hover: var(--ui-color-fg-brand-secondary_hover);
+  --color-ui-color-fg-error-primary: var(--ui-color-fg-error-primary);
+  --color-ui-color-fg-error-secondary: var(--ui-color-fg-error-secondary);
+  --color-ui-color-fg-primary: var(--ui-color-fg-primary);
+  --color-ui-color-fg-quaternary: var(--ui-color-fg-quaternary);
+  --color-ui-color-fg-quaternary_hover: var(--ui-color-fg-quaternary_hover);
+  --color-ui-color-fg-secondary: var(--ui-color-fg-secondary);
+  --color-ui-color-fg-secondary_hover: var(--ui-color-fg-secondary_hover);
+  --color-ui-color-fg-success-primary: var(--ui-color-fg-success-primary);
+  --color-ui-color-fg-success-secondary: var(--ui-color-fg-success-secondary);
+  --color-ui-color-fg-tertiary: var(--ui-color-fg-tertiary);
+  --color-ui-color-fg-tertiary_hover: var(--ui-color-fg-tertiary_hover);
+  --color-ui-color-fg-warning-primary: var(--ui-color-fg-warning-primary);
+  --color-ui-color-fg-warning-secondary: var(--ui-color-fg-warning-secondary);
+  --color-ui-color-fg-white: var(--ui-color-fg-white);
+  --color-ui-color-focus-ring: var(--ui-color-focus-ring);
+  --color-ui-color-focus-ring-error: var(--ui-color-focus-ring-error);
+  --color-ui-color-footer-button-fg: var(--ui-color-footer-button-fg);
+  --color-ui-color-footer-button-fg_hover: var(--ui-color-footer-button-fg_hover);
+  --color-ui-color-icon-fg-brand: var(--ui-color-icon-fg-brand);
+  --color-ui-color-icon-fg-brand_on-brand: var(--ui-color-icon-fg-brand_on-brand);
+  --color-ui-color-screen-mockup-border: var(--ui-color-screen-mockup-border);
+  --color-ui-color-slider-handle-bg: var(--ui-color-slider-handle-bg);
+  --color-ui-color-slider-handle-border: var(--ui-color-slider-handle-border);
+  --color-ui-color-text-brand-primary: var(--ui-color-text-brand-primary);
+  --color-ui-color-text-brand-secondary: var(--ui-color-text-brand-secondary);
+  --color-ui-color-text-brand-secondary_hover: var(--ui-color-text-brand-secondary_hover);
+  --color-ui-color-text-brand-tertiary: var(--ui-color-text-brand-tertiary);
+  --color-ui-color-text-brand-tertiary_alt: var(--ui-color-text-brand-tertiary_alt);
+  --color-ui-color-text-editor-icon-fg: var(--ui-color-text-editor-icon-fg);
+  --color-ui-color-text-editor-icon-fg_active: var(--ui-color-text-editor-icon-fg_active);
+  --color-ui-color-text-error-primary: var(--ui-color-text-error-primary);
+  --color-ui-color-text-error-primary_hover: var(--ui-color-text-error-primary_hover);
+  --color-ui-color-text-placeholder: var(--ui-color-text-placeholder);
+  --color-ui-color-text-primary: var(--ui-color-text-primary);
+  --color-ui-color-text-primary_on-brand: var(--ui-color-text-primary_on-brand);
+  --color-ui-color-text-quaternary: var(--ui-color-text-quaternary);
+  --color-ui-color-text-quaternary_on-brand: var(--ui-color-text-quaternary_on-brand);
+  --color-ui-color-text-secondary: var(--ui-color-text-secondary);
+  --color-ui-color-text-secondary_hover: var(--ui-color-text-secondary_hover);
+  --color-ui-color-text-secondary_on-brand: var(--ui-color-text-secondary_on-brand);
+  --color-ui-color-text-success-primary: var(--ui-color-text-success-primary);
+  --color-ui-color-text-tertiary: var(--ui-color-text-tertiary);
+  --color-ui-color-text-tertiary_hover: var(--ui-color-text-tertiary_hover);
+  --color-ui-color-text-tertiary_on-brand: var(--ui-color-text-tertiary_on-brand);
+  --color-ui-color-text-warning-primary: var(--ui-color-text-warning-primary);
+  --color-ui-color-text-white: var(--ui-color-text-white);
+  --color-ui-color-toggle-border: var(--ui-color-toggle-border);
+  --color-ui-color-toggle-slim-border_pressed: var(--ui-color-toggle-slim-border_pressed);
+  --color-ui-color-toggle-slim-border_pressed-hover: var(--ui-color-toggle-slim-border_pressed-hover);
+  --color-ui-color-tooltip-supporting-text: var(--ui-color-tooltip-supporting-text);
+  --color-ui-color-transparent: var(--ui-color-transparent);
+  --color-ui-color-utility-amber-100: var(--ui-color-utility-amber-100);
+  --color-ui-color-utility-amber-200: var(--ui-color-utility-amber-200);
+  --color-ui-color-utility-amber-300: var(--ui-color-utility-amber-300);
+  --color-ui-color-utility-amber-400: var(--ui-color-utility-amber-400);
+  --color-ui-color-utility-amber-50: var(--ui-color-utility-amber-50);
+  --color-ui-color-utility-amber-500: var(--ui-color-utility-amber-500);
+  --color-ui-color-utility-amber-600: var(--ui-color-utility-amber-600);
+  --color-ui-color-utility-amber-700: var(--ui-color-utility-amber-700);
+  --color-ui-color-utility-blue-100: var(--ui-color-utility-blue-100);
+  --color-ui-color-utility-blue-200: var(--ui-color-utility-blue-200);
+  --color-ui-color-utility-blue-300: var(--ui-color-utility-blue-300);
+  --color-ui-color-utility-blue-400: var(--ui-color-utility-blue-400);
+  --color-ui-color-utility-blue-50: var(--ui-color-utility-blue-50);
+  --color-ui-color-utility-blue-500: var(--ui-color-utility-blue-500);
+  --color-ui-color-utility-blue-600: var(--ui-color-utility-blue-600);
+  --color-ui-color-utility-blue-700: var(--ui-color-utility-blue-700);
+  --color-ui-color-utility-brand-100: var(--ui-color-utility-brand-100);
+  --color-ui-color-utility-brand-100_alt: var(--ui-color-utility-brand-100_alt);
+  --color-ui-color-utility-brand-200: var(--ui-color-utility-brand-200);
+  --color-ui-color-utility-brand-200_alt: var(--ui-color-utility-brand-200_alt);
+  --color-ui-color-utility-brand-300: var(--ui-color-utility-brand-300);
+  --color-ui-color-utility-brand-300_alt: var(--ui-color-utility-brand-300_alt);
+  --color-ui-color-utility-brand-400: var(--ui-color-utility-brand-400);
+  --color-ui-color-utility-brand-400_alt: var(--ui-color-utility-brand-400_alt);
+  --color-ui-color-utility-brand-50: var(--ui-color-utility-brand-50);
+  --color-ui-color-utility-brand-500: var(--ui-color-utility-brand-500);
+  --color-ui-color-utility-brand-500_alt: var(--ui-color-utility-brand-500_alt);
+  --color-ui-color-utility-brand-50_alt: var(--ui-color-utility-brand-50_alt);
+  --color-ui-color-utility-brand-600: var(--ui-color-utility-brand-600);
+  --color-ui-color-utility-brand-600_alt: var(--ui-color-utility-brand-600_alt);
+  --color-ui-color-utility-brand-700: var(--ui-color-utility-brand-700);
+  --color-ui-color-utility-brand-700_alt: var(--ui-color-utility-brand-700_alt);
+  --color-ui-color-utility-brand-800: var(--ui-color-utility-brand-800);
+  --color-ui-color-utility-brand-800_alt: var(--ui-color-utility-brand-800_alt);
+  --color-ui-color-utility-brand-900: var(--ui-color-utility-brand-900);
+  --color-ui-color-utility-brand-900_alt: var(--ui-color-utility-brand-900_alt);
+  --color-ui-color-utility-emerald-100: var(--ui-color-utility-emerald-100);
+  --color-ui-color-utility-emerald-200: var(--ui-color-utility-emerald-200);
+  --color-ui-color-utility-emerald-300: var(--ui-color-utility-emerald-300);
+  --color-ui-color-utility-emerald-400: var(--ui-color-utility-emerald-400);
+  --color-ui-color-utility-emerald-50: var(--ui-color-utility-emerald-50);
+  --color-ui-color-utility-emerald-500: var(--ui-color-utility-emerald-500);
+  --color-ui-color-utility-emerald-600: var(--ui-color-utility-emerald-600);
+  --color-ui-color-utility-emerald-700: var(--ui-color-utility-emerald-700);
+  --color-ui-color-utility-fuchsia-100: var(--ui-color-utility-fuchsia-100);
+  --color-ui-color-utility-fuchsia-200: var(--ui-color-utility-fuchsia-200);
+  --color-ui-color-utility-fuchsia-300: var(--ui-color-utility-fuchsia-300);
+  --color-ui-color-utility-fuchsia-400: var(--ui-color-utility-fuchsia-400);
+  --color-ui-color-utility-fuchsia-50: var(--ui-color-utility-fuchsia-50);
+  --color-ui-color-utility-fuchsia-500: var(--ui-color-utility-fuchsia-500);
+  --color-ui-color-utility-fuchsia-600: var(--ui-color-utility-fuchsia-600);
+  --color-ui-color-utility-fuchsia-700: var(--ui-color-utility-fuchsia-700);
+  --color-ui-color-utility-green-100: var(--ui-color-utility-green-100);
+  --color-ui-color-utility-green-200: var(--ui-color-utility-green-200);
+  --color-ui-color-utility-green-300: var(--ui-color-utility-green-300);
+  --color-ui-color-utility-green-400: var(--ui-color-utility-green-400);
+  --color-ui-color-utility-green-50: var(--ui-color-utility-green-50);
+  --color-ui-color-utility-green-500: var(--ui-color-utility-green-500);
+  --color-ui-color-utility-green-600: var(--ui-color-utility-green-600);
+  --color-ui-color-utility-green-700: var(--ui-color-utility-green-700);
+  --color-ui-color-utility-indigo-100: var(--ui-color-utility-indigo-100);
+  --color-ui-color-utility-indigo-200: var(--ui-color-utility-indigo-200);
+  --color-ui-color-utility-indigo-300: var(--ui-color-utility-indigo-300);
+  --color-ui-color-utility-indigo-400: var(--ui-color-utility-indigo-400);
+  --color-ui-color-utility-indigo-50: var(--ui-color-utility-indigo-50);
+  --color-ui-color-utility-indigo-500: var(--ui-color-utility-indigo-500);
+  --color-ui-color-utility-indigo-600: var(--ui-color-utility-indigo-600);
+  --color-ui-color-utility-indigo-700: var(--ui-color-utility-indigo-700);
+  --color-ui-color-utility-neutral-100: var(--ui-color-utility-neutral-100);
+  --color-ui-color-utility-neutral-200: var(--ui-color-utility-neutral-200);
+  --color-ui-color-utility-neutral-300: var(--ui-color-utility-neutral-300);
+  --color-ui-color-utility-neutral-400: var(--ui-color-utility-neutral-400);
+  --color-ui-color-utility-neutral-50: var(--ui-color-utility-neutral-50);
+  --color-ui-color-utility-neutral-500: var(--ui-color-utility-neutral-500);
+  --color-ui-color-utility-neutral-600: var(--ui-color-utility-neutral-600);
+  --color-ui-color-utility-neutral-700: var(--ui-color-utility-neutral-700);
+  --color-ui-color-utility-neutral-800: var(--ui-color-utility-neutral-800);
+  --color-ui-color-utility-neutral-900: var(--ui-color-utility-neutral-900);
+  --color-ui-color-utility-orange-100: var(--ui-color-utility-orange-100);
+  --color-ui-color-utility-orange-200: var(--ui-color-utility-orange-200);
+  --color-ui-color-utility-orange-300: var(--ui-color-utility-orange-300);
+  --color-ui-color-utility-orange-400: var(--ui-color-utility-orange-400);
+  --color-ui-color-utility-orange-50: var(--ui-color-utility-orange-50);
+  --color-ui-color-utility-orange-500: var(--ui-color-utility-orange-500);
+  --color-ui-color-utility-orange-600: var(--ui-color-utility-orange-600);
+  --color-ui-color-utility-orange-700: var(--ui-color-utility-orange-700);
+  --color-ui-color-utility-pink-100: var(--ui-color-utility-pink-100);
+  --color-ui-color-utility-pink-200: var(--ui-color-utility-pink-200);
+  --color-ui-color-utility-pink-300: var(--ui-color-utility-pink-300);
+  --color-ui-color-utility-pink-400: var(--ui-color-utility-pink-400);
+  --color-ui-color-utility-pink-50: var(--ui-color-utility-pink-50);
+  --color-ui-color-utility-pink-500: var(--ui-color-utility-pink-500);
+  --color-ui-color-utility-pink-600: var(--ui-color-utility-pink-600);
+  --color-ui-color-utility-pink-700: var(--ui-color-utility-pink-700);
+  --color-ui-color-utility-purple-100: var(--ui-color-utility-purple-100);
+  --color-ui-color-utility-purple-200: var(--ui-color-utility-purple-200);
+  --color-ui-color-utility-purple-300: var(--ui-color-utility-purple-300);
+  --color-ui-color-utility-purple-400: var(--ui-color-utility-purple-400);
+  --color-ui-color-utility-purple-50: var(--ui-color-utility-purple-50);
+  --color-ui-color-utility-purple-500: var(--ui-color-utility-purple-500);
+  --color-ui-color-utility-purple-600: var(--ui-color-utility-purple-600);
+  --color-ui-color-utility-purple-700: var(--ui-color-utility-purple-700);
+  --color-ui-color-utility-red-100: var(--ui-color-utility-red-100);
+  --color-ui-color-utility-red-200: var(--ui-color-utility-red-200);
+  --color-ui-color-utility-red-300: var(--ui-color-utility-red-300);
+  --color-ui-color-utility-red-400: var(--ui-color-utility-red-400);
+  --color-ui-color-utility-red-50: var(--ui-color-utility-red-50);
+  --color-ui-color-utility-red-500: var(--ui-color-utility-red-500);
+  --color-ui-color-utility-red-600: var(--ui-color-utility-red-600);
+  --color-ui-color-utility-red-700: var(--ui-color-utility-red-700);
+  --color-ui-color-utility-sky-100: var(--ui-color-utility-sky-100);
+  --color-ui-color-utility-sky-200: var(--ui-color-utility-sky-200);
+  --color-ui-color-utility-sky-300: var(--ui-color-utility-sky-300);
+  --color-ui-color-utility-sky-400: var(--ui-color-utility-sky-400);
+  --color-ui-color-utility-sky-50: var(--ui-color-utility-sky-50);
+  --color-ui-color-utility-sky-500: var(--ui-color-utility-sky-500);
+  --color-ui-color-utility-sky-600: var(--ui-color-utility-sky-600);
+  --color-ui-color-utility-sky-700: var(--ui-color-utility-sky-700);
+  --color-ui-color-utility-slate-100: var(--ui-color-utility-slate-100);
+  --color-ui-color-utility-slate-200: var(--ui-color-utility-slate-200);
+  --color-ui-color-utility-slate-300: var(--ui-color-utility-slate-300);
+  --color-ui-color-utility-slate-400: var(--ui-color-utility-slate-400);
+  --color-ui-color-utility-slate-50: var(--ui-color-utility-slate-50);
+  --color-ui-color-utility-slate-500: var(--ui-color-utility-slate-500);
+  --color-ui-color-utility-slate-600: var(--ui-color-utility-slate-600);
+  --color-ui-color-utility-slate-700: var(--ui-color-utility-slate-700);
+  --color-ui-color-utility-yellow-100: var(--ui-color-utility-yellow-100);
+  --color-ui-color-utility-yellow-200: var(--ui-color-utility-yellow-200);
+  --color-ui-color-utility-yellow-300: var(--ui-color-utility-yellow-300);
+  --color-ui-color-utility-yellow-400: var(--ui-color-utility-yellow-400);
+  --color-ui-color-utility-yellow-50: var(--ui-color-utility-yellow-50);
+  --color-ui-color-utility-yellow-500: var(--ui-color-utility-yellow-500);
+  --color-ui-color-utility-yellow-600: var(--ui-color-utility-yellow-600);
+  --color-ui-color-utility-yellow-700: var(--ui-color-utility-yellow-700);
+  --color-ui-outline-color-brand: var(--ui-outline-color-brand);
+  --color-ui-outline-color-brand-solid: var(--ui-outline-color-brand-solid);
+  --color-ui-outline-color-brand-solid_hover: var(--ui-outline-color-brand-solid_hover);
+  --color-ui-outline-color-brand_alt: var(--ui-outline-color-brand_alt);
+  --color-ui-outline-color-error: var(--ui-outline-color-error);
+  --color-ui-outline-color-error_subtle: var(--ui-outline-color-error_subtle);
+  --color-ui-outline-color-primary: var(--ui-outline-color-primary);
+  --color-ui-outline-color-secondary: var(--ui-outline-color-secondary);
+  --color-ui-outline-color-secondary_alt: var(--ui-outline-color-secondary_alt);
+  --color-ui-outline-color-tertiary: var(--ui-outline-color-tertiary);
+  --color-ui-ring-color-brand: var(--ui-ring-color-brand);
+  --color-ui-ring-color-brand-solid: var(--ui-ring-color-brand-solid);
+  --color-ui-ring-color-brand-solid_hover: var(--ui-ring-color-brand-solid_hover);
+  --color-ui-ring-color-brand_alt: var(--ui-ring-color-brand_alt);
+  --color-ui-ring-color-error: var(--ui-ring-color-error);
+  --color-ui-ring-color-error_subtle: var(--ui-ring-color-error_subtle);
+  --color-ui-ring-color-primary: var(--ui-ring-color-primary);
+  --color-ui-ring-color-secondary: var(--ui-ring-color-secondary);
+  --color-ui-ring-color-secondary_alt: var(--ui-ring-color-secondary_alt);
+  --color-ui-ring-color-tertiary: var(--ui-ring-color-tertiary);
+  --color-ui-text-color-brand-primary: var(--ui-text-color-brand-primary);
+  --color-ui-text-color-brand-secondary: var(--ui-text-color-brand-secondary);
+  --color-ui-text-color-brand-secondary_hover: var(--ui-text-color-brand-secondary_hover);
+  --color-ui-text-color-brand-tertiary: var(--ui-text-color-brand-tertiary);
+  --color-ui-text-color-brand-tertiary_alt: var(--ui-text-color-brand-tertiary_alt);
+  --color-ui-text-color-editor-icon-fg: var(--ui-text-color-editor-icon-fg);
+  --color-ui-text-color-editor-icon-fg_active: var(--ui-text-color-editor-icon-fg_active);
+  --color-ui-text-color-error-primary: var(--ui-text-color-error-primary);
+  --color-ui-text-color-error-primary_hover: var(--ui-text-color-error-primary_hover);
+  --color-ui-text-color-placeholder: var(--ui-text-color-placeholder);
+  --color-ui-text-color-primary: var(--ui-text-color-primary);
+  --color-ui-text-color-primary_on-brand: var(--ui-text-color-primary_on-brand);
+  --color-ui-text-color-quaternary: var(--ui-text-color-quaternary);
+  --color-ui-text-color-quaternary_on-brand: var(--ui-text-color-quaternary_on-brand);
+  --color-ui-text-color-secondary: var(--ui-text-color-secondary);
+  --color-ui-text-color-secondary_hover: var(--ui-text-color-secondary_hover);
+  --color-ui-text-color-secondary_on-brand: var(--ui-text-color-secondary_on-brand);
+  --color-ui-text-color-success-primary: var(--ui-text-color-success-primary);
+  --color-ui-text-color-tertiary: var(--ui-text-color-tertiary);
+  --color-ui-text-color-tertiary_hover: var(--ui-text-color-tertiary_hover);
+  --color-ui-text-color-tertiary_on-brand: var(--ui-text-color-tertiary_on-brand);
+  --color-ui-text-color-tooltip-supporting-text: var(--ui-text-color-tooltip-supporting-text);
+  --color-ui-text-color-warning-primary: var(--ui-text-color-warning-primary);
+}
+
+:root {
+  --ui-font-body: 'Geist Variable', sans-serif;
+  --ui-color-bg-primary: #fdfcfc;
+  --ui-color-bg-primary_alt: #fdfcfc;
+  --ui-color-bg-primary_hover: #f5f3f1;
+  --ui-color-bg-secondary: #f5f3f1;
+  --ui-color-text-primary: #000;
+  --ui-color-text-secondary: #44403b;
+  --ui-color-text-tertiary: #5c5750;
+  --ui-color-border-secondary: #ebe8e4;
+  --ui-color-border-primary: #d9d5d0;
+}
+:root {
+  --ui-color-brand-50: #f5f3f1;
+  --ui-color-brand-100: #ebe8e4;
+  --ui-color-brand-200: #d9d5d0;
+  --ui-color-brand-300: #a59f97;
+  --ui-color-brand-400: #777169;
+  --ui-color-brand-500: #44403b;
+  --ui-color-brand-600: #000;
+  --ui-color-brand-700: #000;
+  --ui-color-brand-800: #000;
+  --ui-color-brand-900: #000;
+  --ui-color-brand-950: #000;
+}

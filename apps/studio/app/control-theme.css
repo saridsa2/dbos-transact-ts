@@ -1,0 +1,207 @@
+/* Nexbic product-theme.css / workspace-type.css: Geist, ink and warm neutrals. */
+@font-face {
+  font-family: 'Geist Variable';
+  src: url('/assets/fonts/Geist-Variable-Latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop, .cp-app-nav) {
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop, .cp-app-nav) :is(button, input, select, textarea) {
+  font-family: 'Geist Variable', sans-serif;
+  border-radius: 0;
+}
+.cp-shell,
+.cp-gate {
+  background: #f5f3f1;
+}
+.cp-sidebar,
+.cp-app-nav,
+.cp-card,
+.cp-stats section,
+.cp-modal,
+.cp-onboarding {
+  background: #fdfcfc;
+  border-color: #ebe8e4;
+  box-shadow: none;
+}
+.cp-page-header h1,
+.cp-onboarding h1 {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.cp-shell h2,
+.cp-modal h2 {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.cp-shell h3 {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.cp-stats strong {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 40px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.cp-shell :is(p, td),
+.cp-onboarding > p {
+  font-size: 15px;
+  line-height: 24px;
+}
+.cp-shell :is(small, th, label),
+.cp-modal label,
+.cp-gate label,
+.cp-app-nav :is(a, button, select, span),
+.cp-shell :is(button, input, select),
+.cp-modal :is(button, input, select) {
+  font-size: 14px;
+  line-height: 20px;
+}
+.cp-eyebrow {
+  font-size: 14px !important;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: #777169 !important;
+}
+.cp-sidebar > .cp-eyebrow {
+  font-size: 14px !important;
+}
+.cp-sidebar nav button {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+.cp-sidebar nav button.selected {
+  color: #000;
+  background: #ebe8e4;
+  box-shadow: inset 2px 0 #000;
+  font-weight: 500;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) .cp-primary {
+  color: #fff;
+  background: #000;
+  border-color: #000;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) .cp-primary:hover {
+  background: #2b2825 !important;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) [data-input-wrapper] input {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) [role='group']:has(> input) {
+  border-radius: 0;
+}
+.cp-app-nav > div:has(select) {
+  width: auto;
+  max-width: 320px;
+}
+.cp-member > div:has(select) {
+  flex: 0 0 130px;
+}
+.cp-check > label {
+  display: flex;
+}
+.cp-invite-link [data-input-wrapper] {
+  flex: 1;
+  min-width: 0;
+}
+.cp-filters > [data-input-wrapper] {
+  flex: 1;
+}
+.cp-filters > div:has(select) {
+  width: 180px;
+}
+.svg-inline--fa {
+  flex-shrink: 0;
+}
+@media (min-width: 721px) {
+  .cp-shell {
+    height: calc(100dvh - 44px);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .cp-main,
+  .cp-sidebar {
+    overflow: auto;
+  }
+}
+@media (max-width: 720px) {
+  .cp-page-header h1 {
+    font-size: 26px;
+  }
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) button > [data-text] {
+  display: contents;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) button::before {
+  border-radius: 0;
+}
+.cp-sidebar nav button {
+  box-shadow: none;
+}
+.cp-sidebar nav button.selected {
+  box-shadow: inset 2px 0 #000;
+}
+.cp-inventory-row {
+  width: 100%;
+}
+.cp-modal-container {
+  max-width: 560px;
+  border-radius: 0;
+}
+.cp-modal-container .cp-modal,
+.cp-modal-container .cp-onboarding {
+  width: 100%;
+  max-width: none;
+  border: 0;
+}
+.cp-shell table {
+  font-size: 15px;
+  line-height: 22px;
+}
+.cp-shell table td strong {
+  font-weight: 500;
+}
+/* Font Awesome's unlayered display rule must respect Tailwind visibility. */
+.svg-inline--fa.hidden {
+  display: none;
+}
+:is(.cp-shell, .cp-gate, .cp-modal-backdrop) [data-input-wrapper] > div {
+  border-radius: 0;
+}
+.cp-shell [data-rac][data-selection-mode] {
+  border-radius: 0;
+}
+.cp-table-wrap > div {
+  border-radius: 0;
+  box-shadow: none;
+}
+.cp-tag {
+  color: #5c5750;
+  background: #f5f3f1;
+  border-color: #d9d5d0;
+}
+.cp-notice {
+  color: #5c5750;
+  background: #f5f3f1;
+  border-color: #ebe8e4;
+}
+.cp-modal-backdrop :is(small, p),
+.cp-card td small {
+  font-size: 14px;
+  line-height: 22px;
+}

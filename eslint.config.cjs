@@ -13,6 +13,7 @@ const compat = new FlatCompat({
 module.exports = typescriptEslint.config(
   {
     ignores: [
+        'apps/studio/',
 	    '**/dist/',
 	    '**/migrations/*',
 	    'packages/create/templates/',
