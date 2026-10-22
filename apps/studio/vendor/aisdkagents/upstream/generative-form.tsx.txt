@@ -1,0 +1,894 @@
+"use client";
+
+import { AlertCircleIcon, NoteEditIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import { motion, useReducedMotion } from "motion/react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import type { CSSProperties, FormEvent } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+export type GenerativeFormFieldType =
+  | "text"
+  | "longtext"
+  | "number"
+  | "boolean"
+  | "select"
+  | "date";
+
+export interface GenerativeFormOption {
+  value: string;
+  label: string;
+}
+
+export interface GenerativeFormField {
+  /** Key in the object. Dots reach into nested objects: `customer.name`. */
+  name: string;
+  /** Defaults to the name in plain words. */
+  label?: string;
+  /** Defaults to what the value looks like, then `text`. */
+  type?: GenerativeFormFieldType;
+  /** Choices for a `select` field. */
+  options?: readonly (string | GenerativeFormOption)[];
+  required?: boolean;
+  placeholder?: string;
+  /** Shown before the value, such as `$`. */
+  prefix?: string;
+}
+
+export type GenerativeFormValue = string | number | boolean;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isValue = (value: unknown): value is GenerativeFormValue =>
+  typeof value === "string" ||
+  typeof value === "boolean" ||
+  (typeof value === "number" && Number.isFinite(value));
+
+/** `dueDate`, `due_date`, and `customer.dueDate` all read as `Due date`. */
+export const fieldLabel = (name: string): string => {
+  const words = (name.split(".").at(-1) ?? name)
+    .replaceAll(/[_-]+/gu, " ")
+    .replaceAll(/([a-z\d])([A-Z])/gu, "$1 $2")
+    .trim()
+    .toLowerCase();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : name;
+};
+
+const readPath = (source: unknown, path: string): unknown => {
+  let current = source;
+  for (const key of path.split(".")) {
+    if (!isRecord(current)) {
+      return undefined;
+    }
+    current = current[key];
+  }
+  return current;
+};
+
+const writePath = (
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown
+) => {
+  const keys = path.split(".");
+  let current = target;
+  for (const key of keys.slice(0, -1)) {
+    const next = current[key];
+    if (isRecord(next)) {
+      current = next;
+    } else {
+      const created: Record<string, unknown> = {};
+      current[key] = created;
+      current = created;
+    }
+  }
+  current[keys.at(-1) ?? path] = value;
+};
+
+const LONG_TEXT = 72;
+
+const typeOfValue = (value: GenerativeFormValue): GenerativeFormFieldType => {
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+  if (typeof value === "number") {
+    return "number";
+  }
+  return value.length > LONG_TEXT || value.includes("\n") ? "longtext" : "text";
+};
+
+/**
+ * Fields read off the object itself, in the order its keys arrive. Nested
+ * objects become dotted names. Arrays are left out.
+ */
+export const generativeFormFields = (
+  object: unknown,
+  prefix = ""
+): GenerativeFormField[] => {
+  if (!isRecord(object)) {
+    return [];
+  }
+  return Object.entries(object).flatMap(([key, value]) => {
+    const name = `${prefix}${key}`;
+    if (isRecord(value)) {
+      return generativeFormFields(value, `${name}.`);
+    }
+    return isValue(value) ? [{ name, type: typeOfValue(value) }] : [];
+  });
+};
+
+const schemaType = (property: Record<string, unknown>) => {
+  const { type } = property;
+  return Array.isArray(type) ? type.find((item) => item !== "null") : type;
+};
+
+const schemaField = (
+  name: string,
+  property: Record<string, unknown>,
+  required: boolean
+): GenerativeFormField | null => {
+  const base = {
+    label: typeof property.title === "string" ? property.title : undefined,
+    name,
+    required,
+  };
+  const type = schemaType(property);
+  if (Array.isArray(property.enum)) {
+    return { ...base, options: property.enum.map(String), type: "select" };
+  }
+  if (type === "boolean") {
+    return { ...base, type: "boolean" };
+  }
+  if (type === "number" || type === "integer") {
+    return { ...base, type: "number" };
+  }
+  if (type === "string") {
+    return {
+      ...base,
+      type: property.format === "date" ? "date" : undefined,
+    };
+  }
+  return null;
+};
+
+/**
+ * Fields from a JSON Schema, so the schema that constrains the model also
+ * lays out the form. Reads `properties`, `required`, `title`, `enum`, and
+ * `format: "date"`. Nested objects become dotted names. Arrays are left out.
+ *
+ * @example
+ * const fields = generativeFormFieldsFromSchema(z.toJSONSchema(schema));
+ */
+export const generativeFormFieldsFromSchema = (
+  schema: unknown,
+  prefix = ""
+): GenerativeFormField[] => {
+  if (!isRecord(schema) || !isRecord(schema.properties)) {
+    return [];
+  }
+  const required = Array.isArray(schema.required) ? schema.required : [];
+  return Object.entries(schema.properties).flatMap(([key, property]) => {
+    const name = `${prefix}${key}`;
+    if (!isRecord(property)) {
+      return [];
+    }
+    if (isRecord(property.properties)) {
+      return generativeFormFieldsFromSchema(property, `${name}.`);
+    }
+    const field = schemaField(name, property, required.includes(key));
+    return field ? [field] : [];
+  });
+};
+
+type Draft = string | boolean;
+
+const toDraft = (value: unknown): Draft | undefined => {
+  if (typeof value === "boolean" || typeof value === "string") {
+    return value;
+  }
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : undefined;
+};
+
+const optionOf = (
+  option: string | GenerativeFormOption
+): GenerativeFormOption =>
+  typeof option === "string" ? { label: option, value: option } : option;
+
+interface ResolvedField extends GenerativeFormField {
+  label: string;
+  type: GenerativeFormFieldType;
+}
+
+const resolveField = (
+  field: GenerativeFormField,
+  value: unknown
+): ResolvedField => ({
+  ...field,
+  label: field.label ?? fieldLabel(field.name),
+  type: field.type ?? (isValue(value) ? typeOfValue(value) : "text"),
+});
+
+/** The drafts as the object to submit, or the first field that blocks it. */
+const collect = (
+  fields: readonly ResolvedField[],
+  drafts: Record<string, Draft | undefined>
+): { values: Record<string, unknown> } | { problem: string; name: string } => {
+  const values: Record<string, unknown> = {};
+  for (const field of fields) {
+    const draft = drafts[field.name];
+    const text = typeof draft === "string" ? draft.trim() : "";
+    if (field.type === "boolean") {
+      writePath(values, field.name, draft === true);
+    } else if (text === "") {
+      if (field.required) {
+        return { name: field.name, problem: `${field.label} is missing.` };
+      }
+    } else if (field.type === "number") {
+      const parsed = Number(text.replaceAll(",", ""));
+      if (!Number.isFinite(parsed)) {
+        return {
+          name: field.name,
+          problem: `${field.label} needs to be a number.`,
+        };
+      }
+      writePath(values, field.name, parsed);
+    } else {
+      writePath(values, field.name, text);
+    }
+  }
+  return { values };
+};
+
+export interface GenerativeFormClassNames {
+  root?: string;
+  header?: string;
+  fields?: string;
+  field?: string;
+  label?: string;
+  control?: string;
+  footer?: string;
+}
+
+export interface GenerativeFormProps {
+  /** `object` from `useObject`: the structured output so far. */
+  object?: object;
+  /** `isLoading` from `useObject`. Fields are read-only while it is true. */
+  isLoading?: boolean;
+  /** `error` from `useObject`, or a message. */
+  error?: Error | string;
+  /** The fields to show. Left out, they are read off `object` as it arrives. */
+  fields?: readonly GenerativeFormField[];
+  title?: string;
+  submitLabel?: string;
+  cancelLabel?: string;
+  /** Called with the corrected object. A returned promise holds the button. */
+  onSubmit?: (values: Record<string, unknown>) => void | Promise<void>;
+  /** Rendered only when passed. */
+  onCancel?: () => void;
+  /** `stop` from `useObject`. Rendered only when passed. */
+  onStop?: () => void;
+  /** Rendered after an error, only when passed. */
+  onRetry?: () => void;
+  className?: string;
+  classNames?: GenerativeFormClassNames;
+  /** Handy for overriding the --generative-form-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const DEFAULT_OBJECT = {
+  company: "Acme Inc",
+  contact: "Dana Reyes",
+  seats: 12,
+  trial: true,
+};
+
+const APPLE_PLATFORM_RE = /Mac|iPhone|iPad|iPod/u;
+const SKELETON_WIDTHS = ["58%", "36%", "72%", "44%"] as const;
+
+const ENTER_CLASS =
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
+
+const ARRIVE_CLASS =
+  "fade-in-0 animate-in duration-300 ease-out motion-reduce:animate-none";
+
+const THEME_VARS = [
+  "[--generative-form-accent:#1d6496] dark:[--generative-form-accent:#6eb5dc]",
+  "[--generative-form-icon-bg:color-mix(in_oklab,var(--generative-form-accent)_14%,var(--card))] dark:[--generative-form-icon-bg:color-mix(in_oklab,var(--generative-form-accent)_22%,var(--card))]",
+  "[--generative-form-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--generative-form-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--generative-form-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--generative-form-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
+
+const FOCUS_CLASS =
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
+
+/** Resets the shadcn field chrome: a value reads as plain text until touched. */
+const CONTROL_CLASS =
+  "h-auto min-h-8 w-full min-w-0 rounded-md border-0 bg-transparent px-2 py-1.5 text-sm leading-5 text-card-foreground shadow-none transition-colors duration-150 ease-out placeholder:text-muted-foreground/70 focus-visible:border-0 motion-reduce:transition-none md:text-sm dark:bg-transparent";
+
+const EDITABLE_CLASS =
+  "hover:bg-foreground/4 focus:bg-card focus-visible:ring-0 focus-visible:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_34%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:focus-visible:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_42%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_12%,transparent)] dark:hover:bg-foreground/4 dark:focus:bg-card";
+
+const KBD_CLASS =
+  "pointer-events-none inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary-foreground/20 px-1 font-sans text-[10px] leading-none font-medium text-primary-foreground select-none";
+
+const TEXT_ACTION_CLASS = cn(
+  "flex-none cursor-pointer rounded-[4px] border-0 bg-transparent p-0 text-xs leading-4 font-medium text-card-foreground hover:underline",
+  FOCUS_CLASS
+);
+
+const noop = () => {
+  // useSyncExternalStore never unsubscribes from this snapshot.
+};
+
+const emptySubscribe = () => noop;
+
+const getApplePlatformSnapshot = () =>
+  APPLE_PLATFORM_RE.test(navigator.userAgent);
+
+const useIsApplePlatform = () =>
+  useSyncExternalStore(emptySubscribe, getApplePlatformSnapshot, () => true);
+
+const Icon = ({
+  icon,
+  className,
+}: {
+  icon: IconSvgElement;
+  className?: string;
+}) => (
+  <HugeiconsIcon
+    aria-hidden="true"
+    className={cn("size-3.5 flex-none", className)}
+    icon={icon}
+    strokeWidth={2}
+  />
+);
+
+const Shimmer = ({ children }: { children: string }) => {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return <span>{children}</span>;
+  }
+  return (
+    <motion.span
+      animate={{ backgroundPosition: ["100% 0", "-100% 0"] }}
+      className="bg-[linear-gradient(90deg,var(--muted-foreground)_40%,var(--card-foreground)_50%,var(--muted-foreground)_60%)] bg-[length:200%_100%] bg-clip-text text-transparent"
+      transition={{
+        duration: 1.8,
+        ease: "linear",
+        repeat: Number.POSITIVE_INFINITY,
+      }}
+    >
+      {children}
+    </motion.span>
+  );
+};
+
+const LongText = ({
+  id,
+  value,
+  placeholder,
+  invalid,
+  className,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  placeholder?: string;
+  invalid: boolean;
+  className?: string;
+  onChange: (value: string) => void;
+}) => {
+  const field = useRef<HTMLTextAreaElement>(null);
+
+  // Grows with its text where the browser does not do it on its own.
+  useLayoutEffect(() => {
+    const element = field.current;
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return (
+    <Textarea
+      aria-invalid={invalid}
+      className={cn(CONTROL_CLASS, EDITABLE_CLASS, "resize-none", className)}
+      id={id}
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
+      placeholder={placeholder}
+      ref={field}
+      rows={1}
+      value={value}
+    />
+  );
+};
+
+const FieldControl = ({
+  id,
+  field,
+  draft,
+  locked,
+  invalid,
+  className,
+  onChange,
+}: {
+  id: string;
+  field: ResolvedField;
+  draft: Draft | undefined;
+  locked: boolean;
+  invalid: boolean;
+  className?: string;
+  onChange: (draft: Draft) => void;
+}) => {
+  const text = typeof draft === "string" ? draft : "";
+  const options = (field.options ?? []).map(optionOf);
+  const placeholder =
+    field.placeholder ?? (field.required ? "Required" : "Add");
+
+  if (field.type === "boolean") {
+    return (
+      <span className="flex h-8 items-center px-2">
+        <Switch
+          checked={draft === true}
+          disabled={locked}
+          id={id}
+          onCheckedChange={onChange}
+          size="sm"
+        />
+      </span>
+    );
+  }
+  if (locked) {
+    // Plain text, so nothing looks editable.
+    const shown =
+      options.find((option) => option.value === text)?.label ?? text;
+    return (
+      <div
+        className={cn(
+          "min-h-8 w-full min-w-0 px-2 py-1.5 text-sm leading-5 whitespace-pre-wrap text-card-foreground",
+          className
+        )}
+        id={id}
+      >
+        {field.prefix && shown ? (
+          <span className="text-muted-foreground">{field.prefix}</span>
+        ) : null}
+        {shown}
+      </div>
+    );
+  }
+  if (field.type === "longtext") {
+    return (
+      <LongText
+        className={className}
+        id={id}
+        invalid={invalid}
+        onChange={onChange}
+        placeholder={placeholder}
+        value={text}
+      />
+    );
+  }
+  if (field.type === "select") {
+    // A value the model made up still shows, next to the real choices.
+    const items =
+      options.some((option) => option.value === text) || !text
+        ? options
+        : [{ label: text, value: text }, ...options];
+    return (
+      <Select
+        items={items}
+        onValueChange={(next) => {
+          onChange(typeof next === "string" ? next : "");
+        }}
+        value={text || null}
+      >
+        <SelectTrigger
+          aria-invalid={invalid}
+          className={cn(
+            CONTROL_CLASS,
+            EDITABLE_CLASS,
+            "cursor-pointer data-[popup-open]:bg-muted dark:data-[popup-open]:bg-background [&_svg]:size-3.5",
+            className
+          )}
+          id={id}
+          size="sm"
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent align="start" alignItemWithTrigger={false}>
+          {items.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "flex min-w-0 items-center rounded-md transition-colors duration-150 ease-out motion-reduce:transition-none",
+        field.prefix &&
+          "focus-within:bg-card focus-within:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_34%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_8%,transparent)] hover:bg-foreground/4 dark:focus-within:bg-card dark:focus-within:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_42%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_12%,transparent)]"
+      )}
+    >
+      {field.prefix ? (
+        <span className="pl-2 text-sm leading-5 text-muted-foreground">
+          {field.prefix}
+        </span>
+      ) : null}
+      <Input
+        aria-invalid={invalid}
+        className={cn(
+          CONTROL_CLASS,
+          field.prefix
+            ? "pl-0 focus-visible:ring-0 dark:bg-transparent"
+            : EDITABLE_CLASS,
+          field.type === "number" && "tabular-nums",
+          className
+        )}
+        id={id}
+        inputMode={field.type === "number" ? "decimal" : undefined}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        placeholder={placeholder}
+        type={field.type === "date" ? "date" : "text"}
+        value={text}
+      />
+    </span>
+  );
+};
+
+const errorText = (error: Error | string | undefined): string | null => {
+  if (!error) {
+    return null;
+  }
+  const message = typeof error === "string" ? error : error.message;
+  return message || "The form could not be filled in.";
+};
+
+/**
+ * A form that fills itself in from a streaming structured object, then hands
+ * the result to the user to correct and send.
+ *
+ * @example
+ * const { object, isLoading, error, submit, stop } = useObject({
+ *   api: "/api/extract",
+ *   schema,
+ * });
+ *
+ * <GenerativeForm
+ *   error={error}
+ *   fields={generativeFormFieldsFromSchema(z.toJSONSchema(schema))}
+ *   isLoading={isLoading}
+ *   object={object}
+ *   onStop={stop}
+ *   onSubmit={(values) => save(schema.parse(values))}
+ * />
+ */
+export const GenerativeForm = ({
+  object = DEFAULT_OBJECT,
+  isLoading = false,
+  error,
+  fields,
+  title = "Review details",
+  submitLabel = "Submit",
+  cancelLabel = "Discard",
+  onSubmit,
+  onCancel,
+  onStop,
+  onRetry,
+  className,
+  classNames,
+  style,
+}: GenerativeFormProps) => {
+  const formId = useId();
+  const isApple = useIsApplePlatform();
+  const [edits, setEdits] = useState<Record<string, Draft>>({});
+  const [problem, setProblem] = useState<{ name: string; text: string } | null>(
+    null
+  );
+  const [sending, setSending] = useState(false);
+  const root = useRef<HTMLFormElement>(null);
+
+  // A new stream replaces what the user typed over the last one.
+  useEffect(() => {
+    if (isLoading) {
+      setEdits({});
+      setProblem(null);
+    }
+  }, [isLoading]);
+
+  const resolved = (fields ?? generativeFormFields(object)).map((field) =>
+    resolveField(field, readPath(object, field.name))
+  );
+  const drafts: Record<string, Draft | undefined> = {};
+  for (const field of resolved) {
+    drafts[field.name] =
+      edits[field.name] ?? toDraft(readPath(object, field.name));
+  }
+  const edited = Object.keys(edits).length;
+  const failure = errorText(error);
+  const idFor = (name: string) => `${formId}-${name}`;
+
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (isLoading || sending || !onSubmit) {
+      return;
+    }
+    const result = collect(resolved, drafts);
+    if ("problem" in result) {
+      setProblem({ name: result.name, text: result.problem });
+      root.current
+        ?.querySelector<HTMLElement>(`#${CSS.escape(idFor(result.name))}`)
+        ?.focus();
+      return;
+    }
+    setProblem(null);
+    setSending(true);
+    try {
+      await onSubmit(result.values);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form
+      aria-busy={isLoading}
+      aria-label={title}
+      className={cn(
+        THEME_VARS,
+        "@container/generative-form flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--generative-form-shadow) transition-shadow duration-150 ease-out hover:shadow-(--generative-form-shadow-hover)",
+        className,
+        classNames?.root
+      )}
+      data-slot="generative-form"
+      data-state={isLoading ? "streaming" : "ready"}
+      noValidate
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+          void submit();
+        }
+      }}
+      onSubmit={submit}
+      ref={root}
+      style={style}
+    >
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
+        data-slot="generative-form-header"
+      >
+        <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--generative-form-icon-bg)">
+          <Icon
+            className="text-(--generative-form-accent)"
+            icon={NoteEditIcon}
+          />
+        </span>
+        <div className="min-w-0 flex-1 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+          {title}
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex flex-col gap-0.5 delay-100",
+          classNames?.fields
+        )}
+        data-slot="generative-form-fields"
+      >
+        {resolved.map((field, index) => {
+          const draft = drafts[field.name];
+          const waiting = isLoading && draft === undefined;
+          return (
+            <div
+              className={cn(
+                "grid min-w-0 grid-cols-1 items-start gap-x-3 @sm/generative-form:grid-cols-[7rem_minmax(0,1fr)]",
+                classNames?.field
+              )}
+              data-slot="generative-form-field"
+              key={field.name}
+            >
+              <label
+                className={cn(
+                  "flex min-h-6 items-center gap-1.5 px-2 pt-1 text-xs leading-4 text-muted-foreground @sm/generative-form:min-h-8 @sm/generative-form:px-0.5 @sm/generative-form:pt-0 @sm/generative-form:text-[13px]",
+                  classNames?.label
+                )}
+                htmlFor={idFor(field.name)}
+              >
+                <span className="min-w-0 truncate">{field.label}</span>
+                {field.name in edits ? (
+                  <span
+                    className="size-1 flex-none rounded-full bg-primary"
+                    title="Edited"
+                  >
+                    <span className="sr-only">Edited</span>
+                  </span>
+                ) : null}
+              </label>
+              {waiting ? (
+                <span aria-hidden="true" className="flex h-8 items-center px-2">
+                  <span
+                    className="h-2.5 animate-pulse rounded-full bg-foreground/6 motion-reduce:animate-none"
+                    style={{
+                      width: SKELETON_WIDTHS[index % SKELETON_WIDTHS.length],
+                    }}
+                  />
+                </span>
+              ) : (
+                <div className={cn(ARRIVE_CLASS, "min-w-0")}>
+                  <FieldControl
+                    className={classNames?.control}
+                    draft={draft}
+                    field={field}
+                    id={idFor(field.name)}
+                    invalid={problem?.name === field.name}
+                    locked={isLoading}
+                    onChange={(next) => {
+                      setEdits((current) => ({
+                        ...current,
+                        [field.name]: next,
+                      }));
+                      if (problem?.name === field.name) {
+                        setProblem(null);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {resolved.length === 0 ? (
+          <div aria-hidden="true" className="flex flex-col gap-0.5">
+            {SKELETON_WIDTHS.map((width) => (
+              <span className="flex h-8 items-center px-0.5" key={width}>
+                <span
+                  className="h-2.5 animate-pulse rounded-full bg-foreground/6 motion-reduce:animate-none"
+                  style={{ width }}
+                />
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex min-h-6 min-w-0 items-center gap-2 delay-200",
+          classNames?.footer
+        )}
+        data-slot="generative-form-footer"
+      >
+        <output
+          aria-live="polite"
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 text-xs leading-4",
+            failure || problem ? "text-destructive" : "text-muted-foreground"
+          )}
+          data-slot="generative-form-status"
+        >
+          {isLoading ? <Shimmer>Filling in…</Shimmer> : null}
+          {!isLoading && failure ? (
+            <>
+              <Icon icon={AlertCircleIcon} />
+              <span className="min-w-0 truncate">{failure}</span>
+            </>
+          ) : null}
+          {!isLoading && !failure && problem ? (
+            <span className="min-w-0 truncate">{problem.text}</span>
+          ) : null}
+          {!isLoading && !failure && !problem && edited > 0 ? (
+            <>
+              <span className="min-w-0 truncate tabular-nums">
+                {edited} edited
+              </span>
+              <button
+                className={TEXT_ACTION_CLASS}
+                data-slot="generative-form-reset"
+                onClick={() => {
+                  setEdits({});
+                }}
+                type="button"
+              >
+                Reset
+              </button>
+            </>
+          ) : null}
+        </output>
+        <div className="flex flex-none items-center gap-1.5">
+          {isLoading && onStop ? (
+            <Button
+              className="rounded-full px-2.5"
+              size="xs"
+              variant="secondary"
+              data-slot="generative-form-stop"
+              onClick={onStop}
+              type="button"
+            >
+              Stop
+            </Button>
+          ) : null}
+          {!isLoading && failure && onRetry ? (
+            <Button
+              className="rounded-full px-2.5"
+              size="xs"
+              variant="secondary"
+              data-slot="generative-form-retry"
+              onClick={onRetry}
+              type="button"
+            >
+              Retry
+            </Button>
+          ) : null}
+          {!isLoading && onCancel ? (
+            <Button
+              className="rounded-full px-2.5"
+              size="xs"
+              variant="secondary"
+              data-slot="generative-form-cancel"
+              disabled={sending}
+              onClick={onCancel}
+              type="button"
+            >
+              {cancelLabel}
+            </Button>
+          ) : null}
+          {!isLoading && onSubmit ? (
+            <Button
+              aria-keyshortcuts={isApple ? "Meta+Enter" : "Control+Enter"}
+              className="rounded-full px-2.5 pr-1.5"
+              size="xs"
+              variant="default"
+              data-slot="generative-form-submit"
+              disabled={sending || resolved.length === 0}
+              type="submit"
+            >
+              {submitLabel}
+              <span aria-hidden="true" className="inline-flex gap-0.5">
+                <kbd className={KBD_CLASS}>{isApple ? "⌘" : "Ctrl"}</kbd>
+                <kbd className={KBD_CLASS}>↵</kbd>
+              </span>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </form>
+  );
+};

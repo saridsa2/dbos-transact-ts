@@ -1,3 +1,4 @@
+await import('./build-ontology.mjs');
 import { spawn } from 'node:child_process';
 const children = [
   spawn('npm', ['run', 'dev:service'], { stdio: 'inherit' }),

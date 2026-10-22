@@ -1,0 +1,155 @@
+{
+  "importedOn": "2026-10-20",
+  "source": "AI SDK Agents authenticated Component source blocks",
+  "adaptations": [
+    "motion/react mapped to installed framer-motion",
+    "Generative Form and Run Log use official Untitled UI control adapters",
+    "Chat Screen exposes controlled inspector state and asynchronous composer draft preservation",
+    "Host supplies durable progress instead of the built-in waiting marker",
+    "Paper-plane send icon uses existing Font Awesome Pro wrapper",
+    "Session labels and Run Log state labels follow durable host semantics",
+    "Original source snapshots are retained unchanged under upstream; no demo transport is mounted",
+    "Agent Gate requires explicit approval: demo auto-approval countdown disabled, disabled prop guards approval and rejection while applying or blocked",
+    "Knowledge Sources accepts host-provided detail and empty text so saved attachments are not described as an indexed corpus",
+    "Session List exposes archive/restore actions and a server-provided deletion restriction using its existing row menu and delete confirmation",
+    "Attachment Tray only exposes upload cancellation when the host supplies onCancel; immutable uploads finish before they can be detached",
+    "Attachment Tray accepts a host empty-picker label; workspace groups saved context and uploads with shared charcoal styling and aligned session headers.",
+    "Agent List, Create and Summary use existing Untitled UI host controls; list row actions use the official Dropdown and do not expose deletion. No SDK runtime or demo transport is imported.",
+    "Chat Screen can omit its Thread Header when the host owns a single work-area header. Workspace history uses the existing Session List in an optional inspector; the top-level tab strip is removed.",
+    "Run Log accepts a visibleColumns projection so the host can omit unavailable cost/model/duration metrics. Original defaults and source snapshots are retained.",
+    "Workspace Intelligence redesign: GenerativeForm supports host sections, visibility conditions and filtered fields while retaining draft values. Original source snapshots remain unchanged.",
+    "AgentGate only offers Download plan when the host supplies a download action.",
+    "ChatThread starts empty activity briefs at the top and only follows the bottom for actual messages. Original transcript behavior for populated sessions remains.",
+    "GenerativeForm and ChatComposer expose host dirty/draft callbacks; the existing workspace unsaved-navigation dialog protects edits without replacing official controls.",
+    "GenerativeForm boolean fields use a single labeled official Untitled UI checkbox; ChatScreen exposes an activity-specific thread label. No replacement form or chat primitive was implemented.",
+    "2026-10-21 authenticated registry review: DecisionInbox imported for executable suggestion approvals; RunLog accepts host row icons and optional built-in filters; host aligns header controls, responsive agent list and top-aligned activity briefs.",
+    "2026-10-21 StarterPrompts accepts host-provided Font Awesome marks; ChatScreen forwards start-aligned empty content. Original centered empty behavior remains the default."
+  ],
+  "components": [
+    {
+      "component": "panel-dock",
+      "url": "https://www.aisdkagents.com/ai-components/panel-dock",
+      "sha256": "7c51b79a5f058e9d19bddb5570fa75ebaa2b28629dc4ed4c26318f196257445f"
+    },
+    {
+      "component": "session-list",
+      "url": "https://www.aisdkagents.com/ai-components/session-list",
+      "sha256": "c3f3157514d98261bc478e374d3930ee821608578d84ffc969653e7e4e152ae0"
+    },
+    {
+      "component": "generative-form",
+      "url": "https://www.aisdkagents.com/ai-components/generative-form",
+      "sha256": "3584939b5d182f0a812d715d18ed3a757b74eb084a290dd966f2e2179a693533"
+    },
+    {
+      "component": "run-log",
+      "url": "https://www.aisdkagents.com/ai-components/run-log",
+      "sha256": "970a331ac45efb5b4adbd6976880c1a13bc354f426267ca5fc9c40157cb24dad"
+    },
+    {
+      "component": "trace-viewer",
+      "url": "https://www.aisdkagents.com/ai-components/trace-viewer",
+      "sha256": "1a6c71ac880347e8ad96814515787f5edddbbea5951800d96fc98f8507e32801"
+    },
+    {
+      "component": "session-tabs",
+      "url": "https://www.aisdkagents.com/ai-components/session-tabs",
+      "sha256": "b5cd0d790f10fe0444e20b9f0d9e36400cfffda463236a81763d4b9969b1d05e"
+    },
+    {
+      "component": "context-window",
+      "url": "https://www.aisdkagents.com/ai-components/context-window",
+      "sha256": "cadf557b08ab3cf1f07027e34c49238ec43e2bd21a4624362a8705a6dab47dc6"
+    },
+    {
+      "component": "slash-command-menu",
+      "url": "https://www.aisdkagents.com/ai-components/slash-command-menu",
+      "sha256": "4d97aeb42dc5a86a6406e6627a4208628e50135bef9fc46ad6fdd4cc614ec5b3"
+    },
+    {
+      "component": "thread-header",
+      "url": "https://www.aisdkagents.com/ai-components/thread-header",
+      "sha256": "cbb00d7eaab87f5313481c33b97d91156087bfa7837248eb9445cb4f546659a8"
+    },
+    {
+      "component": "app-sidebar",
+      "url": "https://www.aisdkagents.com/ai-components/app-sidebar",
+      "sha256": "c77ad237901740880764958cc3b0ddc46ca531b078b2dd8a8bdf512a13d00724"
+    },
+    {
+      "component": "prompt-input",
+      "url": "https://www.aisdkagents.com/ai-components/prompt-input",
+      "sha256": "b766092184a45976915805c7308f943a3bb7f699ee6a72d96452b720b1021b72"
+    },
+    {
+      "component": "chat-layout",
+      "url": "https://www.aisdkagents.com/ai-components/chat-layout",
+      "sha256": "ea21f51818dfb6a5071957c0e2c99ed60e8cf499e19fb3152ecc7008bf598eb2"
+    },
+    {
+      "component": "attachments-tray",
+      "url": "https://www.aisdkagents.com/ai-components/attachments-tray",
+      "sha256": "42811cc11f55837237f2f3260686d8f8cdd3ab212048fb7ca01bc25275a18e07"
+    },
+    {
+      "component": "chat-screen",
+      "url": "https://www.aisdkagents.com/ai-components/chat-screen",
+      "sha256": "a9edd9b87e0a316e105f0512f480f2841a55a50ad9c3fbf9135b50811d5ce4f5"
+    },
+    {
+      "component": "thinking-state",
+      "url": "https://www.aisdkagents.com/ai-components/thinking-state",
+      "sha256": "fa83a9efa016b314e09ecfc305bd2c2fe495c003ba827e08acb1e47128ebed6b"
+    },
+    {
+      "component": "agent-run-tree",
+      "url": "https://www.aisdkagents.com/ai-components/agent-run-tree",
+      "sha256": "7bd44b0029d5eb2fc7b28a4fd96faf8ab87fcd95ba73fdb60e18d0fb5d5d6fb5"
+    },
+    {
+      "component": "knowledge-sources",
+      "url": "https://www.aisdkagents.com/ai-components/knowledge-sources",
+      "sha256": "949dad8745ed6154ef71e403f189606b9d57b11d5298c40c0790f4c124a58242"
+    },
+    {
+      "component": "chat-thread",
+      "url": "https://www.aisdkagents.com/ai-components/chat-thread",
+      "sha256": "885c2ca9a36b8b125c7421e280b6b9073426fd0573b7a673b091812c9751c53d"
+    },
+    {
+      "component": "starter-prompts",
+      "url": "https://www.aisdkagents.com/ai-components/starter-prompts",
+      "sha256": "920da997b1739de14c79cf9ec1afa4e9b01fa52b293f2d11d294b542f7f5ebe1"
+    },
+    {
+      "component": "artifact-panel",
+      "url": "https://www.aisdkagents.com/ai-components/artifact-panel",
+      "sha256": "0650c836ac2e954684c7014da219dfcb0ce1ecc999eb0402085be54c33c033b6"
+    },
+    {
+      "component": "agent-gate",
+      "url": "https://www.aisdkagents.com/ai-components/agent-gate",
+      "sha256": "aaff9fbb37a1580a740521a1aff4c28a9c1dbeede8453fb8fbcf765137468d86"
+    },
+    {
+      "component": "agent-list",
+      "url": "https://www.aisdkagents.com/ai-components/agent-list",
+      "sha256": "31126fb103f7059695cf54857b80184a3570e518040f508a829dccabe0f2cbd3"
+    },
+    {
+      "component": "agent-create",
+      "url": "https://www.aisdkagents.com/ai-components/agent-create",
+      "sha256": "50eeda5a67b9f372b3cf6a93f56d12187149d7a96d46b4ad7a0d71964c174392"
+    },
+    {
+      "component": "agent-summary",
+      "url": "https://www.aisdkagents.com/ai-components/agent-summary",
+      "sha256": "6efd49d079deb818067ccc90712c40a70778787e5cd4c36c84959c52e6e1e783"
+    },
+    {
+      "component": "decision-inbox",
+      "url": "https://www.aisdkagents.com/ai-components/decision-inbox",
+      "sha256": "32a15099e1761ce4d9037e2a4d6ea8732aac4fd09c19650f9858a6ea95703487"
+    }
+  ]
+}

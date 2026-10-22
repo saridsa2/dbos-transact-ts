@@ -1,0 +1,23 @@
+{
+  "package": "mem0ai",
+  "version": "3.3.1",
+  "source": "https://github.com/mem0ai/mem0",
+  "reviewedCommit": "2c81af3bbe27d9bccb09c772d583df9e9be72ee5",
+  "npmIntegrity": "sha512-R+T0rB8WNU4Eh8ClfZnD2BKjk7Q4MDx3XdLZMoUZ+S7dItpkpg3xkcGrKqk0COV0dyRrul/EYzkDWTr2D6YTag==",
+  "originalBundleSha256": "0344af33887153828c572e7e74c59081976b6f769e516fbb66ef3ebdd8a8bbd7",
+  "adaptedBundleSha256": "6400c4caf54b7d8f5317ffd899a85971d1714d2e9b42b345e74281273abf1988",
+  "changes": [
+    "Optional constructor components: embedder, llm, vectorStore, idFor",
+    "Disable telemetry initialization and notices",
+    "Retain upstream memory add/search engine; no enterprise code",
+    "Explicit disableEntityBoost to avoid secondary store and unaccounted embeddings"
+  ],
+  "copyright": "Copyright Mem0 contributors; original Apache-2.0 license retained; modifications Stack Proc 2026",
+  "runtimeDependencies": {
+    "openai@4.104.0": "Apache-2.0",
+    "axios@1.20.0": "MIT",
+    "uuid@11.1.1": "MIT",
+    "zod@3.25.76": "MIT",
+    "better-sqlite3@12.11.1 (not constructed by host)": "MIT"
+  }
+}

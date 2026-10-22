@@ -4,6 +4,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ControlButton, ControlInput, ControlSelect, ControlModal } from '@/components/control/controls';
 import { WorkArea, TableViewport, RecordAction, EmptyState } from '@/components/control/work-area';
+import { Checkbox } from '@/components/base/checkbox/checkbox';
+import type { ContextPermissions } from '@/lib/agent/context-uploads';
+import { agentRequest } from '@/lib/agent/client';
 import { Table } from '@/components/application/table/table';
 import { useWorkspaceRefresh } from '@/hooks/use-workspace-events';
 import { useControlNavigation } from '@/hooks/use-control-navigation';
@@ -22,6 +25,7 @@ import {
 } from '@/components/fa-icons';
 import { canManage, providers, type AuditEvent, type Connection, type Member } from '@/lib/control/contracts';
 import { controlRequest, useControl } from '@/components/control/access';
+import { WorkspaceApiKeys } from '@/components/control/workspace-api-keys';
 import { ConnectionForm, RotateCredential } from '@/components/control/connection-form';
 
 type Run = {
@@ -40,6 +44,7 @@ const titles = {
   team: 'People',
   runs: 'Run history',
   audit: 'Audit trail',
+  keys: 'API keys',
   identity: 'Identity',
 };
 const descriptions = {
@@ -48,6 +53,7 @@ const descriptions = {
   team: 'Manage workspace membership and invitations.',
   runs: 'Trace executions, outcomes and the people who started them.',
   audit: 'Review workspace activity. Credential values are excluded.',
+  keys: 'Manage workspace CLI access.',
   identity: 'Review your sign-in identity and federation adapter.',
 };
 export default function ControlPage() {
@@ -57,9 +63,16 @@ export default function ControlPage() {
   const { tab } = useControlNavigation();
   const router = useRouter();
   const search = useSearchParams();
-  const peopleView = manage && search.get('view') === 'invitations' ? 'invitations' : 'members';
+  const peopleView =
+    manage && ['invitations', 'permissions'].includes(search.get('view') ?? '') ? search.get('view')! : 'members';
   const context = `${workspace?.id}:${tab}:${tab === 'team' ? peopleView : ''}`;
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [contextPermissions, setContextPermissions] = useState<ContextPermissions>();
+  const [editorUploadDraft, setEditorUploadDraft] = useState<boolean>();
+  useEffect(() => {
+    setContextPermissions(undefined);
+    setEditorUploadDraft(undefined);
+  }, [workspace?.id]);
   const [members, setMembers] = useState<Member[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
@@ -116,12 +129,16 @@ export default function ControlPage() {
         if (id !== requestId.current) return;
         setConnections(result);
       } else if (tab === 'team') {
-        const result = await controlRequest(
-          peopleView === 'members' ? '/api/control/members' : '/api/control/invitations',
-        );
+        const permissions: ContextPermissions = await agentRequest('context-permissions');
+        const result =
+          peopleView === 'permissions'
+            ? null
+            : await controlRequest(peopleView === 'members' ? '/api/control/members' : '/api/control/invitations');
         if (id !== requestId.current) return;
+        setContextPermissions(permissions);
+        setEditorUploadDraft((current) => current ?? permissions.editorUpload);
         if (peopleView === 'members') setMembers(result);
-        else setInvitations(result);
+        else if (peopleView === 'invitations') setInvitations(result);
       } else if (tab === 'runs') {
         const result = await controlRequest('/api/control/runs');
         if (id !== requestId.current) return;
@@ -215,6 +232,7 @@ export default function ControlPage() {
       </main>
     );
   if (!workspace) return null;
+  if (tab === 'keys') return <WorkspaceApiKeys key={workspace.id} manage={manage} workspaceId={workspace.id} />;
   const active = connections.filter((c) => c.status === 'configured');
   const matches = (text: string) => text.toLowerCase().includes(query.toLowerCase());
   const filteredConnections = connections.filter((c) => matches(`${c.name} ${c.provider} ${c.status}`));
@@ -223,9 +241,14 @@ export default function ControlPage() {
   const filteredRuns = runs.filter(
     (r) => (status === 'all' || r.status === status) && matches(`${r.flow_name} ${r.id} ${r.actor}`),
   );
-  const filteredAudit = audit.filter((e) => matches(`${e.action} ${e.actor} ${e.entityType} ${e.entityId}`));
+  const filteredAudit = audit.filter((e) =>
+    matches(`${e.action} ${e.actor} ${e.entityType} ${e.entityId} ${JSON.stringify(e.details)}`),
+  );
   const forbidden = tab === 'audit' && !manage;
-  const hasSearch = ['connections', 'team', 'runs', 'audit'].includes(tab) && !forbidden;
+  const hasSearch =
+    ['connections', 'team', 'runs', 'audit'].includes(tab) &&
+    !forbidden &&
+    !(tab === 'team' && peopleView === 'permissions');
   const count =
     tab === 'connections'
       ? filteredConnections.length
@@ -273,7 +296,31 @@ export default function ControlPage() {
                 Add connection
               </ControlButton>
             )}
-            {manage && tab === 'team' && (
+            {manage && tab === 'team' && peopleView === 'permissions' && (
+              <ControlButton
+                color="primary"
+                disabled={
+                  busy ||
+                  !contextPermissions ||
+                  editorUploadDraft === undefined ||
+                  editorUploadDraft === contextPermissions.editorUpload
+                }
+                onPress={() =>
+                  void action(async () => {
+                    const saved: ContextPermissions = await agentRequest(
+                      'context-permissions',
+                      { expectedVersion: contextPermissions!.editVersion, editorUpload: editorUploadDraft },
+                      'PUT',
+                    );
+                    setContextPermissions(saved);
+                    setEditorUploadDraft(saved.editorUpload);
+                  }, 'Context upload permissions saved.')
+                }
+              >
+                Save permissions
+              </ControlButton>
+            )}
+            {manage && tab === 'team' && peopleView !== 'permissions' && (
               <ControlButton
                 className="cp-primary"
                 iconLeading={Plus}
@@ -297,7 +344,12 @@ export default function ControlPage() {
                 value: peopleView,
                 items: [
                   { id: 'members', label: 'Members' },
-                  ...(manage ? [{ id: 'invitations', label: 'Invitations' }] : []),
+                  ...(manage
+                    ? [
+                        { id: 'invitations', label: 'Invitations' },
+                        { id: 'permissions', label: 'Context permissions' },
+                      ]
+                    : []),
                 ],
                 onChange: (view) => router.push(`/control?tab=team&view=${view}`),
               }
@@ -522,6 +574,39 @@ export default function ControlPage() {
                     : 'Use Add connection in the header to connect your first service.'}
                 </EmptyState>
               ))}
+            {tab === 'team' && peopleView === 'permissions' && manage && (
+              <TableViewport label="Context permissions by role">
+                <Table aria-label="Context upload permissions">
+                  <Table.Header>
+                    <Table.Head isRowHeader>Role</Table.Head>
+                    <Table.Head>Upload new context</Table.Head>
+                    <Table.Head>Access</Table.Head>
+                  </Table.Header>
+                  <Table.Body>
+                    {['owner', 'admin', 'editor', 'viewer'].map((role) => (
+                      <Table.Row key={role}>
+                        <Table.Cell>{role[0].toUpperCase() + role.slice(1)}</Table.Cell>
+                        <Table.Cell>
+                          <Checkbox
+                            aria-label={`Allow ${role} context uploads`}
+                            isSelected={role === 'editor' ? !!editorUploadDraft : role === 'owner' || role === 'admin'}
+                            isDisabled={role !== 'editor' || busy}
+                            onChange={setEditorUploadDraft}
+                          />
+                        </Table.Cell>
+                        <Table.Cell>
+                          {role === 'viewer'
+                            ? 'Read-only workspace access'
+                            : role === 'editor'
+                              ? 'Configurable by owners and admins'
+                              : 'Can upload and manage this permission'}
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              </TableViewport>
+            )}
             {tab === 'team' &&
               peopleView === 'members' &&
               (filteredMembers.length ? (
@@ -885,6 +970,15 @@ export default function ControlPage() {
                   <option value="viewer">Viewer</option>
                 </ControlSelect>
               </label>
+              <p>
+                {memberRole === 'viewer'
+                  ? 'Viewers cannot upload context or change workspace records.'
+                  : memberRole === 'editor'
+                    ? contextPermissions?.editorUpload === false
+                      ? 'Editors can edit workspace records; context uploads are currently disabled by workspace policy.'
+                      : 'Editors can upload context. Uploads are saved as workspace sources and audited.'
+                    : 'Admins can upload context and manage context permissions.'}
+              </p>
               {roleError && (
                 <p role="alert" className="cp-error">
                   {roleError}

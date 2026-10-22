@@ -7,7 +7,7 @@
   grid-template-rows: 64px minmax(0, 1fr);
   overflow: hidden;
   color: #1a1816;
-  background: #f5f3f1;
+  background: var(--sp-workspace-background);
   font-family: 'Geist Variable', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -16,7 +16,7 @@
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
   border-bottom: 1px solid var(--sp-border);
-  background: #fdfcfc;
+  background: var(--sp-surface-background);
   z-index: 30;
 }
 .stackproc-brand {
@@ -24,12 +24,12 @@
   align-items: center;
   gap: 12px;
   padding: 0 24px;
-  color: #000;
+  color: #303236;
   text-decoration: none;
 }
 .stackproc-brand svg {
-  width: 31px;
-  height: 25px;
+  width: 32px;
+  height: 32px;
 }
 .stackproc-brand span {
   font-size: 25px;
@@ -88,25 +88,38 @@
   background: #259569;
 }
 .stackproc-notification-button {
+  height: 44px;
   padding: 10px !important;
-  position: relative;
-  min-width: 40px;
+  gap: 8px;
+  align-items: center;
 }
-.stackproc-unread-count {
-  color: white;
-  background: #000;
-  min-width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  font-size: 11px;
+.stackproc-notification-button > [data-text] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+}
+.stackproc-notification-button .stackproc-unread-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 0;
+  color: #fff;
+  background: #18181b;
+  font-size: 12px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: none;
 }
 .stackproc-sidebar {
   display: flex;
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--sp-border);
-  background: #fdfcfc;
+  background: var(--sp-surface-background);
   padding: 24px 16px 16px;
   gap: 24px;
 }
@@ -170,8 +183,8 @@
 }
 .stackproc-navigation > :is(button, a).selected {
   background: #ebe8e4;
-  color: #000;
-  box-shadow: inset 2px 0 #000;
+  color: #303236;
+  box-shadow: inset 2px 0 #303236;
   font-weight: 500;
 }
 .stackproc-navigation p {
@@ -270,7 +283,7 @@
   min-height: 100%;
   padding: 32px;
   max-width: none;
-  background: #f5f3f1;
+  background: var(--sp-workspace-background);
   font-family: inherit;
 }
 .stackproc-content .studio-home-intro {
@@ -303,7 +316,7 @@
 .stackproc-notifications {
   font-family: 'Geist Variable', sans-serif;
   border-radius: 0 !important;
-  background: #fdfcfc;
+  background: var(--sp-surface-background);
   z-index: 100;
 }
 .stackproc-workspace-menu {
@@ -328,7 +341,7 @@
   white-space: normal;
 }
 .stackproc-notification-item.unread {
-  border-left-color: #000;
+  border-left-color: #303236;
 }
 .stackproc-notification-item strong {
   display: block;
@@ -379,6 +392,7 @@
   }
   .stackproc-brand svg {
     width: 26px;
+    height: 26px;
   }
   .stackproc-header-content {
     padding: 0 12px;
@@ -434,8 +448,8 @@
   background: #ebe8e4;
 }
 .stackproc-content .studio-home button.studio-primary {
-  background: #000;
-  border-color: #000;
+  background: #303236;
+  border-color: #303236;
 }
 .stackproc-content .studio-home .studio-example-grid > button > [data-text] {
   display: contents;

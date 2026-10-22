@@ -54,3 +54,38 @@ export const ArrowRightIcon = icon(definitions.faArrowRight);
 export const UploadIcon = icon(definitions.faArrowUpFromBracket);
 
 export const SettingsIcon = icon(definitions.faGear);
+export const Cube = icon(definitions.faCube);
+export const LayersIcon = icon(definitions.faLayerGroup);
+export const DatabaseIcon = icon(definitions.faDatabase);
+export const RotateLeft = icon(definitions.faRotateLeft);
+export const ExpandIcon = icon(definitions.faExpand);
+export const CrosshairsIcon = icon(definitions.faCrosshairs);
+export const DownloadIcon = icon(definitions.faDownload);
+export const FilterIcon = icon(definitions.faFilter);
+export const ChartIcon = icon(definitions.faChartColumn);
+export const BranchIcon = icon(definitions.faCodeBranch);
+export const ForkIcon = icon(definitions.faCodeFork);
+export const WarningIcon = icon(definitions.faTriangleExclamation);
+export const ZoomInIcon = icon(definitions.faMagnifyingGlassPlus);
+export const ZoomOutIcon = icon(definitions.faMagnifyingGlassMinus);
+export const RedoIcon = icon(definitions.faRotateRight);
+
+export const PaperPlaneIcon = icon(definitions.faPaperPlane);
+
+export const NewFileIcon = icon(definitions.faFilePlus);
+
+export const ProcessStartIcon = icon(definitions.faCirclePlay);
+
+export const ProcessEndIcon = icon(definitions.faCircleStop);
+
+export const TimerIcon = icon(definitions.faClock);
+
+export const MessageIcon = icon(definitions.faEnvelope);
+
+export const AgentIcon = icon(definitions.faRobot);
+
+export const RepeatIcon = icon(definitions.faRepeat);
+
+export const ParallelIcon = icon(definitions.faArrowsSplitUpAndLeft);
+
+export const MergeIcon = icon(definitions.faArrowsTurnToDots);

@@ -113,6 +113,7 @@ export type FlowEdgeData = {
 };
 
 export type AgentFlow = {
+  editVersion?: number;
   authoringVersion?: 1 | 2;
   declarations?: Declaration[];
   captures?: { id: string; name: string; schema: Record<string, unknown> }[];
@@ -127,6 +128,7 @@ export type AgentFlow = {
   schedule?: ScheduleResource;
   defaultInput?: FlowExecutionInput;
   sourceReference?: string;
+  generationManifestId?: string;
   id: string;
   name: string;
   description?: string;

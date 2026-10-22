@@ -1,0 +1,23 @@
+{
+  "upstream": "https://github.com/adoresever/graph-memory",
+  "commit": "5841b1987c3967998818764c9d4238add5f3aa7c",
+  "license": "MIT",
+  "adaptation": "Local async PostgreSQL port plus upstream storage-free personalized ranking. Vendor-only change removes .ts import suffix for the host compiler. No DSH/OpenClaw host or provider client imported.",
+  "files": [
+    {
+      "file": "src/storage/index.ts",
+      "sourceSha256": "8a8cb043c5c075a7b0c3eb35e33c44631cf959b7880a45ca4ecab9856b81271b",
+      "sha256": "d4a40108f1bca617ba226806ea7663f5c3df2320b0d06492b5889a6c995ed4dd"
+    },
+    {
+      "file": "src/graph/rank.ts",
+      "sourceSha256": "acd3d215ac8ecc4a0552f1cdd023a03a08bc9c6d7d26fe8cf25f1f491df0dfca",
+      "sha256": "acd3d215ac8ecc4a0552f1cdd023a03a08bc9c6d7d26fe8cf25f1f491df0dfca"
+    },
+    {
+      "file": "LICENSE",
+      "sourceSha256": "83a2762be07b1b88f37dc603a37e18493cc63fa493fbb996c8d6275b8564ba72",
+      "sha256": "83a2762be07b1b88f37dc603a37e18493cc63fa493fbb996c8d6275b8564ba72"
+    }
+  ]
+}

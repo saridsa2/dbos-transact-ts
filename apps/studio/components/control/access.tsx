@@ -132,7 +132,7 @@ export function ControlAccess({ children }: { children: ReactNode }) {
     return (
       <main className="cp-gate">
         <section className="cp-onboarding">
-          <h1>Stack Proc workspace</h1>
+          <h1>Procczar workspace</h1>
           <p role={error ? 'alert' : 'status'}>{error || 'Loading your workspace…'}</p>
           {error && <ControlButton onClick={() => void refresh()}>Retry</ControlButton>}
         </section>
@@ -158,7 +158,7 @@ export function ControlAccess({ children }: { children: ReactNode }) {
           }}
         >
           <header className="sp-dialog-header">
-            <span className="cp-eyebrow">STACK PROC</span>
+            <span className="cp-eyebrow">PROCCZAR</span>
             <h1>Your customer workspace</h1>
             <p>Manage your team, provider connections and run history.</p>
           </header>

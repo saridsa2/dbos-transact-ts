@@ -1,0 +1,57 @@
+[
+  {
+    "registry": "@reactbits-pro/ai-chat-3",
+    "sourceSha256": "aa2f898fce447163b5523cae371b868ef2d54b0274ed8cfec21682d91484de78",
+    "retrieved": "2026-10-19",
+    "adaptations": [
+      "Controlled server data instead of demo state",
+      "Stack Proc typography and square controls",
+      "Font Awesome Pro icons",
+      "No simulated streaming or provider execution"
+    ]
+  },
+  {
+    "registry": "@reactbits-pro/tool-calls-1",
+    "sourceSha256": "9b05d158d71eb824eb53cb53be1898cbbe9f9957e2950d4393f653369c46f38f",
+    "retrieved": "2026-10-19",
+    "adaptations": [
+      "Controlled server data instead of demo state",
+      "Stack Proc typography and square controls",
+      "Font Awesome Pro icons",
+      "No simulated streaming or provider execution"
+    ]
+  },
+  {
+    "registry": "@reactbits-pro/agent-activity-2",
+    "sourceSha256": "a6a4f8ada69d3a9cdd821d6d7462ec3fdbcc40f7e545be0c2673f62a806b5626",
+    "retrieved": "2026-10-19",
+    "adaptations": [
+      "Controlled host data and server actions",
+      "Untitled UI controls and Font Awesome icons",
+      "Removed demo timelines and simulated approvals",
+      "Stack Proc typography and layout"
+    ]
+  },
+  {
+    "registry": "@reactbits-pro/agent-approval-2",
+    "sourceSha256": "c1fdae9e841a5f4b32893d424c38e3da89482b023872800ef5822d47004a6443",
+    "retrieved": "2026-10-19",
+    "adaptations": [
+      "Controlled host data and server actions",
+      "Untitled UI controls and Font Awesome icons",
+      "Removed demo timelines and simulated approvals",
+      "Stack Proc typography and layout"
+    ]
+  },
+  {
+    "registry": "@reactbits-starter/ai-blob-tw",
+    "sourceSha256": "4a72dbad7339c28eaa6b8bd6873366ed5bf11e0f7b5ebed86c13af1cb5cf2a37",
+    "retrieved": "2026-10-20",
+    "source": "Owner-supplied licensed React Bits Pro source, docs https://pro.reactbits.dev/docs/components/ai-blob",
+    "adaptations": [
+      "Application class-name helper import and visible fallback when WebGL is unavailable",
+      "Shared floating launcher; real work state supplies thinking, idle remains animated",
+      "Disabled simulated audio; built-in reduced-motion and visibility handling preserved"
+    ]
+  }
+]

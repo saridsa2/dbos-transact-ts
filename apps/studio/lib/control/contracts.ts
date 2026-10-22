@@ -23,6 +23,7 @@ export type Session = {
   loginUrl?: string;
 };
 export const providers = [
+  { id: 'minimax', name: 'MiniMax', category: 'Models', auth: 'api_key' },
   { id: 'openai', name: 'OpenAI', category: 'Models', auth: 'api_key' },
   { id: 'anthropic', name: 'Anthropic / Claude', category: 'Models', auth: 'api_key' },
   { id: 'microsoft-foundry', name: 'Microsoft Foundry', category: 'Models and agents', auth: 'api_key' },
@@ -39,6 +40,15 @@ const endpoint = z.url().refine((value) => {
   return ['http:', 'https:'].includes(u.protocol) && !u.username && !u.password && !u.search && !u.hash;
 }, 'Use an HTTP(S) endpoint without embedded credentials, query parameters or fragments.');
 export const connectionConfigs = {
+  minimax: z
+    .object({
+      model: z
+        .string()
+        .regex(/^MiniMax-[A-Za-z0-9.-]+$/)
+        .max(100)
+        .default('MiniMax-M2.7'),
+    })
+    .strict(),
   openai: z.object({ project: z.string().max(200).optional() }).strict(),
   anthropic: z.object({}).strict(),
   'microsoft-foundry': z
@@ -75,6 +85,7 @@ export const connectionSchema = z
   .object({
     name: z.string().trim().min(1).max(150),
     provider: z.enum([
+      'minimax',
       'openai',
       'anthropic',
       'microsoft-foundry',

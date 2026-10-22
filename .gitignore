@@ -54,3 +54,9 @@ packages/create/templates/hello-prisma/prisma/.env
 
 # Local control plane credential encryption key
 apps/studio/.studio/
+
+# Imported source local search index (retained on disk, not published)
+apps/studio/vendor/claude-src/.grepai/
+
+# Generated developer CLI artifacts
+apps/studio/cli/dist/

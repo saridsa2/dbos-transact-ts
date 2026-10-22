@@ -1,0 +1,68 @@
+{
+  "source": "/Users/satyasuman/Downloads/Original Mac/Downloads/Analysis/claude-src",
+  "importedAt": "2026-10-19",
+  "reuseBasis": "User affirmed permission to modify and redistribute in this task. No upstream license file was present; original notices retained.",
+  "purpose": "Reference snapshot for the Stack Proc standalone port; these incomplete modules are not loaded by the application.",
+  "files": [
+    {
+      "path": "QueryEngine.ts",
+      "sha256": "7df34a6a6d106927403d49e3405dfaf70da37cae5b644b658ebaf0b877988af6"
+    },
+    {
+      "path": "query.ts",
+      "sha256": "74e0ce0d86cfd453add8dc1d15ccb6311b02964b8321e3721b8e71fbd87252ce"
+    },
+    {
+      "path": "Tool.ts",
+      "sha256": "29d555ab8e50de9fb005264b5334aba870f1da472198e14d0b3ab0bf86d7c49c"
+    },
+    {
+      "path": "query/config.ts",
+      "sha256": "6c0c0fa744b3db82d20f1a5cb87ec6516a0f1accac0b30edd922037c1491bae9"
+    },
+    {
+      "path": "query/deps.ts",
+      "sha256": "28982b60c0c381875fbe38b7eeb68374b109dca658667dc70c803cae87f926be"
+    },
+    {
+      "path": "query/stopHooks.ts",
+      "sha256": "9503d0d926399ea67856cb65d816d959225dc17462ac12e9f566d2ab9661e7e1"
+    },
+    {
+      "path": "query/tokenBudget.ts",
+      "sha256": "e1ca96ad655d1d4789cc7bb338e33f6c82cd99a8c91c9899d0697f91ce6d24cd"
+    },
+    {
+      "path": "services/tools/StreamingToolExecutor.ts",
+      "sha256": "ee17dce704af73787c9ed76dbbc638167521e5c1f68c9436149378bb3358601c"
+    },
+    {
+      "path": "services/tools/toolOrchestration.ts",
+      "sha256": "6958bcd46006785e241f7226b4f28aeaaec2206ccc93772d4e473aa6dbdd4293"
+    },
+    {
+      "path": "services/tools/toolExecution.ts",
+      "sha256": "77aae23a5b8b68aa1ee32b99eb25c6360071d7a4c4c46e6d2c95d584fb6e25e0"
+    },
+    {
+      "path": "services/compact/autoCompact.ts",
+      "sha256": "1946b5ea23fa2eda91955378641258fb8f19e7742f06ce17d6caae7f2d3c921a"
+    },
+    {
+      "path": "services/compact/compact.ts",
+      "sha256": "80af045d9247de7dda0cbe7aab653329d0b7c8b62a2cdadfd86238305df71f53"
+    },
+    {
+      "path": "utils/sessionRestore.ts",
+      "sha256": "9dfe9c2203aac5c3cc6d49e45bf2f8fd381582781b5cec3abbc4ceb6d219e177"
+    },
+    {
+      "path": "utils/sessionStorage.ts",
+      "sha256": "8a123ebce1ee72b9081d34b8f3697e5fcc9c7576df5b98e4206bb28414134412"
+    },
+    {
+      "path": "utils/model/providers.ts",
+      "sha256": "91a822219ac489a8252ff45ffbc04dce6f3b7dbdfa6148973cee76bdd1db922c"
+    }
+  ]
+}

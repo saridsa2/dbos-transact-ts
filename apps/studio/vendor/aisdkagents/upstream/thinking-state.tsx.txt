@@ -1,0 +1,1022 @@
+"use client";
+
+import {
+  AlertCircleIcon,
+  ArrowDown01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { ChatStatus, UIMessage } from "ai";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import { cn } from "@/lib/utils";
+
+export type ThinkingStatus = "working" | "done" | "error";
+export type ThinkingStepStatus = "pending" | "active" | "done" | "error";
+export type ThinkingStateVariant = "panel" | "inline";
+
+export interface ThinkingSource {
+  id: string;
+  title: string;
+  /** Makes the chip a link and supplies the domain for its mark. */
+  url?: string;
+  /** Replaces the default letter mark, for example with a brand icon. */
+  icon?: ReactNode;
+}
+
+export interface ThinkingStep {
+  id: string;
+  label: string;
+  /** Defaults to `done`. */
+  status?: ThinkingStepStatus;
+  /** One or two lines under the label, such as a search query or an error. */
+  detail?: string;
+  sources?: readonly ThinkingSource[];
+}
+
+/** `4s`, `1m 04s`, `1h 02m`. */
+export const formatElapsed = (ms: number): string => {
+  const total = Number.isFinite(ms) ? Math.max(0, Math.floor(ms / 1000)) : 0;
+  const seconds = total % 60;
+  const minutes = Math.floor(total / 60) % 60;
+  const hours = Math.floor(total / 3600);
+  if (hours > 0) {
+    return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  }
+  return `${seconds}s`;
+};
+
+/** Hostname without `www.`, or `undefined` when the URL does not parse. */
+export const sourceDomain = (url?: string): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  try {
+    return new URL(url).hostname.replace(/^www\./u, "");
+  } catch {
+    return undefined;
+  }
+};
+
+/** `search_web`, `searchWeb`, and `search-web` all read as `Search web`. */
+export const toolLabel = (name: string): string => {
+  const words = name
+    .replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replaceAll(/[_\-.]+/gu, " ")
+    .trim()
+    .toLowerCase();
+  if (!words) {
+    return "Tool";
+  }
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+const DETAIL_LIMIT = 140;
+
+const lastLine = (text: string): string | undefined => {
+  const line = text
+    .split("\n")
+    .map((part) => part.trim())
+    .findLast((part) => part.length > 0);
+  if (!line) {
+    return undefined;
+  }
+  return line.length > DETAIL_LIMIT
+    ? `${line.slice(0, DETAIL_LIMIT - 1).trimEnd()}…`
+    : line;
+};
+
+export interface ThinkingStateLabels {
+  thinking: string;
+  sources: string;
+  writing: string;
+}
+
+const DEFAULT_LABELS: ThinkingStateLabels = {
+  sources: "Reading sources",
+  thinking: "Thinking",
+  writing: "Writing the answer",
+};
+
+export interface ThinkingStateSource {
+  /** The assistant message being generated, usually `messages.at(-1)`. */
+  message: UIMessage | undefined;
+  /** `status` from `useChat`. */
+  status: ChatStatus;
+  /** Tool name to step label. Unlisted tools use their title or a readable name. */
+  toolLabels?: Record<string, string>;
+  labels?: Partial<ThinkingStateLabels>;
+}
+
+export interface ThinkingStateSnapshot {
+  status: ThinkingStatus;
+  steps: ThinkingStep[];
+}
+
+type MessagePart = UIMessage["parts"][number];
+type DraftStep = ThinkingStep & {
+  kind: "reasoning" | "tool" | "sources" | "text";
+};
+
+const toolStepStatus = (state: string): ThinkingStepStatus => {
+  if (state === "output-available") {
+    return "done";
+  }
+  if (state === "output-error" || state === "output-denied") {
+    return "error";
+  }
+  return "active";
+};
+
+const toolStep = (
+  part: MessagePart,
+  toolLabels: Record<string, string>
+): DraftStep | null => {
+  const isDynamic = part.type === "dynamic-tool";
+  if (!(isDynamic || part.type.startsWith("tool-"))) {
+    return null;
+  }
+  if (!("toolCallId" in part && "state" in part)) {
+    return null;
+  }
+  const name =
+    isDynamic && "toolName" in part ? part.toolName : part.type.slice(5);
+  const title = "title" in part ? part.title : undefined;
+  const errorText = "errorText" in part ? part.errorText : undefined;
+  return {
+    detail: typeof errorText === "string" ? lastLine(errorText) : undefined,
+    id: part.toolCallId,
+    kind: "tool",
+    label: toolLabels[name] ?? title ?? toolLabel(name),
+    status: toolStepStatus(String(part.state)),
+  };
+};
+
+const sourceOf = (part: MessagePart): ThinkingSource | null => {
+  if (part.type === "source-url") {
+    return {
+      id: part.sourceId,
+      title: part.title ?? sourceDomain(part.url) ?? part.url,
+      url: part.url,
+    };
+  }
+  if (part.type === "source-document") {
+    return { id: part.sourceId, title: part.title };
+  }
+  return null;
+};
+
+const readParts = (
+  parts: readonly MessagePart[],
+  labels: ThinkingStateLabels,
+  toolLabels: Record<string, string>
+): DraftStep[] => {
+  const steps: DraftStep[] = [];
+  for (const [index, part] of parts.entries()) {
+    const last = steps.at(-1);
+    const source = sourceOf(part);
+    const tool = toolStep(part, toolLabels);
+    if (part.type === "reasoning") {
+      steps.push({
+        detail: lastLine(part.text),
+        id: `reasoning-${index}`,
+        kind: "reasoning",
+        label: labels.thinking,
+        status: part.state === "streaming" ? "active" : "done",
+      });
+    } else if (tool) {
+      steps.push(tool);
+    } else if (
+      source &&
+      last &&
+      (last.kind === "tool" || last.kind === "sources")
+    ) {
+      last.sources = [...(last.sources ?? []), source];
+    } else if (source) {
+      steps.push({
+        id: `sources-${index}`,
+        kind: "sources",
+        label: labels.sources,
+        sources: [source],
+        status: "done",
+      });
+    } else if (part.type === "text" && last?.kind !== "text") {
+      steps.push({
+        id: `text-${index}`,
+        kind: "text",
+        label: labels.writing,
+        status: part.state === "done" ? "done" : "active",
+      });
+    }
+  }
+  return steps;
+};
+
+const settle = (
+  step: DraftStep,
+  status: ThinkingStatus,
+  isLast: boolean
+): ThinkingStep => {
+  const { kind: _kind, ...rest } = step;
+  if (rest.status !== "active") {
+    return rest;
+  }
+  if (status === "done") {
+    return { ...rest, status: "done" };
+  }
+  if (status === "error") {
+    return { ...rest, status: "error" };
+  }
+  // Only the newest step can still be running; earlier ones were superseded.
+  return isLast ? rest : { ...rest, status: "done" };
+};
+
+/**
+ * Turns the message `useChat` is streaming into steps. Reasoning, tool calls,
+ * sources, and the answer each become a step, in the order they arrive.
+ *
+ * @example
+ * const { messages, status } = useChat();
+ * const thinking = thinkingStateFromMessage({
+ *   message: messages.at(-1),
+ *   status,
+ *   toolLabels: { searchWeb: "Searching the web" },
+ * });
+ * <ThinkingState {...thinking} />
+ */
+export const thinkingStateFromMessage = ({
+  message,
+  status: chatStatus,
+  toolLabels = {},
+  labels,
+}: ThinkingStateSource): ThinkingStateSnapshot => {
+  let status: ThinkingStatus = "working";
+  if (chatStatus === "ready") {
+    status = "done";
+  } else if (chatStatus === "error") {
+    status = "error";
+  }
+  if (!message || message.role !== "assistant") {
+    return { status, steps: [] };
+  }
+  const drafts = readParts(
+    message.parts,
+    { ...DEFAULT_LABELS, ...labels },
+    toolLabels
+  );
+  return {
+    status,
+    steps: drafts.map((step, index) =>
+      settle(step, status, index === drafts.length - 1)
+    ),
+  };
+};
+
+export interface ThinkingStateClassNames {
+  root?: string;
+  header?: string;
+  label?: string;
+  timer?: string;
+  steps?: string;
+  step?: string;
+  source?: string;
+}
+
+export interface ThinkingStateProps {
+  /** `panel` is the full card with steps. `inline` is a one-line pill. */
+  variant?: ThinkingStateVariant;
+  status?: ThinkingStatus;
+  steps?: readonly ThinkingStep[];
+  /** Overrides the label, which otherwise follows the running step. */
+  label?: string;
+  /** Epoch milliseconds. Defaults to when the component started working. */
+  startedAt?: number;
+  /** A fixed elapsed time, for a turn that already finished. Stops the timer. */
+  durationMs?: number;
+  showTimer?: boolean;
+  /** Panel only. Uncontrolled open state. Defaults to open. */
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Panel only. Folds the steps away shortly after the work finishes. */
+  collapseOnDone?: boolean;
+  /** Sources shown per step before the rest fold into a "+N more" chip. */
+  maxSources?: number;
+  /** Loads source marks from Google's favicon service. Off by default. */
+  favicons?: boolean;
+  className?: string;
+  classNames?: ThinkingStateClassNames;
+  /** Handy for overriding the --thinking-state-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const DEFAULT_STEPS: ThinkingStep[] = [
+  { id: "read", label: "Reading the question" },
+  {
+    detail: "csp frame-src 3ds redirect safari",
+    id: "search",
+    label: "Searching the web",
+    sources: [
+      {
+        id: "s1",
+        title: "CSP: frame-src",
+        url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src",
+      },
+      {
+        id: "s2",
+        title: "3D Secure authentication",
+        url: "https://docs.stripe.com/payments/3d-secure",
+      },
+      {
+        id: "s3",
+        title: "Content Security Policy Level 3",
+        url: "https://www.w3.org/TR/CSP3/",
+      },
+    ],
+  },
+  { id: "deploys", label: "Checking deploys", status: "active" },
+];
+
+const DEFAULT_MAX_SOURCES = 4;
+const TICK_MS = 250;
+const COLLAPSE_MS = 900;
+const EASE = [0.4, 0, 0.2, 1] as const;
+
+const THEME_VARS = [
+  "[--thinking-state-done:#15803d] dark:[--thinking-state-done:#4ade80]",
+  "[--thinking-state-error:var(--destructive)]",
+  "[--thinking-state-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--thinking-state-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--thinking-state-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--thinking-state-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
+
+const ENTER_CLASS =
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
+
+/** Ticks while `running`, then holds the last value. */
+const useElapsed = ({
+  durationMs,
+  running,
+  startedAt,
+}: {
+  durationMs: number | undefined;
+  running: boolean;
+  startedAt: number | undefined;
+}): number => {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!running || durationMs !== undefined) {
+      return;
+    }
+    const origin = startedAt ?? Date.now();
+    const tick = () => {
+      setElapsed(Math.max(0, Date.now() - origin));
+    };
+    tick();
+    const timer = setInterval(tick, TICK_MS);
+    return () => {
+      clearInterval(timer);
+      tick();
+    };
+  }, [durationMs, running, startedAt]);
+
+  return durationMs ?? elapsed;
+};
+
+const stepStatus = (step: ThinkingStep): ThinkingStepStatus =>
+  step.status ?? "done";
+
+const resolveLabel = ({
+  elapsed,
+  label,
+  status,
+  steps,
+}: {
+  elapsed: number;
+  label: string | undefined;
+  status: ThinkingStatus;
+  steps: readonly ThinkingStep[];
+}): string => {
+  if (status === "error") {
+    return label ?? "Stopped";
+  }
+  if (status === "done") {
+    if (label) {
+      return label;
+    }
+    return elapsed >= 1000 ? `Thought for ${formatElapsed(elapsed)}` : "Done";
+  }
+  const running = steps.findLast((step) => stepStatus(step) === "active");
+  return label ?? running?.label ?? DEFAULT_LABELS.thinking;
+};
+
+const DashedRing = ({ spinning }: { spinning: boolean }) => {
+  const dots = 12;
+  const dash = 0.022;
+  const gap = 1 / dots - dash;
+  return (
+    <svg
+      aria-hidden="true"
+      className={cn(
+        "size-full",
+        spinning &&
+          "animate-spin text-card-foreground [animation-duration:1.8s] motion-reduce:animate-none"
+      )}
+      viewBox="0 0 24 24"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        fill="none"
+        pathLength={1}
+        r="9"
+        stroke="currentColor"
+        strokeDasharray={`${dash} ${gap}`}
+        strokeLinecap="round"
+        strokeWidth="2.2"
+      />
+    </svg>
+  );
+};
+
+const GLYPH_TONE: Record<ThinkingStepStatus, string> = {
+  active: "text-card-foreground",
+  done: "text-(--thinking-state-done)",
+  error: "text-(--thinking-state-error)",
+  pending: "text-muted-foreground/70",
+};
+
+const StatusGlyph = ({
+  status,
+  className,
+}: {
+  status: ThinkingStepStatus;
+  className?: string;
+}) => {
+  const reduce = useReducedMotion();
+  const settled = status === "done" || status === "error";
+  return (
+    <span
+      className={cn(
+        "relative inline-flex size-3.5 flex-none items-center justify-center",
+        GLYPH_TONE[status],
+        className
+      )}
+      data-slot="thinking-state-glyph"
+      data-status={status}
+    >
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.span
+          animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
+          className="inline-flex size-full items-center justify-center"
+          exit={{ filter: "blur(2px)", opacity: 0, scale: 0.4 }}
+          initial={{ filter: "blur(2px)", opacity: 0, scale: 0.4 }}
+          key={settled ? status : "ring"}
+          transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
+        >
+          {settled ? (
+            <HugeiconsIcon
+              aria-hidden="true"
+              className="size-full"
+              icon={status === "done" ? Tick02Icon : AlertCircleIcon}
+              strokeWidth={2.4}
+            />
+          ) : (
+            <DashedRing spinning={status === "active"} />
+          )}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+};
+
+/** A band of light that sweeps across the text while work is in progress. */
+const Shimmer = ({ children }: { children: string }) => {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return <span>{children}</span>;
+  }
+  return (
+    <motion.span
+      animate={{ backgroundPosition: "-50% center" }}
+      className="bg-size-[200%_100%] bg-clip-text text-transparent"
+      initial={{ backgroundPosition: "150% center" }}
+      style={{
+        backgroundImage:
+          "linear-gradient(90deg, var(--muted-foreground) 35%, var(--card-foreground) 50%, var(--muted-foreground) 65%)",
+      }}
+      transition={{
+        duration: 1.8,
+        ease: "linear",
+        repeat: Number.POSITIVE_INFINITY,
+      }}
+    >
+      {children}
+    </motion.span>
+  );
+};
+
+const RollingLabel = ({
+  className,
+  label,
+  shimmer,
+}: {
+  className?: string;
+  label: string;
+  shimmer: boolean;
+}) => {
+  const reduce = useReducedMotion();
+  return (
+    <span
+      className={cn("relative inline-flex min-w-0", className)}
+      data-slot="thinking-state-label"
+    >
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.span
+          animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+          className="block min-w-0 truncate"
+          exit={{ filter: "blur(3px)", opacity: 0, y: "-0.5em" }}
+          initial={{ filter: "blur(3px)", opacity: 0, y: "0.5em" }}
+          key={label}
+          transition={{ duration: reduce ? 0 : 0.28, ease: EASE }}
+        >
+          {shimmer ? <Shimmer>{label}</Shimmer> : label}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+};
+
+const faviconUrl = (domain: string): string =>
+  `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
+
+const SourceMark = ({
+  favicons,
+  source,
+}: {
+  favicons: boolean;
+  source: ThinkingSource;
+}) => {
+  const [failed, setFailed] = useState(false);
+  const domain = sourceDomain(source.url);
+  const letter = (domain ?? source.title).trim().charAt(0);
+  if (source.icon) {
+    return (
+      <span className="inline-flex size-4 flex-none items-center justify-center [&_svg]:size-3">
+        {source.icon}
+      </span>
+    );
+  }
+  if (favicons && domain && !failed) {
+    return (
+      // oxlint-disable-next-line nextjs/no-img-element -- installs outside Next.js, and the URL is a remote favicon service
+      <img
+        alt=""
+        className="size-4 flex-none rounded-full bg-card"
+        height={16}
+        loading="lazy"
+        onError={() => {
+          setFailed(true);
+        }}
+        src={faviconUrl(domain)}
+        width={16}
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex size-4 flex-none items-center justify-center rounded-full bg-card text-[9px] leading-none font-semibold text-muted-foreground uppercase shadow-[0_0_0_1px_rgba(0,0,0,0.06)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.1)]"
+    >
+      {letter}
+    </span>
+  );
+};
+
+const CHIP_CLASS =
+  "inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-muted pr-2 pl-1 text-xs leading-4 text-card-foreground dark:bg-background";
+
+const SourceChip = ({
+  className,
+  favicons,
+  index,
+  source,
+}: {
+  className?: string;
+  favicons: boolean;
+  index: number;
+  source: ThinkingSource;
+}) => {
+  const reduce = useReducedMotion();
+  const domain = sourceDomain(source.url);
+  const content = (
+    <>
+      <SourceMark favicons={favicons} source={source} />
+      <span className="min-w-0 truncate">{source.title}</span>
+    </>
+  );
+  return (
+    <motion.li
+      animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
+      className="flex max-w-full min-w-0"
+      data-slot="thinking-state-source"
+      initial={{ filter: "blur(3px)", opacity: 0, scale: 0.94 }}
+      transition={{
+        delay: reduce ? 0 : Math.min(index, 6) * 0.04,
+        duration: reduce ? 0 : 0.25,
+        ease: EASE,
+      }}
+    >
+      {source.url ? (
+        <a
+          className={cn(
+            CHIP_CLASS,
+            "transition-colors duration-150 ease-out hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none dark:hover:bg-foreground/10 dark:focus-visible:ring-ring/80",
+            className
+          )}
+          href={source.url}
+          rel="noreferrer"
+          target="_blank"
+          title={domain}
+        >
+          {content}
+        </a>
+      ) : (
+        <span className={cn(CHIP_CLASS, className)}>{content}</span>
+      )}
+    </motion.li>
+  );
+};
+
+const SourceList = ({
+  className,
+  favicons,
+  max,
+  sources,
+}: {
+  className?: string;
+  favicons: boolean;
+  max: number;
+  sources: readonly ThinkingSource[];
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const limit = Math.max(0, max);
+  const shown = expanded ? sources : sources.slice(0, limit);
+  const hidden = sources.length - shown.length;
+  return (
+    <ul
+      className="m-0 flex min-w-0 list-none flex-wrap gap-1 p-0"
+      data-slot="thinking-state-sources"
+    >
+      {shown.map((source, index) => (
+        <SourceChip
+          className={className}
+          favicons={favicons}
+          index={index}
+          key={source.id}
+          source={source}
+        />
+      ))}
+      {hidden > 0 ? (
+        <li className="flex">
+          <button
+            className="inline-flex h-6 cursor-pointer items-center rounded-full border-0 bg-transparent px-2 text-xs leading-4 text-muted-foreground tabular-nums transition-colors duration-150 ease-out hover:bg-foreground/6 hover:text-card-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none dark:focus-visible:ring-ring/80"
+            onClick={() => {
+              setExpanded(true);
+            }}
+            type="button"
+          >
+            +{hidden} more
+          </button>
+        </li>
+      ) : null}
+    </ul>
+  );
+};
+
+const STEP_LABEL_TONE: Record<ThinkingStepStatus, string> = {
+  active: "text-card-foreground",
+  done: "text-card-foreground",
+  error: "text-card-foreground",
+  pending: "text-muted-foreground",
+};
+
+const ThinkingStepRow = ({
+  classNames,
+  favicons,
+  isLast,
+  maxSources,
+  step,
+}: {
+  classNames?: ThinkingStateClassNames;
+  favicons: boolean;
+  isLast: boolean;
+  maxSources: number;
+  step: ThinkingStep;
+}) => {
+  const reduce = useReducedMotion();
+  const status = stepStatus(step);
+  const sources = step.sources ?? [];
+  return (
+    <motion.li
+      animate={{
+        filter: "blur(0px)",
+        height: "auto",
+        opacity: 1,
+        // Clip only while growing, so focus rings on sources are not cut off.
+        transitionEnd: { overflow: "visible" },
+      }}
+      className="relative"
+      data-slot="thinking-state-step"
+      data-status={status}
+      initial={{
+        filter: "blur(4px)",
+        height: 0,
+        opacity: 0,
+        overflow: "hidden",
+      }}
+      transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 gap-2",
+          isLast ? "pb-0" : "pb-2.5",
+          classNames?.step
+        )}
+      >
+        <span className="relative flex w-6 flex-none justify-center pt-[3px]">
+          <StatusGlyph status={status} />
+          {isLast ? null : (
+            <span
+              aria-hidden="true"
+              className="absolute top-5 -bottom-2 left-1/2 w-px -translate-x-1/2 rounded-full bg-foreground/12"
+            />
+          )}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div
+            className={cn(
+              "text-[13px] leading-5 text-pretty",
+              STEP_LABEL_TONE[status]
+            )}
+          >
+            {step.label}
+          </div>
+          {step.detail ? (
+            <p
+              className={cn(
+                "-mt-1 line-clamp-2 text-xs leading-4 text-pretty",
+                status === "error"
+                  ? "text-(--thinking-state-error)"
+                  : "text-muted-foreground"
+              )}
+            >
+              {step.detail}
+            </p>
+          ) : null}
+          {sources.length > 0 ? (
+            <SourceList
+              className={classNames?.source}
+              favicons={favicons}
+              max={maxSources}
+              sources={sources}
+            />
+          ) : null}
+        </div>
+      </div>
+    </motion.li>
+  );
+};
+
+const overallGlyph = (status: ThinkingStatus): ThinkingStepStatus => {
+  if (status === "working") {
+    return "active";
+  }
+  return status;
+};
+
+const Timer = ({
+  className,
+  elapsed,
+  visible,
+}: {
+  className?: string;
+  elapsed: number;
+  visible: boolean;
+}) => (
+  <span
+    aria-hidden="true"
+    className={cn(
+      "flex-none text-xs leading-4 text-muted-foreground tabular-nums transition-opacity duration-200 ease-out motion-reduce:transition-none",
+      visible ? "opacity-100" : "opacity-0",
+      className
+    )}
+    data-slot="thinking-state-timer"
+  >
+    {formatElapsed(elapsed)}
+  </span>
+);
+
+/** Open state for the panel, with an optional fold once the work is done. */
+const usePanelOpen = ({
+  collapseOnDone,
+  defaultOpen,
+  onOpenChange,
+  open,
+  status,
+}: {
+  collapseOnDone: boolean;
+  defaultOpen: boolean;
+  onOpenChange: ((open: boolean) => void) | undefined;
+  open: boolean | undefined;
+  status: ThinkingStatus;
+}) => {
+  const [uncontrolled, setUncontrolled] = useState(defaultOpen);
+  const [touched, setTouched] = useState(false);
+  const isOpen = open ?? uncontrolled;
+
+  useEffect(() => {
+    if (!collapseOnDone || touched || status !== "done") {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setUncontrolled(false);
+      onOpenChange?.(false);
+    }, COLLAPSE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [collapseOnDone, onOpenChange, status, touched]);
+
+  const toggle = () => {
+    setTouched(true);
+    if (open === undefined) {
+      setUncontrolled(!isOpen);
+    }
+    onOpenChange?.(!isOpen);
+  };
+
+  return { isOpen, toggle };
+};
+
+export const ThinkingState = ({
+  variant = "panel",
+  status = "working",
+  steps = DEFAULT_STEPS,
+  label,
+  startedAt,
+  durationMs,
+  showTimer = true,
+  defaultOpen = true,
+  open,
+  onOpenChange,
+  collapseOnDone = false,
+  maxSources = DEFAULT_MAX_SOURCES,
+  favicons = false,
+  className,
+  classNames,
+  style,
+}: ThinkingStateProps) => {
+  const reduce = useReducedMotion();
+  const working = status === "working";
+  const elapsed = useElapsed({ durationMs, running: working, startedAt });
+  const { isOpen, toggle } = usePanelOpen({
+    collapseOnDone,
+    defaultOpen,
+    onOpenChange,
+    open,
+    status,
+  });
+  const text = resolveLabel({ elapsed, label, status, steps });
+  const glyph = overallGlyph(status);
+
+  if (variant === "inline") {
+    return (
+      <span
+        className={cn(
+          THEME_VARS,
+          ENTER_CLASS,
+          "inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-card pr-2.5 pl-2 text-[13px] leading-5 text-card-foreground shadow-(--thinking-state-shadow)",
+          className,
+          classNames?.root
+        )}
+        data-slot="thinking-state"
+        data-status={status}
+        data-variant="inline"
+        style={style}
+      >
+        <StatusGlyph status={glyph} />
+        <output
+          aria-live="polite"
+          className={cn("flex min-w-0 font-medium", classNames?.label)}
+        >
+          <RollingLabel label={text} shimmer={working} />
+        </output>
+        {showTimer && working ? (
+          <Timer className={classNames?.timer} elapsed={elapsed} visible />
+        ) : null}
+      </span>
+    );
+  }
+
+  const hasSteps = steps.length > 0;
+  return (
+    <section
+      aria-label="Assistant activity"
+      className={cn(
+        THEME_VARS,
+        ENTER_CLASS,
+        "flex w-full max-w-full min-w-0 flex-col rounded-2xl bg-card p-3 text-card-foreground shadow-(--thinking-state-shadow) transition-shadow duration-150 ease-out hover:shadow-(--thinking-state-shadow-hover)",
+        className,
+        classNames?.root
+      )}
+      data-slot="thinking-state"
+      data-state={isOpen ? "open" : "closed"}
+      data-status={status}
+      data-variant="panel"
+      style={style}
+    >
+      <button
+        aria-expanded={hasSteps ? isOpen : undefined}
+        className={cn(
+          "relative flex h-6 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent p-0 text-left after:absolute after:-inset-1.5 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none dark:focus-visible:ring-ring/80",
+          hasSteps ? "cursor-pointer" : "cursor-default",
+          classNames?.header
+        )}
+        data-slot="thinking-state-header"
+        disabled={!hasSteps}
+        onClick={toggle}
+        type="button"
+      >
+        <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-muted dark:bg-background">
+          <StatusGlyph status={glyph} />
+        </span>
+        <output
+          aria-live="polite"
+          className={cn(
+            "flex min-w-0 flex-1 text-[13px] leading-5 font-medium tracking-[-0.01em]",
+            classNames?.label
+          )}
+        >
+          <RollingLabel label={text} shimmer={working} />
+        </output>
+        {showTimer ? (
+          <Timer
+            className={classNames?.timer}
+            elapsed={elapsed}
+            visible={working}
+          />
+        ) : null}
+        {hasSteps ? (
+          <HugeiconsIcon
+            aria-hidden="true"
+            className={cn(
+              "size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none",
+              isOpen ? "rotate-0" : "-rotate-90"
+            )}
+            icon={ArrowDown01Icon}
+            strokeWidth={2}
+          />
+        ) : null}
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && hasSteps ? (
+          <motion.div
+            animate={{ height: "auto", opacity: 1 }}
+            className="overflow-hidden"
+            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            key="steps"
+            transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
+          >
+            <ul
+              className={cn(
+                "m-0 flex list-none flex-col p-0 pt-3",
+                classNames?.steps
+              )}
+              data-slot="thinking-state-steps"
+            >
+              {steps.map((step, index) => (
+                <ThinkingStepRow
+                  classNames={classNames}
+                  favicons={favicons}
+                  isLast={index === steps.length - 1}
+                  key={step.id}
+                  maxSources={maxSources}
+                  step={step}
+                />
+              ))}
+            </ul>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </section>
+  );
+};

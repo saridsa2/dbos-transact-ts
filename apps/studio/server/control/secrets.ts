@@ -1,10 +1,16 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto';
 import { readFile, mkdir, writeFile, chmod } from 'node:fs/promises';
 import { resolve } from 'node:path';
 export type Sealed = { iv: string; tag: string; data: string };
 export class SecretVault {
   constructor(private key: Buffer) {
     if (key.length !== 32) throw new Error('Credential encryption requires a 32-byte key.');
+  }
+  /** Opaque, domain-separated lookup IDs for private graph terms; never exposes the vault key. */
+  fingerprint(value: string, scope: string): string {
+    return createHmac('sha256', this.key)
+      .update(JSON.stringify([scope, value]))
+      .digest('hex');
   }
   seal(value: string, scope: string): Sealed {
     const iv = randomBytes(12);

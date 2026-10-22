@@ -1,7 +1,14 @@
 'use client';
+import { workflowEditorAdapter, workflowNodeSize } from '@/lib/flows/editor-adapter';
+import { executeEditorCommand, type DiagramCommand } from '@/lib/graph-editor/adapter';
+import { WorkflowRenderer } from './workflow-renderer';
+import { useCanvasViewport } from '@/components/graph-editor/use-canvas-viewport';
+import type { CanvasNode } from '@/lib/graph-editor/contracts';
 import { useWorkspaceRefresh } from '@/hooks/use-workspace-events';
 import { nativeCatalog, defaultOperation } from '@/lib/native/catalog';
 import { nodeClassification } from '@/lib/authoring/editor-contract';
+import { saveWorkflowDraft } from '@/lib/flows/persistence';
+import { refreshNodeConfigurationIssues } from '@/lib/native/node-config';
 import { nativeKinds, type NativeKind } from '@/lib/native/model';
 import { NativeNodeFields } from './native-node-fields';
 import { defaultCode } from '@/lib/authoring/model';
@@ -85,7 +92,6 @@ import type {
   FlowNodeStatus,
   FlowRunEvent,
 } from '@/lib/flows/types';
-import { edgeBranch } from '@/lib/flows/edge-branch';
 import { ropePath } from '@/lib/flows/geometry';
 import { mapEscalationsByNode } from '@/lib/flows/escalation-map';
 import { getNodeActions, type NodeActionDescriptor, type NodeActionId } from '@/lib/flows/node-actions';
@@ -158,18 +164,7 @@ type PointerHintState = {
   target: PointerTarget;
 };
 
-const BOARD_MIN_ZOOM = 0.42;
-const BOARD_MAX_ZOOM = 1.9;
 const MAX_FLOW_NODES = 50;
-const NODE_SIZES: Partial<Record<FlowNodeKind, { width: number; height: number }>> = {
-  trigger: { width: 270, height: 126 },
-  prompt: { width: 300, height: 154 },
-  llm: { width: 320, height: 210 },
-  tool: { width: 300, height: 176 },
-  condition: { width: 284, height: 142 },
-  approval: { width: 292, height: 142 },
-  output: { width: 310, height: 172 },
-};
 
 function msg(message: string) {
   return { id: message, message };
@@ -291,7 +286,7 @@ const nodePalette = [
 ];
 
 const nodeActionClass =
-  'inline-flex h-8 items-center justify-center gap-2 rounded-[9px] border border-[#dce4ef] bg-white px-3 font-medium text-[#252a33] text-xs transition hover:bg-[#f8fafc]';
+  'inline-flex h-8 items-center justify-center gap-2 rounded-none border border-[#dce4ef] bg-white px-3 font-medium text-[#252a33] text-xs transition hover:bg-[#f8fafc]';
 
 export function FlowBuilder({
   backHref,
@@ -304,7 +299,7 @@ export function FlowBuilder({
   workspaceSlug,
 }: FlowBuilderProps) {
   const { _ } = useLingui();
-  const boardRef = useRef<HTMLDivElement | null>(null);
+  const { boardRef, viewport, setViewport, zoomBy, fit, screenToWorld } = useCanvasViewport();
   const activeRunRef = useRef<string | null>(null);
   const [viewingRun, setViewingRun] = useState(false);
   const [runParentId, setRunParentId] = useState<string | null>(null);
@@ -339,11 +334,6 @@ export function FlowBuilder({
   } | null>(null);
   const [palette, setPalette] = useState<PaletteState>(null);
   const [assistant, setAssistant] = useState<AssistantMode>('closed');
-  const [viewport, setViewport] = useState<Viewport>({
-    x: 0,
-    y: 0,
-    zoom: 0.86,
-  });
   const [runInput, setRunInput] = useState('Please review this request.');
   const [events, setEvents] = useState<FlowRunEvent[]>([]);
   const [deliverable, setDeliverable] = useState<{ title: string; content: string } | null>(null);
@@ -592,29 +582,6 @@ export function FlowBuilder({
     setActiveAction({ nodeId: resolveNodeId, actionId: 'resolve-escalation' });
   }, [escalationsByNodeId, resolveNodeId]);
 
-  useEffect(() => {
-    // Scroll-to-zoom. Attached natively with { passive: false } because React's
-    // onWheel is passive — inside it preventDefault() is a no-op, so the page
-    // would scroll / the browser would native-zoom instead of the canvas.
-    const board = boardRef.current;
-    if (!board) return;
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      zoomAtPoint(event.clientX, event.clientY, event.deltaY > 0 ? -0.08 : 0.08);
-    };
-    board.addEventListener('wheel', onWheel, { passive: false });
-    return () => board.removeEventListener('wheel', onWheel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function updateNodes(mutator: (draft: FlowNodeData[]) => void) {
-    setNodes((current) => {
-      const draft = structuredClone(current);
-      mutator(draft);
-      return draft;
-    });
-  }
-
   async function loadSavedFlow() {
     try {
       const response = await fetch('/api/flows', { credentials: 'include' });
@@ -723,11 +690,21 @@ export function FlowBuilder({
     );
   }
 
+  function diagramCommand(command: DiagramCommand) {
+    if (viewingRun) return;
+    try {
+      const next = executeEditorCommand(workflowEditorAdapter, { nodes, edges }, command, viewingRun);
+      setNodes(next.nodes);
+      setEdges(next.edges);
+    } catch (error) {
+      toast.warning(error instanceof Error ? error.message : 'Could not edit workflow.');
+    }
+  }
+
   function deleteNode(nodeId = inspectorNodeId ?? selectedNodeId) {
     if (viewingRun) return;
     if (!nodeId) return;
-    setNodes((items) => items.filter((node) => node.id !== nodeId));
-    setEdges((items) => items.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    diagramCommand({ type: 'delete', ids: [nodeId] });
     if (selectedNodeId === nodeId) setSelectedNodeId(null);
     if (inspectorNodeId === nodeId) setInspectorNodeId(null);
   }
@@ -750,21 +727,15 @@ export function FlowBuilder({
       clearEdgeMode();
       return;
     }
-    const exists = edges.some((edge) => edge.source === edgeSource.nodeId && edge.target === targetNodeId);
-    if (!exists) {
-      setEdges((items) => [
-        ...items,
-        {
-          id: uid('edge'),
-          source: edgeSource.nodeId,
-          target: targetNodeId,
-          sourceHandle: edgeSource.handle,
-          targetHandle,
-          condition: 'always',
-        },
-      ]);
-      pulseConnectedNodes(edgeSource.nodeId, targetNodeId);
-    }
+    diagramCommand({
+      type: 'connect',
+      id: uid('edge'),
+      source: edgeSource.nodeId,
+      target: targetNodeId,
+      sourceHandle: edgeSource.handle,
+      targetHandle,
+    });
+    pulseConnectedNodes(edgeSource.nodeId, targetNodeId);
     clearEdgeMode();
   }
 
@@ -774,28 +745,7 @@ export function FlowBuilder({
   }
 
   function cycleEdgeHandles(edgeId: string) {
-    if (viewingRun) return;
-    const routePairs: Array<[HandleSide, HandleSide]> = [
-      ['right', 'left'],
-      ['bottom', 'top'],
-      ['left', 'right'],
-      ['top', 'bottom'],
-    ];
-    setEdges((items) =>
-      items.map((edge) => {
-        if (edge.id !== edgeId) return edge;
-        const currentIndex = routePairs.findIndex(
-          ([sourceHandle, targetHandle]) =>
-            (edge.sourceHandle || 'right') === sourceHandle && (edge.targetHandle || 'left') === targetHandle,
-        );
-        const nextPair = routePairs[(currentIndex + 1) % routePairs.length] || routePairs[0];
-        return {
-          ...edge,
-          sourceHandle: nextPair[0],
-          targetHandle: nextPair[1],
-        };
-      }),
-    );
+    diagramCommand({ type: 'reroute', id: edgeId });
   }
 
   function startEndpointReconnect(
@@ -840,25 +790,13 @@ export function FlowBuilder({
 
     if (!dropTarget) return;
 
-    setEdges((items) =>
-      items.map((edge) => {
-        if (edge.id !== reconnect.edgeId) return edge;
-        if (reconnect.endpoint === 'source') {
-          if (dropTarget.nodeId === edge.target) return edge;
-          return {
-            ...edge,
-            source: dropTarget.nodeId,
-            sourceHandle: dropTarget.handle,
-          };
-        }
-        if (dropTarget.nodeId === edge.source) return edge;
-        return {
-          ...edge,
-          target: dropTarget.nodeId,
-          targetHandle: dropTarget.handle,
-        };
-      }),
-    );
+    diagramCommand({
+      type: 'reconnect',
+      id: reconnect.edgeId,
+      endpoint: reconnect.endpoint,
+      nodeId: dropTarget.nodeId,
+      handle: dropTarget.handle,
+    });
   }
 
   function resolveConnectorDrop(clientX: number, clientY: number) {
@@ -933,12 +871,15 @@ export function FlowBuilder({
     if (dragRef.current) {
       const point = screenToWorld(event.clientX, event.clientY);
       const { nodeId, dx, dy } = dragRef.current;
-      updateNodes((draft) => {
-        const node = draft.find((item) => item.id === nodeId);
-        if (!node) return;
-        node.position.x = Math.round(point.x - dx);
-        node.position.y = Math.round(point.y - dy);
-      });
+      setNodes(
+        (current) =>
+          executeEditorCommand(
+            workflowEditorAdapter,
+            { nodes: current, edges },
+            { type: 'move', positions: { [nodeId]: { x: point.x - dx, y: point.y - dy } } },
+            viewingRun,
+          ).nodes,
+      );
     }
     if (panRef.current) {
       setViewport({
@@ -977,46 +918,9 @@ export function FlowBuilder({
     panRef.current = null;
   }
 
-  // Zoom keeping the world point under the cursor fixed (anchored zoom). Uses
-  // the functional updater so the native wheel listener never reads stale
-  // viewport state.
-  function zoomAtPoint(clientX: number, clientY: number, delta: number) {
-    setViewport((current) => {
-      const rect = boardRef.current?.getBoundingClientRect();
-      if (!rect) return current;
-      const nextZoom = clamp(current.zoom + delta, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM);
-      if (nextZoom === current.zoom) return current;
-      const sx = clientX - rect.left - rect.width / 2;
-      const sy = clientY - rect.top - rect.height / 2;
-      const worldX = (sx - current.x) / current.zoom;
-      const worldY = (sy - current.y) / current.zoom;
-      return { x: sx - worldX * nextZoom, y: sy - worldY * nextZoom, zoom: nextZoom };
-    });
-  }
-
-  function zoomBy(delta: number) {
-    setViewport((current) => ({
-      ...current,
-      zoom: clamp(current.zoom + delta, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM),
-    }));
-  }
-
-  function fit() {
-    setViewport({ x: 0, y: 0, zoom: 0.86 });
-  }
-
   function cleanupLayout() {
-    setNodes((items) => layoutFlowNodes(items, edges));
+    diagramCommand({ type: 'arrange' });
     fit();
-  }
-
-  function screenToWorld(clientX: number, clientY: number) {
-    const rect = boardRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: (clientX - rect.left - rect.width / 2 - viewport.x) / viewport.zoom,
-      y: (clientY - rect.top - rect.height / 2 - viewport.y) / viewport.zoom,
-    };
   }
 
   function screenToWorldFromCenter() {
@@ -1025,28 +929,20 @@ export function FlowBuilder({
     return screenToWorld(rect.left + rect.width / 2, rect.top + rect.height / 2);
   }
 
-  async function saveFlow() {
+  async function saveFlow(settingsPatch?: Partial<AgentFlow>) {
     if (viewingRun || definitionStack.length) return;
     setSaving(true);
-    const flow = currentFlow();
+    const flow = { ...currentFlow(), ...settingsPatch };
+    if (settingsPatch) flow.nodes = refreshNodeConfigurationIssues(flow);
     try {
-      if (flow.schemaVersion === 2) flow.defaultInput = JSON.parse(runInput);
-      const shouldCreate = flow.id === 'starter-flow';
-      const response = await fetch(shouldCreate ? '/api/flows' : `/api/flows/${flow.id}`, {
-        method: shouldCreate ? 'POST' : 'PUT',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(flow),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || 'Could not save flow.');
-      }
-      const saved = (await response.json()) as AgentFlow;
+      const saved = await saveWorkflowDraft(flow, runInput);
       setFlowId(saved.id);
       setGraphMeta(saved);
+      if (settingsPatch) setNodes(refreshNodeConfigurationIssues(saved));
       toast.success(_(msg('Flow saved')));
     } catch (error) {
+      // Settings must remain open on persistence failure; never claim they were saved.
+      if (settingsPatch) throw error;
       window.localStorage.setItem('agent42.localFlow', JSON.stringify(flow));
       toast.warning(
         error instanceof Error ? _('Saved locally: {message}', { message: error.message }) : _(msg('Saved locally')),
@@ -1289,96 +1185,86 @@ export function FlowBuilder({
       }}
     >
       <section className="stage">
-        <div
-          aria-label={_(msg('Agent workflow canvas'))}
-          className="board"
-          data-dragging={dragRef.current ? 'true' : undefined}
-          data-edge-mode={edgeSource || reconnectingEdgeId ? 'true' : undefined}
-          data-panning={panRef.current ? 'true' : undefined}
-          data-readonly={viewingRun ? 'true' : 'false'}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            const node = (event.target as HTMLElement).closest('[data-node-id]') as HTMLElement | null;
-            if (node?.dataset.nodeId) {
-              setSelectedNodeId(node.dataset.nodeId);
-              setInspectorNodeId(node.dataset.nodeId);
-              return;
-            }
-            openPalette(event.clientX, event.clientY);
+        <WorkflowRenderer
+          surfaceProps={{
+            'aria-label': _(msg('Agent workflow canvas')),
+            className: 'board',
+            'data-dragging': dragRef.current ? 'true' : undefined,
+            'data-edge-mode': edgeSource || reconnectingEdgeId ? 'true' : undefined,
+            'data-panning': panRef.current ? 'true' : undefined,
+            'data-readonly': viewingRun ? 'true' : 'false',
+            onContextMenu: (event) => {
+              event.preventDefault();
+              const node = (event.target as HTMLElement).closest('[data-node-id]') as HTMLElement | null;
+              if (node?.dataset.nodeId) {
+                setSelectedNodeId(node.dataset.nodeId);
+                setInspectorNodeId(node.dataset.nodeId);
+                return;
+              }
+              openPalette(event.clientX, event.clientY);
+            },
+            onPointerDown: handleBoardPointerDown,
+            onPointerLeave: () =>
+              setPointerHint((current) => ({
+                ...current,
+                visible: false,
+                target: null,
+              })),
+            onPointerMove: handleBoardPointerMove,
+            onPointerUp: handleBoardPointerUp,
+            boardRef: boardRef,
+            viewport: viewport,
+            overlay: <PointerHint edgeActive={Boolean(edgeSource || reconnectingEdgeId)} pointer={pointerHint} />,
           }}
-          onPointerDown={handleBoardPointerDown}
-          onPointerLeave={() =>
-            setPointerHint((current) => ({
-              ...current,
-              visible: false,
-              target: null,
-            }))
-          }
-          onPointerMove={handleBoardPointerMove}
-          onPointerUp={handleBoardPointerUp}
-          ref={boardRef}
-          role="application"
-        >
-          <PointerHint edgeActive={Boolean(edgeSource || reconnectingEdgeId)} pointer={pointerHint} />
-          <div
-            className="board-world"
-            style={{
-              transform: `translate(calc(50% + ${viewport.x}px), calc(50% + ${viewport.y}px)) scale(${viewport.zoom})`,
-            }}
-          >
-            <EdgeLayer
-              connectionPreview={connectionPreview}
-              edges={edges}
-              nodes={nodes}
-              onDeleteEdge={(edgeId) => {
-                if (viewingRun) return;
-                setEdges((items) => items.filter((edge) => edge.id !== edgeId));
-                setSelectedEdgeId(null);
-              }}
-              onCycleEdgeHandles={cycleEdgeHandles}
-              onSelectEdge={(id) => {
-                setSelectedEdgeId(id);
-                setSelectedNodeId(null);
-              }}
-              onStartEndpointReconnect={startEndpointReconnect}
-              reconnectingEdgeId={reconnectingEdgeId}
-              selectedEdgeId={selectedEdgeId}
-              selectedNodeId={inspectorNodeId ?? selectedNodeId}
-            />
-            <div className="node-layer">
-              {nodes.map((node) => (
-                <BoardNode
-                  actions={getNodeActions(node, nodeStatuses[node.id] || 'idle', {
-                    escalationsByNodeId,
-                  })}
-                  edgeSource={edgeSource}
-                  key={node.id}
-                  node={node}
-                  onDelete={() => deleteNode(node.id)}
-                  onFinishEdge={finishEdge}
-                  onInvokeAction={(actionId) => setActiveAction({ nodeId: node.id, actionId })}
-                  onOpenInspector={() => {
-                    setSelectedNodeId(node.id);
-                    setInspectorNodeId(node.id);
-                  }}
-                  onPointerDown={handleNodePointerDown}
-                  onSelect={() => {
-                    if (edgeSource && edgeSource.nodeId !== node.id) {
-                      finishEdge(node.id);
-                    } else {
-                      setSelectedNodeId(node.id);
-                    }
-                  }}
-                  onStartEdge={startEdge}
-                  pulseNodeIds={pulseNodeIds}
-                  readOnly={viewingRun}
-                  selected={node.id === selectedNodeId || node.id === inspectorNodeId}
-                  status={nodeStatuses[node.id] || 'idle'}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+          document={{ nodes, edges }}
+          readOnly={viewingRun}
+          decorateNode={(item) => projectWorkflowNode(nodes.find((node) => node.id === item.id)!)}
+          edgeProps={{
+            connectionPreview: connectionPreview,
+            onDeleteEdge: (edgeId) => {
+              if (viewingRun) return;
+              diagramCommand({ type: 'delete', ids: [edgeId] });
+              setSelectedEdgeId(null);
+            },
+            onCycleEdgeHandles: cycleEdgeHandles,
+            onSelectEdge: (id) => {
+              setSelectedEdgeId(id);
+              setSelectedNodeId(null);
+            },
+            onStartEndpointReconnect: startEndpointReconnect,
+            reconnectingEdgeId: reconnectingEdgeId,
+            selectedEdgeId: selectedEdgeId,
+            selectedNodeId: inspectorNodeId ?? selectedNodeId,
+          }}
+          nodeProps={(id) => {
+            const node = nodes.find((node) => node.id === id)!;
+            return {
+              actions: getNodeActions(node, nodeStatuses[node.id] || 'idle', {
+                escalationsByNodeId,
+              }),
+              edgeSource: edgeSource,
+              onDelete: () => deleteNode(node.id),
+              onFinishEdge: finishEdge,
+              onInvokeAction: (actionId) => setActiveAction({ nodeId: node.id, actionId: actionId as NodeActionId }),
+              onOpenInspector: () => {
+                setSelectedNodeId(node.id);
+                setInspectorNodeId(workflowEditorAdapter.configuration({ nodes, edges }, node.id)?.id ?? null);
+              },
+              onPointerDown: handleNodePointerDown,
+              onSelect: () => {
+                if (edgeSource && edgeSource.nodeId !== node.id) {
+                  finishEdge(node.id);
+                } else {
+                  setSelectedNodeId(node.id);
+                }
+              },
+              onStartEdge: startEdge,
+              pulseNodeIds: pulseNodeIds,
+              selected: node.id === selectedNodeId || node.id === inspectorNodeId,
+              status: nodeStatuses[node.id] || 'idle',
+            };
+          }}
+        />
 
         <header className="canvas-toolbar">
           <div className="title-pill">
@@ -1450,12 +1336,22 @@ export function FlowBuilder({
                 onAction={(key) => {
                   if (key === 'arrange') cleanupLayout();
                   if (key === 'help') setAssistant('open');
+                  if (key === 'process-source' && graphMeta.sourceReference?.startsWith('process:'))
+                    window.open(
+                      `/knowledge?view=process&revision=${encodeURIComponent(graphMeta.sourceReference.slice(8))}`,
+                      '_blank',
+                      'noopener,noreferrer',
+                    );
                 }}
               >
                 <Dropdown.Item id="arrange" isDisabled={viewingRun}>
                   Auto-arrange
                 </Dropdown.Item>
                 <Dropdown.Item id="help">Workflow help</Dropdown.Item>
+
+                {graphMeta.sourceReference?.startsWith('process:') && (
+                  <Dropdown.Item id="process-source">View source process</Dropdown.Item>
+                )}
               </Dropdown.Menu>
             </Dropdown.Popover>
           </Dropdown.Root>
@@ -1473,13 +1369,13 @@ export function FlowBuilder({
             </button>
           )}
           {workerId && provisioning ? (
-            <span className="inline-flex h-8 items-center gap-2 rounded-[9px] border border-[#dce4ef] bg-[#f8fafc] px-3 font-medium text-[#697386] text-xs">
+            <span className="inline-flex h-8 items-center gap-2 rounded-none border border-[#dce4ef] bg-[#f8fafc] px-3 font-medium text-[#697386] text-xs">
               <Loader2 className="size-3.5 animate-spin" />
               <Trans>Preparing demo data…</Trans>
             </span>
           ) : null}
           {workerId && provisionStatus === 'error' ? (
-            <span className="inline-flex h-8 items-center gap-2 rounded-[9px] border border-[#dce4ef] bg-[#f8fafc] px-3 font-medium text-[#697386] text-xs">
+            <span className="inline-flex h-8 items-center gap-2 rounded-none border border-[#dce4ef] bg-[#f8fafc] px-3 font-medium text-[#697386] text-xs">
               <Trans>Demo data unavailable</Trans>
             </span>
           ) : null}
@@ -1634,7 +1530,12 @@ export function FlowBuilder({
         {settingsOpen && (
           <NativeSettings
             flow={currentFlow()}
-            onApply={(patch) => setGraphMeta((meta) => ({ ...meta, ...patch }))}
+            onSave={definitionStack.length === 0 ? (patch) => saveFlow(patch) : undefined}
+            onApply={(patch) => {
+              const updated = { ...currentFlow(), ...patch };
+              setGraphMeta(updated);
+              setNodes(refreshNodeConfigurationIssues(updated));
+            }}
             onClose={() => setSettingsOpen(false)}
           />
         )}
@@ -1833,449 +1734,27 @@ function MouseIcon({ button }: { button: 'left' | 'right' }) {
   );
 }
 
-function EdgeLayer({
-  connectionPreview,
-  edges,
-  nodes,
-  onCycleEdgeHandles,
-  onDeleteEdge,
-  onSelectEdge,
-  onStartEndpointReconnect,
-  reconnectingEdgeId,
-  selectedEdgeId,
-  selectedNodeId,
-}: {
-  connectionPreview: { source: Point; target: Point } | null;
-  edges: FlowEdgeData[];
-  nodes: FlowNodeData[];
-  onCycleEdgeHandles: (edgeId: string) => void;
-  onDeleteEdge: (edgeId: string) => void;
-  onSelectEdge: (edgeId: string | null) => void;
-  onStartEndpointReconnect: (
-    event: React.PointerEvent<HTMLButtonElement>,
-    edgeId: string,
-    endpoint: EdgeEndpoint,
-  ) => void;
-  reconnectingEdgeId: string | null;
-  selectedEdgeId: string | null;
-  selectedNodeId: string | null;
-}) {
-  const { _ } = useLingui();
-
-  return (
-    <>
-      <svg aria-hidden="true" className="edge-layer">
-        <defs>
-          <marker
-            id="agent42-arrow"
-            markerHeight="8"
-            markerUnits="userSpaceOnUse"
-            markerWidth="8"
-            orient="auto-start-reverse"
-            refX="8"
-            refY="4"
-            viewBox="0 0 8 8"
-          >
-            <path d="M 0 0 L 8 4 L 0 8 z" />
-          </marker>
-          <marker
-            id="agent42-arrow-active"
-            markerHeight="8"
-            markerUnits="userSpaceOnUse"
-            markerWidth="8"
-            orient="auto-start-reverse"
-            refX="8"
-            refY="4"
-            viewBox="0 0 8 8"
-          >
-            <path d="M 0 0 L 8 4 L 0 8 z" />
-          </marker>
-          <marker
-            id="agent42-arrow-true"
-            markerHeight="8"
-            markerUnits="userSpaceOnUse"
-            markerWidth="8"
-            orient="auto-start-reverse"
-            refX="8"
-            refY="4"
-            viewBox="0 0 8 8"
-          >
-            <path d="M 0 0 L 8 4 L 0 8 z" />
-          </marker>
-          <marker
-            id="agent42-arrow-false"
-            markerHeight="8"
-            markerUnits="userSpaceOnUse"
-            markerWidth="8"
-            orient="auto-start-reverse"
-            refX="8"
-            refY="4"
-            viewBox="0 0 8 8"
-          >
-            <path d="M 0 0 L 8 4 L 0 8 z" />
-          </marker>
-        </defs>
-        {edges.map((edge) => {
-          const source = nodes.find((node) => node.id === edge.source);
-          const target = nodes.find((node) => node.id === edge.target);
-          if (!source || !target) return null;
-          const endpoints = edgeEndpoints(edge, source, target);
-          const path = ropePath(endpoints.source, endpoints.target);
-          const branch = edgeBranch(edge.condition, source.kind);
-          const active =
-            selectedEdgeId === edge.id ||
-            reconnectingEdgeId === edge.id ||
-            selectedNodeId === source.id ||
-            selectedNodeId === target.id;
-          const baseMarker = active
-            ? 'agent42-arrow-active'
-            : branch
-              ? `agent42-arrow-${branch.tone}`
-              : 'agent42-arrow';
-          return (
-            <g
-              className={cn('edge-group', active && 'highlighted')}
-              data-board-edge="true"
-              data-edge-id={edge.id}
-              key={edge.id}
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelectEdge(edge.id);
-              }}
-            >
-              <path className="edge-hit" d={path.d} vectorEffect="non-scaling-stroke" />
-              <path
-                className={cn('edge-base', branch && `is-${branch.tone}`)}
-                d={path.d}
-                markerEnd={`url(#${baseMarker})`}
-                vectorEffect="non-scaling-stroke"
-              />
-              <path
-                className={cn('edge-flow', active && 'is-visible')}
-                d={path.d}
-                markerEnd={active ? 'url(#agent42-arrow-active)' : undefined}
-                vectorEffect="non-scaling-stroke"
-              />
-            </g>
-          );
-        })}
-        {connectionPreview ? (
-          <g className="connection-preview" data-diagram-connection-preview="true">
-            <path
-              className="connection-preview-base"
-              d={ropePath(connectionPreview.source, connectionPreview.target).d}
-              markerEnd="url(#agent42-arrow-active)"
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              className="connection-preview-flow"
-              d={ropePath(connectionPreview.source, connectionPreview.target).d}
-              markerEnd="url(#agent42-arrow-active)"
-              vectorEffect="non-scaling-stroke"
-            />
-          </g>
-        ) : null}
-      </svg>
-      <div className="edge-ui-layer">
-        {edges.map((edge) => {
-          const source = nodes.find((node) => node.id === edge.source);
-          const target = nodes.find((node) => node.id === edge.target);
-          if (!source || !target) return null;
-          const endpoints = edgeEndpoints(edge, source, target);
-          const path = ropePath(endpoints.source, endpoints.target);
-          const branch = edgeBranch(edge.condition, source.kind);
-          const active =
-            selectedEdgeId === edge.id ||
-            reconnectingEdgeId === edge.id ||
-            selectedNodeId === source.id ||
-            selectedNodeId === target.id;
-          return (
-            <div key={`${edge.id}-ui`}>
-              <div
-                className={cn('edge-ui', active && 'selected')}
-                data-edge-id={edge.id}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelectEdge(edge.id);
-                }}
-                style={
-                  {
-                    '--edge-label-x': `${Math.round(path.labelX)}px`,
-                    '--edge-label-y': `${Math.round(path.labelY - 28)}px`,
-                  } as React.CSSProperties
-                }
-              >
-                {branch ? <span className={cn('edge-branch-label', `is-${branch.tone}`)}>{branch.label}</span> : null}
-                <div className="edge-label-toolbar">
-                  <button
-                    aria-label={_(msg('Reroute edge'))}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onCycleEdgeHandles(edge.id);
-                      onSelectEdge(edge.id);
-                    }}
-                    title={_(msg('Reroute edge'))}
-                    type="button"
-                  >
-                    <GitBranch className="size-3" />
-                  </button>
-                  <button
-                    aria-label={_(msg('Delete edge'))}
-                    className="edge-delete-button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDeleteEdge(edge.id);
-                    }}
-                    title={_(msg('Delete edge'))}
-                    type="button"
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              </div>
-              <button
-                aria-label={_(msg('Drag source connector'))}
-                className={cn('edge-endpoint-grip source', active && 'selected')}
-                data-board-nodrag="true"
-                onPointerDown={(event) => onStartEndpointReconnect(event, edge.id, 'source')}
-                style={
-                  {
-                    '--edge-grip-x': `${Math.round(endpoints.source.x)}px`,
-                    '--edge-grip-y': `${Math.round(endpoints.source.y)}px`,
-                  } as React.CSSProperties
-                }
-                title={_(msg('Drag source connector'))}
-                type="button"
-              />
-              <button
-                aria-label={_(msg('Drag target connector'))}
-                className={cn('edge-endpoint-grip target', active && 'selected')}
-                data-board-nodrag="true"
-                onPointerDown={(event) => onStartEndpointReconnect(event, edge.id, 'target')}
-                style={
-                  {
-                    '--edge-grip-x': `${Math.round(endpoints.target.x)}px`,
-                    '--edge-grip-y': `${Math.round(endpoints.target.y)}px`,
-                  } as React.CSSProperties
-                }
-                title={_(msg('Drag target connector'))}
-                type="button"
-              />
-            </div>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
-function BoardNode({
-  actions,
-  edgeSource,
-  node,
-  onDelete,
-  onFinishEdge,
-  onInvokeAction,
-  onOpenInspector,
-  onPointerDown,
-  onSelect,
-  onStartEdge,
-  pulseNodeIds,
-  selected,
-  readOnly = false,
-  status,
-}: {
-  actions: NodeActionDescriptor[];
-  edgeSource: EdgeSource;
-  node: FlowNodeData;
-  onDelete: () => void;
-  onFinishEdge: (nodeId: string, handle?: HandleSide) => void;
-  onInvokeAction: (id: NodeActionId) => void;
-  onOpenInspector: () => void;
-  onPointerDown: (event: React.PointerEvent<HTMLElement>, nodeId: string) => void;
-  onSelect: () => void;
-  onStartEdge: (nodeId: string, handle?: HandleSide) => void;
-  pulseNodeIds: Set<string>;
-  selected: boolean;
-  readOnly?: boolean;
-  status: FlowNodeStatus;
-}) {
-  const { _ } = useLingui();
+function projectWorkflowNode(node: FlowNodeData): CanvasNode {
   const meta = nodePalette.find((item) => item.kind === node.kind) ?? nodePalette[0];
-  const size = getNodeSize(node.kind);
-  const isBrushSource = edgeSource?.nodeId === node.id;
-  const isBrushConnected = pulseNodeIds.has(node.id);
-  const Icon = meta.icon;
-  const chips = nodeChips(node);
-
-  return (
-    <article
-      className={cn('board-node', selected && 'selected')}
-      tabIndex={0}
-      aria-label={node.name}
-      onKeyDown={(event) => {
-        if (event.target === event.currentTarget && event.key === 'Enter') {
-          event.preventDefault();
-          onOpenInspector();
-        }
-      }}
-      data-board-node="true"
-      data-diagram-edge-brush-connected={isBrushConnected ? 'true' : undefined}
-      data-diagram-edge-brush-source={isBrushSource ? 'true' : undefined}
-      data-node-id={node.id}
-      data-node-kind={node.kind}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect();
-      }}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onOpenInspector();
-      }}
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        onOpenInspector();
-      }}
-      onPointerDown={(event) => onPointerDown(event, node.id)}
-      style={
-        {
-          '--node-bg': meta.bg,
-          '--node-color': meta.color,
-          '--node-h': `${size.height}px`,
-          '--node-w': `${size.width}px`,
-          '--node-x': `${node.position.x}px`,
-          '--node-y': `${node.position.y}px`,
-        } as React.CSSProperties
-      }
-    >
-      {status !== 'idle' ? (
-        <div
-          className="node-status-strip"
-          data-result-state={status}
-          data-agent-state={status === 'running' ? 'working' : status === 'waiting' ? 'waiting' : 'idle'}
-        >
-          {status === 'running' ? (
-            <span className="node-agent-pulse" aria-hidden />
-          ) : status === 'waiting' ? (
-            <Hourglass className="size-3 text-amber-600" />
-          ) : status === 'failed' ? (
-            <X className="size-3" />
-          ) : (
-            <Check className="size-3" />
-          )}
-          <span>
-            {status === 'running' ? (
-              <Trans>Running</Trans>
-            ) : status === 'waiting' ? (
-              <Trans>Waiting</Trans>
-            ) : status === 'failed' ? (
-              <Trans>Failed</Trans>
-            ) : status === 'skipped' ? (
-              <Trans>Skipped</Trans>
-            ) : (
-              <Trans>Done</Trans>
-            )}
-          </span>
-          {actions.length > 0
-            ? actions.map((action) => (
-                <button
-                  className="node-action-chip"
-                  data-board-nodrag="true"
-                  key={action.id}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onInvokeAction(action.id);
-                  }}
-                  type="button"
-                >
-                  {_(action.labelKey)}
-                </button>
-              ))
-            : null}
-        </div>
-      ) : null}
-      <div className="node-icon">
-        <Icon className="size-5" />
-      </div>
-      <div className="node-copy">
-        <h3>{truncate(node.name, 28)}</h3>
-        <p>{truncate(node.description || meta.description, 62)}</p>
-        {chips.length > 0 && (
-          <div className="node-config-chips">
-            {chips.map((chip) => (
-              <em key={chip}>{chip}</em>
-            ))}
-          </div>
-        )}
-        {node.config.issues?.length ? (
-          <span className="node-needs-config">Needs configuration · {node.config.issues.length} issues</span>
-        ) : (
-          !(node.config.operation || node.config.code || node.config.parameters || node.kind === 'trigger') && (
-            <span className="node-needs-config">Needs configuration</span>
-          )
-        )}
-        <NodeInlineBody node={node} />
-      </div>
-      {selected ? (
-        <>
-          <div className="selection-ring">
-            {(['top', 'right', 'bottom', 'left'] as HandleSide[]).map((side) => (
-              <button
-                aria-label={_(msg(`Connect handle ${side}`))}
-                className={`board-side-handle ${side}`}
-                data-board-handle="true"
-                data-board-handle-id={side}
-                data-board-handle-side={side}
-                data-board-node-id={node.id}
-                data-board-nodrag="true"
-                data-connectable="true"
-                data-diagram-edge-brush-source-handle={
-                  isBrushSource && edgeSource?.handle === side ? 'true' : undefined
-                }
-                key={side}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (edgeSource && edgeSource.nodeId !== node.id) onFinishEdge(node.id, side);
-                  else onStartEdge(node.id, side);
-                }}
-                type="button"
-              />
-            ))}
-          </div>
-          <div
-            className="node-selection-toolbar"
-            role="toolbar"
-            aria-label={`Actions for ${node.name}`}
-            data-board-nodrag="true"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-            onDoubleClick={(event) => event.stopPropagation()}
-          >
-            <Tooltip title="Settings">
-              <UiButton
-                color="tertiary"
-                iconLeading={SettingsIcon}
-                aria-label="Node settings"
-                onPress={onOpenInspector}
-              />
-            </Tooltip>
-            <Tooltip title={readOnly ? 'Recorded workflows are read-only' : 'Delete node'}>
-              <UiButton
-                color="tertiary"
-                iconLeading={Trash01}
-                aria-label="Delete node"
-                isDisabled={readOnly}
-                onPress={onDelete}
-              />
-            </Tooltip>
-          </div>
-        </>
-      ) : null}
-    </article>
-  );
+  return {
+    id: node.id,
+    kind: node.kind,
+    name: node.name,
+    description: node.description || meta.description,
+    position: node.position,
+    size: getNodeSize(node.kind),
+    icon: meta.icon,
+    color: meta.color,
+    bg: meta.bg,
+    chips: nodeChips(node),
+    body: <NodeInlineBody node={node} />,
+    readiness: node.config.issues?.length
+      ? `Needs configuration · ${node.config.issues.length} issues`
+      : !(node.config.operation || node.config.code || node.config.parameters || node.kind === 'trigger')
+        ? 'Needs configuration'
+        : undefined,
+  };
 }
-
 function NodeInlineBody({ node }: { node: FlowNodeData }) {
   if (node.kind === 'llm') {
     return (
@@ -2534,7 +2013,7 @@ function NodeInspectorFields({
       </h3>
       {config.sourceRef ? (
         <span
-          className="inline-flex w-fit items-center gap-1 rounded-full border border-[#e7e9ee] bg-[#f7f8fa] px-2 py-0.5 font-mono text-[#6e7c93] text-[11px]"
+          className="inline-flex w-fit items-center gap-1 rounded-none border border-[#e7e9ee] bg-[#f7f8fa] px-2 py-0.5 font-mono text-[#6e7c93] text-[11px]"
           title="Source paragraphs cited by the SOP compiler"
         >
           <Trans>¶ {config.sourceRef.paragraphs.join(', ')}</Trans>
@@ -2586,7 +2065,7 @@ function NodeInspectorFields({
               ))}
             </select>
             {config.promptAssetId ? (
-              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+              <span className="inline-flex w-fit items-center gap-1 rounded-none border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
                 <Trans>
                   from {config.promptAssetName} v{config.promptAssetVersion}
                 </Trans>
@@ -2743,7 +2222,7 @@ function NodeInspectorFields({
             <span>
               <Trans>Last output</Trans>
             </span>
-            <pre className="max-h-48 overflow-auto rounded-lg bg-[#f6f8fb] p-3 text-[11px]">
+            <pre className="max-h-48 overflow-auto rounded-none bg-[#f6f8fb] p-3 text-[11px]">
               {JSON.stringify(nodeOutput, null, 2)}
             </pre>
           </label>
@@ -2955,9 +2434,7 @@ function getPointerTarget(element: HTMLElement): PointerTarget {
   return null;
 }
 
-function getNodeSize(kind: FlowNodeKind) {
-  return NODE_SIZES[kind] ?? { width: 284, height: 142 };
-}
+const getNodeSize = workflowNodeSize;
 
 function inspectorPlacement(node: FlowNodeData, viewport: Viewport, board: HTMLDivElement | null) {
   const rect = board?.getBoundingClientRect();
@@ -2978,54 +2455,6 @@ function inspectorPlacement(node: FlowNodeData, viewport: Viewport, board: HTMLD
     side,
     connectorY: clamp(nodeMidY - top, 38, panelHeight - 38),
   } as const;
-}
-
-function layoutFlowNodes(nodes: FlowNodeData[], edges: FlowEdgeData[]) {
-  const ranks = rankNodes(
-    nodes.map((node) => node.id),
-    edges.map((edge) => ({ source: edge.source, target: edge.target })),
-  );
-  const buckets = new Map<number, FlowNodeData[]>();
-  for (const node of nodes) {
-    const rank = ranks.get(node.id) ?? 0;
-    buckets.set(rank, [...(buckets.get(rank) ?? []), node]);
-  }
-  const orderedRanks = [...buckets.keys()].sort((a, b) => a - b);
-  const columnGap = 390;
-  // Vertical gap between nodes sharing a rank (e.g. branch siblings). Must
-  // exceed the tallest rendered node (~290px) so stacked nodes don't overlap.
-  const rowGap = 340;
-  const left = -Math.max(1, orderedRanks.length - 1) * columnGap * 0.5;
-  return nodes.map((node) => {
-    const rank = ranks.get(node.id) ?? 0;
-    const bucket = buckets.get(rank) ?? [];
-    const index = bucket.findIndex((item) => item.id === node.id);
-    const y = (index - (bucket.length - 1) / 2) * rowGap;
-    return {
-      ...node,
-      position: {
-        x: Math.round(left + orderedRanks.indexOf(rank) * columnGap),
-        y: Math.round(y),
-      },
-    };
-  });
-}
-
-function rankNodes(ids: string[], edges: { source: string; target: string }[]) {
-  const rank = new Map(ids.map((id) => [id, 0]));
-  for (let pass = 0; pass < ids.length; pass += 1) {
-    let changed = false;
-    for (const edge of edges) {
-      const sourceRank = rank.get(edge.source) ?? 0;
-      const targetRank = rank.get(edge.target) ?? 0;
-      if (targetRank <= sourceRank) {
-        rank.set(edge.target, sourceRank + 1);
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-  return rank;
 }
 
 function nodeChips(node: FlowNodeData) {

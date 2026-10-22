@@ -1,0 +1,947 @@
+.wi-detail {
+  width: min(1080px, 100%);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.wi-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.wi-detail :is(h2, h3, h4),
+.wi-editor :is(h2, h3, h4) {
+  margin: 0;
+  font-weight: 500;
+}
+.wi-detail h2 {
+  font-size: 20px;
+}
+.wi-detail h3 {
+  font-size: 17px;
+}
+.wi-card {
+  border: 1px solid #e4e0db;
+  background: #fdfcfc;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.wi-card > label:not([data-ui-checkbox]),
+.wi-detail > label:not([data-ui-checkbox]) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wi-card p {
+  margin: 0;
+  line-height: 1.65;
+}
+.wi-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.wi-section-heading > label {
+  flex: 1;
+}
+.wi-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.wi-form-grid label:not([data-ui-checkbox]) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wi-property {
+  padding: 16px;
+  background: #f6f4f1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wi-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.wi-evidence {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #615b54;
+}
+.wi-detail a,
+.wi-card a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.wi-detail small {
+  display: block;
+  font-size: 14px;
+  color: #777169;
+  overflow-wrap: anywhere;
+}
+.wi-inline-actions {
+  display: flex;
+  gap: 4px;
+}
+.wi-issues {
+  background: #fffaeb;
+  border-left: 3px solid #b54708;
+  padding: 16px 20px;
+}
+.wi-issues ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+.wi-issues li {
+  margin-top: 8px;
+}
+.wi-source-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wi-source-block {
+  border: 1px solid #e4e0db;
+  padding: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wi-source-block.selected {
+  outline: 2px solid #615b54;
+  outline-offset: -2px;
+  background: #f6f4f1;
+}
+.wi-source-block p {
+  margin: 10px 0 0;
+  line-height: 1.75;
+}
+@media (max-width: 700px) {
+  .wi-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .wi-detail {
+    padding: 16px;
+  }
+}
+.wi-fixed-value {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Standalone ontology designer: separate from the admin work-area contract. */
+.sp-ontology-workspace {
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f6f4f1;
+  color: #303236;
+  font-family: var(--font-geist);
+}
+.sp-ontology-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e4e0db;
+  background: #fff;
+  flex-shrink: 0;
+}
+.sp-ontology-header > svg {
+  width: 42px;
+  height: 32px;
+}
+.sp-ontology-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 440px;
+}
+.sp-ontology-title span {
+  font-size: 14px;
+  color: #615b54;
+}
+.sp-ontology-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.sp-ontology-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.sp-ontology-status {
+  padding: 8px 20px;
+  margin: 0;
+  max-height: 25dvh;
+  overflow: auto;
+}
+
+.sp-ontology-playground.light-theme {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font-geist);
+  --font-primary: var(--font-geist);
+  --ms-blue: #303236;
+  --ms-blue-dark: #333;
+  --ms-blue-light: #444;
+  --bg-primary: #f6f4f1;
+  --bg-secondary: #fff;
+  --border-color: #e4e0db;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  color: #303236;
+}
+.sp-ontology-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e4e0db;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.sp-ontology-toolbar span {
+  font-size: 14px;
+  color: #615b54;
+  margin-left: auto;
+}
+.sp-ontology-playground .designer-split {
+  min-height: 0;
+  overflow: hidden;
+}
+.sp-ontology-playground fieldset.designer-sidebar {
+  margin: 0;
+  border: 0;
+  border-right: 1px solid #e4e0db;
+  min-width: 280px;
+  min-height: 0;
+  width: 380px;
+  padding: 20px;
+}
+.sp-ontology-playground .designer-sidebar > :first-child {
+  margin-bottom: 20px;
+}
+.sp-ontology-preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.sp-ontology-preview .designer-preview {
+  width: 100%;
+  min-height: 0;
+}
+.sp-ontology-readonly .designer-rdf-toolbar {
+  display: none;
+}
+.sp-ontology-playground .designer-field > span,
+.sp-ontology-playground .designer-entity-name {
+  font-size: 15px;
+}
+.sp-ontology-playground .designer-entity-badge,
+.sp-ontology-playground .designer-field-hint,
+.sp-ontology-playground .designer-empty {
+  font-size: 14px;
+}
+.sp-ontology-playground :is(button, input, textarea, select) {
+  border-radius: 0;
+  font-family: inherit;
+}
+.wi-detail .sp-ontology-playground {
+  height: 650px;
+  flex: none;
+}
+@media (max-width: 700px) {
+  .sp-ontology-playground .designer-split {
+    flex-direction: column;
+  }
+  .sp-ontology-playground fieldset.designer-sidebar {
+    width: 100%;
+    max-height: 45%;
+    flex-shrink: 0;
+  }
+  .sp-ontology-preview {
+    min-height: 160px;
+  }
+}
+.sp-ontology-editor-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 320px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.sp-ontology-editor-grid.is-explorer {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.sp-ontology-playground .sp-ontology-editor-grid fieldset.designer-sidebar {
+  width: auto;
+  min-width: 0;
+}
+.sp-ontology-playground .graph-container {
+  min-width: 0;
+  min-height: 0;
+  /* Match the workflow editor stage: 28px grid on the same canvas surface. */
+  background: linear-gradient(rgba(23, 32, 51, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 32, 51, 0.06) 1px, transparent 1px), #f7f9fc;
+  background-size: 28px 28px;
+  background-position: 0 0;
+}
+.sp-ontology-playground .right-sidebar {
+  min-width: 0;
+  min-height: 0;
+}
+.sp-ontology-playground .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-ontology-playground .legend-item > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-ontology-playground .designer-toolbar-btn[aria-pressed='true'] {
+  background: #eae7e2;
+}
+.sp-ontology-playground .entity-icon {
+  border: 1px solid #d2d6dc;
+  border-radius: 0;
+  background: #f6f7f9 !important;
+  color: #475467 !important;
+}
+@media (max-width: 1100px) {
+  .sp-ontology-editor-grid {
+    grid-template-columns: 260px minmax(0, 1fr) 280px;
+  }
+  .sp-ontology-editor-grid.is-explorer {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+}
+@media (max-width: 800px) {
+  .sp-ontology-editor-grid,
+  .sp-ontology-editor-grid.is-explorer {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+  .sp-ontology-editor-grid:not(.is-explorer) {
+    overflow: auto;
+  }
+  .sp-ontology-editor-grid:not(.is-explorer) > .graph-container {
+    min-height: 350px;
+    grid-column: 1/-1;
+    grid-row: 1;
+  }
+  .sp-ontology-playground .sp-ontology-editor-grid fieldset.designer-sidebar {
+    max-height: none;
+  }
+}
+.sp-ontology-workspace :is(button, input, textarea, select, [data-input-wrapper]),
+.sp-ontology-workspace button::before {
+  border-radius: 0;
+}
+.sp-ontology-workspace button > [data-text] {
+  display: contents;
+}
+.sp-ontology-workspace [data-label] {
+  color: #344054;
+  font-size: 14px;
+}
+.sp-ontology-workspace .cp-primary {
+  background: #303236;
+  color: #fff;
+}
+.sp-ontology-playground .designer-add-btn,
+.sp-ontology-playground .designer-add-btn [data-text] {
+  color: #fff;
+}
+.sp-ontology-toolbar button[aria-pressed='true'] {
+  background: #eae7e2;
+  box-shadow: inset 0 -2px #303236;
+}
+.sp-ontology-workspace [data-input-wrapper],
+.sp-ontology-workspace [data-input-wrapper]::before {
+  border-radius: 0;
+}
+.sp-ontology-playground .designer-field > span {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.sp-ontology-playground .designer-field-hint {
+  font-weight: 400;
+  line-height: 1.5;
+}
+.sp-ontology-workspace [data-input-wrapper] > [role='group'] {
+  border-radius: 0;
+}
+
+/* One compact editor header. View controls are portalled here from the editor. */
+.sp-ontology-header {
+  min-height: 64px;
+  padding: 10px 20px;
+  gap: 20px;
+}
+.sp-ontology-header > svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.sp-ontology-title {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  max-width: 420px;
+  min-width: 0;
+}
+.sp-ontology-title > [data-input-wrapper] {
+  width: clamp(140px, 18vw, 240px);
+  min-width: 100px;
+}
+.sp-ontology-title [role='group'] {
+  box-shadow: none;
+  background: transparent;
+}
+.sp-ontology-title [role='group']:focus-within {
+  box-shadow: inset 0 0 0 1px #a59f97;
+  background: #f6f4f1;
+}
+.sp-ontology-title input {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 4px;
+}
+.sp-ontology-revision {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sp-ontology-save-state {
+  white-space: nowrap;
+}
+.sp-ontology-save-state[data-dirty] {
+  color: #b54708;
+}
+.sp-ontology-header-tools {
+  min-width: 0;
+}
+.sp-ontology-header-tools:empty {
+  display: none;
+}
+.sp-ontology-toolbar {
+  padding: 8px 20px;
+  gap: 16px;
+  background: #fff;
+}
+.sp-ontology-header-tools .sp-ontology-toolbar {
+  border: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+  background: transparent;
+}
+.sp-ontology-history {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 16px;
+  border-right: 1px solid #e4e0db;
+}
+.sp-ontology-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sp-ontology-views button {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 8px 12px;
+  color: #615b54;
+}
+.sp-ontology-views button::before {
+  display: none;
+}
+.sp-ontology-views button[aria-pressed='true'] {
+  color: #303236;
+  background: #f0eeea;
+  box-shadow: inset 0 -2px #303236;
+}
+.sp-ontology-actions {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+@media (max-width: 1100px) {
+  .sp-ontology-header {
+    gap: 12px;
+  }
+  .sp-ontology-title {
+    gap: 8px;
+  }
+  .sp-ontology-title > [data-input-wrapper] {
+    width: 160px;
+  }
+  .sp-ontology-title .sp-ontology-revision {
+    display: none;
+  }
+  .sp-ontology-views button {
+    padding: 8px;
+  }
+  .sp-ontology-history {
+    padding-right: 8px;
+  }
+}
+@media (max-width: 850px) {
+  .sp-ontology-header {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .sp-ontology-header-tools {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .sp-ontology-header-tools .sp-ontology-toolbar {
+    justify-content: flex-start;
+  }
+  .sp-ontology-actions {
+    margin-left: auto;
+  }
+  .sp-ontology-title {
+    flex: 1;
+    max-width: none;
+  }
+  .sp-ontology-title > [data-input-wrapper] {
+    width: min(180px, 27vw);
+  }
+  .sp-ontology-save-state {
+    font-size: 14px;
+  }
+}
+@media (max-width: 500px) {
+  .sp-ontology-header {
+    gap: 8px;
+  }
+  .sp-ontology-title {
+    flex-basis: calc(100% - 46px);
+  }
+  .sp-ontology-actions {
+    order: 2;
+    margin-left: 0;
+  }
+  .sp-ontology-header-tools {
+    order: 3;
+  }
+  .sp-ontology-title > [data-input-wrapper] {
+    width: 180px;
+  }
+}
+.sp-ontology-title > [data-input-wrapper] {
+  width: clamp(120px, 12vw, 200px);
+}
+.sp-ontology-title [data-input-wrapper] > div {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.sp-ontology-title [data-input-wrapper] > div:hover {
+  background: #f6f4f1;
+}
+.sp-ontology-title [data-input-wrapper] > div:focus-within {
+  box-shadow: inset 0 0 0 1px #a59f97;
+  background: #f6f4f1;
+}
+
+/* NativeSelect owns its field border; upstream select styles must not style its wrapper. */
+.sp-ontology-playground .pathfinder-selects {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+.sp-ontology-playground .pathfinder-select-group {
+  min-width: 0;
+  gap: 6px;
+}
+.sp-ontology-playground .pathfinder-label {
+  font-size: 14px;
+  line-height: 20px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  color: #475467;
+}
+.sp-ontology-playground .sp-ontology-path-select {
+  min-width: 0;
+}
+.sp-ontology-playground .sp-ontology-path-select select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 8px 28px 8px 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.sp-ontology-playground .sp-ontology-path-select svg {
+  width: 14px;
+  height: 14px;
+  right: 10px;
+}
+.sp-ontology-playground .pathfinder-arrow-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0 0 11px;
+}
+
+/* Apply square corners to the actual Untitled UI field surface, not only its input. */
+:is(.sp-ontology-workspace, .sp-ontology-playground) [data-input-wrapper] > div,
+:is(.sp-ontology-workspace, .sp-ontology-playground) :is(button, input, select, textarea, [role='tab']),
+.sp-ontology-playground :is(.designer-color-btn, .designer-entity-badge) {
+  border-radius: 0;
+}
+:is(.sp-ontology-workspace, .sp-ontology-playground) button::before,
+:is(.sp-ontology-workspace, .sp-ontology-playground) [data-input-wrapper] > div::before {
+  border-radius: 0;
+}
+.sp-entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 24px;
+}
+.sp-entity-list-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e4e0db;
+  background: #fff;
+  padding: 8px;
+  min-width: 0;
+}
+.sp-entity-list-row[data-selected] {
+  background: #f6f4f1;
+  border-color: #b9b2aa;
+}
+.sp-entity-select {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  background: transparent;
+  box-shadow: none;
+  padding: 4px;
+  border: 0;
+}
+.sp-entity-select > [data-text] {
+  display: contents;
+}
+.sp-entity-select span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-entity-select small {
+  font-size: 14px;
+  color: #615b54;
+  font-weight: 400;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.sp-entity-inspector-action {
+  padding: 16px;
+  border-top: 1px solid #e4e0db;
+}
+.sp-entity-panel {
+  overflow: auto;
+  padding: 24px;
+  min-width: 0;
+}
+.nc-dialog .sp-entity-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.sp-entity-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sp-entity-fields [data-label] {
+  color: #344054;
+}
+.sp-entity-icon-picker,
+.sp-entity-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sp-entity-color-picker button {
+  display: flex;
+  gap: 8px;
+  min-width: 130px;
+  justify-content: flex-start;
+}
+.sp-entity-color-picker button > [data-text] {
+  display: contents;
+}
+.sp-entity-color-picker button span[style] {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #0002;
+}
+.sp-entity-dialog button[aria-pressed='true'] {
+  outline: 2px solid #667085;
+  outline-offset: 2px;
+}
+.sp-entity-property-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.sp-entity-properties-heading {
+  align-items: flex-start;
+}
+.sp-entity-properties-heading h3 {
+  margin: 0 0 6px;
+}
+.sp-entity-properties-heading p {
+  margin: 0;
+  color: #615b54;
+}
+.sp-entity-dialog table {
+  width: 100%;
+  table-layout: fixed;
+  min-width: 720px;
+}
+.sp-entity-dialog table :is(th, td) {
+  padding: 12px;
+  vertical-align: middle;
+}
+.sp-entity-dialog table th:nth-child(1) {
+  width: 44px;
+}
+.sp-entity-dialog table th:nth-child(3) {
+  width: 140px;
+}
+.sp-entity-dialog table th:nth-child(4),
+.sp-entity-dialog table th:nth-child(5),
+.sp-entity-dialog table th:nth-child(6) {
+  width: 100px;
+}
+.sp-entity-dialog table th:nth-child(7) {
+  width: 72px;
+}
+.sp-entity-dialog table th:nth-child(n + 4) > * {
+  justify-content: center;
+  width: 100%;
+}
+.sp-entity-dialog table tr:not(.sp-entity-property-detail-row) > td:nth-child(n + 4) > :is(label, div) {
+  display: flex;
+  justify-content: center;
+}
+.sp-entity-dialog table tr:not(.sp-entity-property-detail-row) > td:first-child {
+  padding: 12px 4px;
+}
+.sp-entity-dialog table tr:not(.sp-entity-property-detail-row) {
+  height: 64px;
+}
+.sp-entity-dialog table .sp-entity-property-expanded > td {
+  background: #eff6ff;
+}
+.sp-entity-property-expanded > td:first-child {
+  box-shadow: inset 2px 0 #3b82f6;
+}
+.sp-entity-dialog table .sp-entity-property-detail-row > td {
+  padding: 16px 12px 24px 56px;
+  background: #fff;
+}
+.sp-entity-dialog .sp-entity-property-detail-row {
+  height: auto;
+}
+.sp-entity-property-details textarea {
+  min-height: 76px;
+}
+.sp-entity-property-metadata {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+.sp-entity-default-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 2px;
+}
+.sp-entity-default-settings > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #615b54;
+}
+@media (max-width: 1000px) {
+  .sp-entity-property-metadata {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.sp-entity-dialog .nc-section-panel {
+  min-width: 0;
+}
+.sp-entity-dialog :is(button, input, select, textarea),
+.sp-entity-dialog [data-input-wrapper] > div {
+  border-radius: 0;
+}
+
+.sp-entity-dialog label.sp-entity-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.sp-entity-checkbox > div:first-of-type {
+  margin-top: 0;
+  border-radius: 0;
+}
+.sp-entity-checkbox p {
+  margin: 0;
+}
+.sp-entity-invalid {
+  border-left: 2px solid #d92d20;
+  padding-left: 12px;
+}
+.sp-entity-invalid [role='alert'] {
+  color: #b42318;
+  margin: 8px 0 0;
+}
+
+.sp-entity-dialog label > div.relative {
+  border-radius: 0;
+}
+.sp-entity-dialog label > div.relative svg {
+  color: #fff;
+}
+
+.sp-entity-dialog table tr:not(.sp-entity-property-detail-row) > td:nth-child(n + 4) label {
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.sp-entity-fields > .overflow-x-auto {
+  width: 100%;
+  min-width: 0;
+}
+
+/* The table must fill the fieldset's anonymous content box as well as its viewport. */
+.nc-dialog .sp-entity-fields {
+  width: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+.sp-entity-table-viewport {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+.sp-entity-table-viewport > div {
+  width: 100%;
+  min-width: 0;
+}
+.sp-entity-dialog table {
+  display: table;
+  max-width: none;
+  border-collapse: collapse;
+  background: #fff;
+}
+.sp-entity-dialog table thead {
+  background: #f8fafc;
+}
+.sp-entity-dialog table .sp-entity-property-detail-row:hover > td {
+  background: #fff;
+}
+.sp-entity-dialog .nc-section-nav {
+  background: #f8fafc;
+}
+.sp-entity-dialog .nc-section-nav [role='tab'][aria-selected='true'] {
+  background: #fff;
+}
+
+/* Untitled UI's row decoration creates a static ::after table cell in this build. */
+.sp-entity-dialog table tr::after {
+  content: none;
+}
+.sp-rdf-entities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.sp-rdf-entities > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e4e7ec;
+  padding: 12px;
+}
+.sp-rdf-entities span {
+  color: #667085;
+  font-size: 14px;
+}
+
+/* Process sections use the shared work-area tabs and one bounded scroll owner. */
+.wi-process-detail {
+  width: 100%;
+  max-width: none;
+  padding: 24px 32px 32px;
+}
+.wi-process-detail .wi-card {
+  background: #fff;
+  border-color: #e1e4e8;
+  padding: 24px;
+}
+.wi-process-detail .wi-editor {
+  gap: 24px;
+}
+.wi-process-detail .wi-card pre {
+  overflow: auto;
+  font-size: 14px;
+}
+@media (max-width: 700px) {
+  .wi-process-detail {
+    padding: 16px;
+  }
+  .wi-process-detail .wi-card {
+    padding: 16px;
+  }
+}

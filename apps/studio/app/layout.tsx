@@ -8,9 +8,15 @@ import './control-theme.css';
 import './stackproc-shell.css';
 import './work-area.css';
 import './node-config.css';
+import './ontology-vendor.css';
+import './knowledge.css';
+import './tools.css';
+import './workbench.css';
+import './intelligence.css';
+import './processes.css';
 export const metadata: Metadata = {
-  title: 'Stack Proc',
-  description: 'Stack Proc — visual workflows and customer workspaces powered by DBOS.',
+  title: 'Procczar',
+  description: 'Procczar — visual workflows and customer workspaces powered by DBOS.',
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +30,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }
       >
         <Providers>
-          <Suspense fallback={<main className="cp-gate">Loading Stack Proc…</main>}>
+          <Suspense fallback={<main className="cp-gate">Loading Procczar…</main>}>
             <ControlAccess>{children}</ControlAccess>
           </Suspense>
         </Providers>

@@ -1,3 +1,11 @@
+import { ToolStore } from './tools/store';
+import { toolRoutes } from './tools/routes';
+import { agentRoutes } from './agent/routes';
+import type { AgentService } from './agent/service';
+import { knowledgeRoutes } from './knowledge/routes';
+import type { KnowledgeStore } from './knowledge/store';
+import type { IntelligenceService } from './intelligence/service';
+import { browserOrigins } from './browser-origins';
 import { codeSchema } from '../lib/authoring/model';
 import { isolatedCodeRunner } from './code/runner';
 import { integrationCatalog } from '../lib/integrations/catalog';
@@ -31,8 +39,15 @@ export function createStudioServer(
   registry: NodeRegistry,
   control: ControlPlane,
   workspaceEvents: WorkspaceEvents,
+  intelligenceServices?: { knowledge: KnowledgeStore; intelligence: IntelligenceService; agent?: AgentService },
 ) {
+  const handleAgent = intelligenceServices?.agent ? agentRoutes(intelligenceServices.agent, body, json) : undefined;
   const handleControl = controlRoutes(control, body, json);
+  const handleKnowledge = intelligenceServices
+    ? knowledgeRoutes(control, intelligenceServices.knowledge, intelligenceServices.intelligence, body, json)
+    : undefined;
+  const handleTools = toolRoutes(new ToolStore(control), body, json);
+  const allowedOrigins = browserOrigins();
   return createServer(async (request, response) => {
     const url = new URL(request.url || '/', 'http://localhost');
     try {
@@ -40,12 +55,12 @@ export function createStudioServer(
         if (control.adapter?.handle && (await control.adapter.handle(request, response))) return;
         return json(response, 404, { error: 'Authentication route not configured.' });
       }
-      // This service is intentionally local. Reject browser writes originating
-      // from another site; never expose it on all interfaces without adding auth.
+      // Keep the API on loopback. Private preview proxies must use an explicitly
+      // configured browser origin; application authentication still applies.
       if (
         !['GET', 'HEAD'].includes(request.method || '') &&
         request.headers.origin &&
-        !['http://127.0.0.1:3100', 'http://localhost:3100', 'http://127.0.0.1:3021'].includes(request.headers.origin)
+        !allowedOrigins.has(request.headers.origin)
       ) {
         return json(response, 403, { error: 'Origin is not allowed.' });
       }
@@ -61,7 +76,10 @@ export function createStudioServer(
         const ctx = await control.context(request);
         return json(response, 200, await workspaceEvents.markRead(ctx.workspace.id, ctx.user.id, await body(request)));
       }
+      if (await handleTools(request, response, url)) return;
       if (await handleControl(request, response, url)) return;
+      if (handleAgent && (await handleAgent(request, response, url))) return;
+      if (handleKnowledge && (await handleKnowledge(request, response, url))) return;
       const ctx = await control.context(
         request,
         ['GET', 'HEAD'].includes(request.method ?? 'GET') ? 'read' : 'execute',
@@ -93,7 +111,22 @@ export function createStudioServer(
           return json(response, 422, { error: err instanceof Error ? err.message : 'Code test failed.' });
         }
       }
-      if (url.pathname === '/api/native/catalog') return json(response, 200, registry.nativeCatalog());
+      if (url.pathname === '/api/native/catalog') {
+        const catalog = registry.nativeCatalog();
+        const offerings = await new ToolStore(control).offerings(ctx);
+        return json(response, 200, {
+          ...catalog,
+          steps: [
+            ...catalog.steps,
+            ...offerings
+              .filter((t) => t.build.manifest.exposure.includes('workflow'))
+              .map((t) => ({
+                id: `workspace_tool.${t.id}.r${t.revision}`,
+                name: `${t.build.manifest.name} · r${t.revision}`,
+              })),
+          ],
+        });
+      }
       if (url.pathname === '/api/examples') return json(response, 200, nativeExamples());
       if (url.pathname === '/api/health') return json(response, 200, { status: 'ok', engine: 'dbos' });
       if (url.pathname === '/api/workspace/resources' && request.method === 'GET')
@@ -159,6 +192,13 @@ export function createStudioServer(
         if (request.method === 'GET') {
           const flow = await store.getFlow(id, ctx.workspace.id);
           return json(response, flow ? 200 : 404, flow || { error: 'Flow not found.' });
+        }
+        if (request.method === 'DELETE') {
+          const flow = await store.getFlow(id, ctx.workspace.id);
+          if (!flow) return json(response, 404, { error: 'Flow not found.' });
+          await runtime.native.syncSchedule({ ...flow, schedule: undefined });
+          const deleted = await store.deleteFlow(id, ctx.workspace.id, ctx.user.id);
+          return json(response, deleted ? 200 : 404, deleted ? { deleted: true } : { error: 'Flow not found.' });
         }
         if (request.method === 'PUT') {
           if (!(await store.getFlow(id, ctx.workspace.id))) return json(response, 404, { error: 'Flow not found.' });
@@ -261,7 +301,7 @@ async function body(request: IncomingMessage): Promise<unknown> {
   let length = 0;
   for await (const chunk of request) {
     length += Buffer.byteLength(chunk);
-    if (length > 1024 * 1024)
+    if (length > (request.url?.startsWith('/api/tools/') ? 2 * 1024 * 1024 : 1024 * 1024))
       throw new z.ZodError([{ code: 'custom', path: [], message: 'Request body is too large.' }]);
     raw += chunk;
   }

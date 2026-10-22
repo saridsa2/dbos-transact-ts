@@ -22,14 +22,32 @@ export class NodeRegistry {
   registerTransaction(id: string, name: string, execute: NativeHandler) {
     this.transactions.set(id, { name, execute });
   }
+  private processAgent?: NativeHandler;
+  registerProcessAgent(execute: NativeHandler) {
+    this.processAgent = execute;
+  }
+  executeProcessAgent(input: unknown, context: NativeContext) {
+    if (!this.processAgent) throw new Error('Process agent harness is not registered.');
+    return this.processAgent(input, context);
+  }
+  private workspaceTool?: NativeHandler;
+  registerWorkspaceTools(execute: NativeHandler) {
+    this.workspaceTool = execute;
+  }
   hasStep(id: string) {
-    return this.steps.has(id);
+    return (
+      (['stackproc.process-agent.v1', 'stackproc.process-agent.v2'].includes(id) && !!this.processAgent) ||
+      this.steps.has(id) ||
+      Boolean(this.workspaceTool && /^workspace_tool\.[a-f0-9-]{36}\.r[1-9][0-9]*$/.test(id))
+    );
   }
   hasTransaction(id: string) {
     return this.transactions.has(id);
   }
   executeStep(id: string, input: unknown, context: NativeContext & { signal?: AbortSignal }) {
     const handler = this.steps.get(id);
+    if (!handler && this.workspaceTool && /^workspace_tool\.[a-f0-9-]{36}\.r[1-9][0-9]*$/.test(id))
+      return this.workspaceTool({ handler: id, input }, context);
     if (!handler) throw new Error(`Step '${id}' is not registered.`);
     return handler.execute(input, context);
   }

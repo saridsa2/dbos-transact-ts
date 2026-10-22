@@ -6,6 +6,17 @@ import { z } from 'zod';
 import { ControlError, type ControlPlane } from './service';
 
 const titles: Record<string, string> = {
+  'agent.request_queued': 'Workspace agent request queued',
+  'agent.request_dispatched': 'Workspace agent request started',
+  'agent.request_rejected': 'Workspace agent request needs attention',
+  'agent.configured': 'Workspace agent settings updated',
+  'agent.work_queued': 'Workspace agent work queued',
+  'agent.waiting_for_user': 'Your workspace agent has a question',
+  'agent.ready_for_review': 'Ontology proposal ready for review',
+  'agent.completed': 'Workspace agent work completed',
+  'agent.uncertain': 'Workspace agent work needs attention',
+  'agent.failed': 'Workspace agent work failed',
+  'agent.applied': 'Reviewed ontology changes saved',
   'run.requested': 'Workflow execution queued',
   'run.started': 'Workflow execution started',
   'run.completed': 'Workflow execution completed',
@@ -13,7 +24,21 @@ const titles: Record<string, string> = {
   'run.waiting': 'Workflow is waiting for input',
   'run.resumed': 'Workflow execution resumed',
   'run.debounced': 'Debounced execution submitted',
+  'knowledge.saved': 'Knowledge draft saved',
+  'knowledge.reviewed': 'Knowledge revision reviewed',
+  'knowledge.published': 'Knowledge revision published',
+  'intelligence.requested': 'Document analysis queued',
+  'intelligence.analyzing': 'Document analysis started',
+  'intelligence.clarification': 'Your workspace agent has questions',
+  'intelligence.ready': 'Workspace proposal ready for review',
+  'intelligence.revised': 'Workspace proposal updated',
+  'intelligence.answered': 'Clarification answers received',
+  'intelligence.cancelled': 'Authoring task cancelled',
+  'intelligence.failed': 'Authoring task needs attention',
+  'intelligence.applied': 'Workflow draft created',
+  'intelligence.knowledge_accepted': 'Knowledge drafts accepted',
   'workflow.saved': 'Workflow saved',
+  'workflow.deleted': 'Workflow deleted',
   'connection.created': 'Connection added',
   'connection.updated': 'Connection updated',
   'connection.revoked': 'Connection access revoked',
@@ -81,11 +106,13 @@ export class WorkspaceEvents {
   async list(workspaceId: string, after?: string, limit = 30, notificationsOnly = false, userId?: string) {
     const rows = await this.pool.query(
       `SELECT e.id::text,e.action,e.entity_type,e.entity_id,e.created_at,
-       COALESCE(r.flow_name,f.graph->>'name',c.name) AS resource_name,n.read_at
+       COALESCE(r.flow_name,f.graph->>'name',c.name,k.name,t.name) AS resource_name,n.read_at
        FROM cp_workspace_events e
        LEFT JOIN studio_runs r ON e.entity_type='run' AND r.id=e.entity_id AND r.workspace_id=e.workspace_id
        LEFT JOIN studio_flows f ON e.entity_type='workflow' AND f.id=e.entity_id AND f.workspace_id=e.workspace_id
        LEFT JOIN cp_connections c ON e.entity_type='connection' AND c.id=e.entity_id AND c.workspace_id=e.workspace_id
+       LEFT JOIN wi_artifacts k ON e.entity_type IN ('ontology','process','source') AND k.id=e.entity_id AND k.workspace_id=e.workspace_id
+       LEFT JOIN wi_tasks t ON e.entity_type='intelligence_task' AND t.id=e.entity_id AND t.workspace_id=e.workspace_id
        LEFT JOIN cp_notification_reads n ON n.event_id=e.id AND n.user_id=$5
        WHERE e.workspace_id=$1 AND ($2::bigint IS NULL OR e.id>$2::bigint) AND (NOT $4::boolean OR action <> 'execution.progress')
        ORDER BY e.id ${after === undefined ? 'DESC' : 'ASC'} LIMIT $3`,

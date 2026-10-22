@@ -1,0 +1,368 @@
+.process-canvas.agent42-shell.editor-shell {
+  height: 100%;
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  background: #f6f8fb;
+}
+.process-canvas .stage {
+  height: 100%;
+  min-height: 0;
+}
+.process-canvas .process-toolbar {
+  top: 16px;
+  left: 16px;
+  gap: 8px;
+  padding: 8px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 32px);
+}
+.process-canvas .board-node {
+  font-family: 'Geist Variable', sans-serif;
+  height: var(--node-h);
+}
+.process-canvas .node-needs-config {
+  color: #845420;
+}
+.process-error {
+  padding: 12px 20px;
+  margin: 0;
+}
+.process-settings {
+  width: min(820px, calc(100vw - 48px));
+}
+.process-settings-tabs {
+  min-height: 0;
+  overflow: hidden;
+}
+.process-settings-tabs .sp-dialog-body {
+  padding: 16px 2px;
+}
+.process-settings .nc-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.process-settings .nc-edit-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.process-palette > button {
+  justify-content: flex-start;
+  min-height: 44px;
+}
+.process-discard {
+  padding: 16px;
+  border: 1px solid #d8dce3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.process-discard p {
+  flex-basis: 100%;
+}
+@media (max-width: 700px) {
+  .process-settings {
+    width: 100%;
+  }
+}
+
+.agent42-shell .edge-label-toolbar[hidden],
+.agent42-shell .edge-endpoint-grip[hidden] {
+  display: none !important;
+}
+.process-responsibility-band {
+  position: absolute;
+  border: 1px solid #d9e1ea;
+  background: rgb(240 244 248 / 45%);
+  pointer-events: none;
+}
+.process-responsibility-band > span {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-size: 14px;
+  color: #526173;
+}
+.process-lane-fields {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.process-lane-fields > :first-child {
+  flex: 1;
+}
+.process-implementation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #d9e1ea;
+}
+.process-implementation > p {
+  flex-basis: 100%;
+}
+/* One participant pool, with aligned lane dividers independent of activity extents. */
+.process-pool {
+  position: absolute;
+  border: 1.5px solid #8b98a8;
+  background: #fff;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.process-pool-title {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf1f5;
+  border-right: 1px solid #8b98a8;
+  overflow: hidden;
+}
+.process-pool-title > span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 16px;
+  font-weight: 500;
+  color: #303c4d;
+  max-height: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.process-swimlane {
+  position: absolute;
+  left: 44px;
+  right: 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid #aeb8c4;
+  background: rgb(248 250 252 / 28%);
+}
+.process-swimlane:nth-child(odd) {
+  background: rgb(234 240 246 / 28%);
+}
+.process-swimlane:last-child {
+  border-bottom: 0;
+}
+.process-swimlane.is-selected {
+  background: rgb(226 236 249 / 45%);
+}
+.process-lane-header {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 168px;
+  background: #f4f6f8;
+  border-right: 1px solid #aeb8c4;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.process-lane-heading {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  flex: 1;
+  min-height: 0;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  white-space: normal !important;
+  text-align: left;
+  gap: 8px !important;
+}
+.process-lane-heading > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.process-lane-heading small {
+  font-size: 14px;
+  font-weight: 400;
+  color: #687589;
+}
+.process-lane-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid #dde3ea;
+}
+.process-lane-actions button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 5px !important;
+}
+.process-lane-resizer {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  cursor: ns-resize;
+  pointer-events: auto;
+  z-index: 4;
+  outline-offset: -3px;
+  touch-action: none;
+}
+.process-lane-resizer > span {
+  position: absolute;
+  height: 4px;
+  width: 40px;
+  border-radius: 0;
+  background: #7c899b;
+  top: 4px;
+  left: 50%;
+  opacity: 0;
+}
+.process-lane-resizer:hover > span,
+.process-lane-resizer:focus-visible > span {
+  opacity: 1;
+}
+.process-lane-resizer:focus-visible {
+  outline: 2px solid #4874b4;
+}
+.process-empty-lane {
+  position: absolute;
+  left: 168px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 36px;
+}
+.process-empty-lane button {
+  pointer-events: auto;
+}
+.process-lane-editor {
+  border: 1px solid #dde3ea;
+  padding: 16px;
+}
+.process-lane-editor > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.process-lane-editor > header > div {
+  display: flex;
+  gap: 8px;
+}
+.process-lane-editor-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px;
+  gap: 16px;
+}
+.process-lane-editor-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .process-lane-editor-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Lane content is a real activity region. Only connection geometry uses world coordinates. */
+.process-lane-content {
+  position: absolute;
+  left: 168px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: auto;
+}
+.agent42-shell .board[data-renderer='process'] .edge-layer {
+  z-index: 1;
+}
+.agent42-shell .board[data-renderer='process'] .process-lane-header {
+  z-index: 2;
+}
+.agent42-shell .board[data-renderer='process'] .board-node {
+  z-index: 3;
+}
+.agent42-shell .board[data-renderer='process'] .process-empty-lane {
+  pointer-events: none;
+}
+.agent42-shell .board[data-renderer='process'] .process-lane-content .board-node {
+  animation: none;
+}
+.agent42-shell .board[data-renderer='process'] .process-pool {
+  border: 0;
+  outline: 1.5px solid #8b98a8;
+}
+
+/* The process editing area IS the lane sheet: no centered world or outer grid. */
+.process-canvas .stage {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.process-canvas .process-toolbar {
+  position: static;
+  order: -1;
+  flex: none;
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #d8dee7;
+  box-shadow: none;
+}
+.process-scroll-surface {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+  overscroll-behavior: contain;
+}
+.process-sheet-extent {
+  position: relative;
+}
+.process-sheet {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: 0 0;
+}
+.process-canvas .process-sheet .process-pool {
+  border: 0;
+  outline: 0;
+}
+.process-canvas .process-sheet .edge-layer {
+  z-index: 1;
+}
+.process-canvas .process-sheet .process-lane-header {
+  z-index: 2;
+}
+.process-canvas .process-sheet .board-node {
+  z-index: 3;
+  animation: none;
+}
+.process-canvas .process-sheet .process-empty-lane {
+  pointer-events: none;
+}
+.process-canvas .process-sheet .process-lane-content .board-node {
+  animation: none;
+}
+.process-toolbar .process-lane-assignment {
+  width: 180px;
+  flex: 0 0 180px;
+}

@@ -77,6 +77,37 @@ export class ControlPlane {
     return userRow(result.rows[0]);
   }
   async authenticate(request: IncomingMessage): Promise<User | null> {
+    const authorization = request.headers.authorization;
+    if (authorization?.startsWith('Bearer sp_dev_') || authorization?.startsWith('Bearer pcc_ws_')) {
+      const token = authorization.slice(7);
+      const route = new URL(request.url || '/', 'http://localhost').pathname;
+      if (route !== '/api/tools' && !route.startsWith('/api/tools/'))
+        throw new ControlError(403, 'Developer credentials are scoped to tool authoring.');
+      const required =
+        route === '/api/tools/auth/session'
+          ? null
+          : /\/releases$/.test(route)
+            ? 'tools:publish'
+            : /\/(bindings|archive)$/.test(route)
+              ? 'tools:enable'
+              : /\/tests$/.test(route)
+                ? 'tools:test'
+                : ['GET', 'HEAD'].includes(request.method || '')
+                  ? 'tools:read'
+                  : 'tools:write';
+      const found = (
+        await this.pool.query(
+          `SELECT u.*,t.workspace_id,t.scopes FROM ${token.startsWith('pcc_ws_') ? 'wt_workspace_api_keys' : 'wt_developer_tokens'} t JOIN cp_users u ON u.id=t.user_id JOIN cp_memberships m ON m.user_id=t.user_id AND m.workspace_id=t.workspace_id WHERE t.token_hash=$1 AND NOT t.revoked AND t.expires_at>now()`,
+          [tokenHash(token)],
+        )
+      ).rows[0];
+      if (!found || (required && !found.scopes.includes(required)))
+        throw new ControlError(401, 'Developer token expired, revoked or missing scope.');
+      if (request.headers['x-studio-workspace'] && request.headers['x-studio-workspace'] !== found.workspace_id)
+        throw new ControlError(403, 'Developer token belongs to another workspace.');
+      request.headers['x-studio-workspace'] = found.workspace_id;
+      return userRow(found);
+    }
     if (this.adapter) {
       let identity: Identity | null;
       try {
@@ -157,6 +188,24 @@ export class ControlPlane {
     if (permission === 'execute' && !canExecute(session.workspace.role))
       throw new ControlError(403, 'A viewer cannot change or execute workflows.');
     return { user: session.user, workspace: session.workspace };
+  }
+  /** Worker authorization uses current membership, never a persisted session cookie. */
+  async authorizePrincipal(
+    userId: string,
+    workspaceId: string,
+    permission: 'read' | 'execute' | 'manage' = 'read',
+  ): Promise<Context> {
+    const workspaces = await this.workspaces(userId);
+    const workspace = workspaces.find((w) => w.id === workspaceId);
+    const row = (await this.pool.query('SELECT * FROM cp_users WHERE id=$1', [userId])).rows[0];
+    if (
+      !row ||
+      !workspace ||
+      (permission === 'execute' && !canExecute(workspace.role)) ||
+      (permission === 'manage' && !canManage(workspace.role))
+    )
+      throw new ControlError(403, 'Workspace authorization is no longer available.');
+    return { user: userRow(row), workspace };
   }
   async audit(
     ctx: Context,

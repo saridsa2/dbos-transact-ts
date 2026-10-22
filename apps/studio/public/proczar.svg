@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Procczar</title>
+  <desc id="desc">An angular cyan P interlocking with an amber C on a charcoal rounded square.</desc>
+  <rect width="1024" height="1024" rx="184" fill="#FFFFFF"/>
+  <path fill="#24B9ED" d="M160 770V252l87-87h362l90 87v80L519 512H297v-96h196l106-106-42-42H270v570h-38z"/>
+  <path fill="#F5A000" d="m544 524 170-170h85l69 69v90h-46l-46-46h-76l-57 57zM322 538h100v131l56 56h256l70-70h64v80l-94 94H435L322 716z"/>
+</svg>

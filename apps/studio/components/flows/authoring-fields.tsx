@@ -1,5 +1,6 @@
 'use client';
 import { ControlButton, ControlSelect } from '@/components/control/controls';
+import { FieldValidation } from './field-validation';
 import { ParameterFields } from './parameter-fields';
 import { SchemaFields } from './schema-fields';
 import { X, Plus } from '@/components/fa-icons';
@@ -69,6 +70,38 @@ export function AuthoringFields({
       <>
         <p>Updates are atomic and local to this workflow scope. Inherited values are read-only.</p>
         {!declarations.length && <p>Declare typed variables in Workflow settings → Variables first.</p>}
+        {Object.entries(fields)
+          .filter(([id, value]) => value.mode !== 'omit' && !declarations.some((d) => d.id === id && d.writable))
+          .map(([id]) => (
+            <FieldValidation
+              key={id}
+              path={`config.parameters.values.fields.${id}`}
+              label={declarations.find((d) => d.id === id)?.name ?? id}
+            >
+              <p>
+                {declarations.some((d) => d.id === id)
+                  ? 'This variable is read-only. Allow node updates in Workflow settings → Variables, then apply the settings.'
+                  : 'This update references a variable that is no longer declared in this workflow.'}
+              </p>
+              <ControlButton
+                onClick={() =>
+                  onChange({
+                    config: {
+                      parameters: {
+                        ...node.config.parameters,
+                        values: {
+                          mode: 'object',
+                          fields: Object.fromEntries(Object.entries(fields).filter(([key]) => key !== id)),
+                        },
+                      },
+                    },
+                  })
+                }
+              >
+                Remove update
+              </ControlButton>
+            </FieldValidation>
+          ))}
         {declarations
           .filter((d) => d.writable)
           .map((d) => (

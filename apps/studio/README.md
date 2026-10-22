@@ -159,3 +159,25 @@ Data parameters have Fixed and Expression modes. Fixed objects and arrays are ed
 The **Code** node supports JavaScript and TypeScript, once for all input or per array item. Code runs in QuickJS WASM inside a disposable worker, with bounded guest memory, wall-clock time, input/output, logs and concurrency. **Test code** performs an authorized standalone test; **Preview inputs** only resolves parameters. Neither creates a workflow checkpoint. Within a workflow, DBOS checkpoints code results and retains the pinned source/runtime revision. Code defaults to one attempt; recovery reuses completed checkpoints. External I/O, Node APIs, credentials and package imports are not exposed by this initial runner. Provider I/O stays in registered integration adapters.
 
 The persisted authoring model and execution boundary are documented in [the authoring contract](docs/specs/workflow-authoring.md).
+
+## Private remote browser testing
+
+Run Studio on the development machine and use Tailscale Serve to proxy `http://127.0.0.1:3100` privately. Both laptops must be connected to the same authorized tailnet. Set `STUDIO_ALLOWED_ORIGINS` in `apps/studio/.env.local` to the exact HTTPS origin, then restart `npm run dev`. This configures both the API browser-write origin checks and Next.js development-asset origins. Comma-separated origins are supported; wildcard origins are not. API authentication and workspace authorization remain required, and the backend/Postgres stay on loopback. Use `tailscale serve --bg http://127.0.0.1:3100` to enable the proxy, and `tailscale serve --https=443 off` to stop it. Keep the development machine awake while testing.
+
+Ontology records open in the fullscreen Microsoft Ontology Playground designer/explorer, adapted with Stack Proc controls and icons. See [upstream provenance and adaptations](vendor/ontology-playground/README.md). `npm run dev` and `npm run build` generate the scoped upstream stylesheet automatically.
+
+### Workspace agent and RDF import
+
+Open **Workspace intelligence → Agent settings**. Observe mode can index workspace metadata without a model connection. To use reasoning and ontology proposals, choose Assist, select a configured MiniMax connection and explicitly allow content to be sent to MiniMax. Ambient triggers are opt-in. Conversations, questions and tool activity persist across restarts; proposed changes require review before they create an ontology draft revision.
+
+The ontology designer now has **Import RDF** for RDF/XML files or pasted XML. Preview first, then Replace draft; Undo reverses replacement and Save creates a revision. Imported entities use Stack Proc icon glyphs and Material colors. External OWL imports are not fetched.
+
+The first harness slice and remaining stages are documented in [implementation notes](docs/specs/workspace-intelligence-implementation-notes.md#ambient-harness-implementation--2026-10-19). Document ingestion remains available through Sources; the intelligence header provides New conversation and Agent settings.
+
+The ambient **Workspace agent** launcher is available in the shell and fullscreen editors. Requests capture saved screen context and enter a durable workspace inbox; a DBOS harness queue performs inference independently of the UI. Follow-ups may be queued while earlier work runs. Feature code should submit through `useWorkspaceAgent().request(...)`; the intelligence page is for inspection and review.
+
+### Owned workspace harness
+
+The ambient workspace agent now executes through the standalone Stack Proc lifecycle port in `server/workspace-harness`, with DBOS model/tool checkpoints and the configured workspace MiniMax connection. The complete supplied source is retained under `vendor/claude-src` (`.grepai` ignored), alongside the earlier dependency audit under `vendor/claude-source-reference`; they are reference material, not a runnable upstream dependency. This is not the Claude Agent SDK. See [the port contract](docs/specs/workspace-harness-port.md) for provenance, replay behavior and scope. Revision 2 adds context compaction, encrypted rolling history, token streaming, read concurrency, skills, hooks, trusted extensions/MCP, read-only subagents, plans, reviewed memory, structured output, steering, forks and scheduled ambient work. Configure these through Agent settings. Harness2/OpenCode is not a production fallback.
+
+Local semantic memory uses an explicitly provisioned, offline EmbeddingGemma 2 worker. See [setup, model pin and verification](scripts/memory-embeddings/README.md); MiniMax remains the reasoning provider.

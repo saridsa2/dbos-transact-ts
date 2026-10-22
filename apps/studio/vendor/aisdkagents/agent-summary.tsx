@@ -1,0 +1,797 @@
+'use client';
+/** Licensed AI SDK Agents source; original retained in upstream/. Host control adaptations only. */
+
+import { Loading03Icon, Wrench01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from 'react';
+
+import { Button } from './host-controls';
+import { Input } from './host-controls';
+import { Switch } from './host-controls';
+import { cn } from '@/lib/utils';
+
+/**
+ * `live` is published and answering. `draft` has never been published.
+ * `paused` was published and is switched off.
+ */
+export type AgentSummaryStatus = 'live' | 'draft' | 'paused';
+
+/** What happened the last time the agent ran. */
+export interface AgentSummaryRun {
+  status: 'running' | 'done' | 'error';
+  /** Epoch milliseconds: when the run started, or when it ended. */
+  at?: number;
+  /** One sentence on why the run failed. */
+  error?: string;
+}
+
+/** One day of runs. */
+export interface AgentSummaryDay {
+  /** Any moment of the day, as epoch milliseconds, an ISO string, or a Date. */
+  date: number | string | Date;
+  runs: number;
+  /** How many of the day's runs failed. */
+  failed?: number;
+}
+
+/** A place the agent can be reached: Slack, a site widget, the API. */
+export interface AgentSummaryChannel {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+}
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+const clean = (value: number | undefined): number =>
+  value !== undefined && Number.isFinite(value) ? Math.max(0, value) : 0;
+
+/** `just now`, `4m ago`, `3h ago`, `2d ago`, `5w ago`. */
+const formatAgo = (ms: number): string => {
+  const value = clean(ms);
+  if (value < MINUTE) {
+    return 'just now';
+  }
+  if (value < HOUR) {
+    return `${Math.floor(value / MINUTE)}m ago`;
+  }
+  if (value < DAY) {
+    return `${Math.floor(value / HOUR)}h ago`;
+  }
+  if (value < 7 * DAY) {
+    return `${Math.floor(value / DAY)}d ago`;
+  }
+  return `${Math.floor(value / (7 * DAY))}w ago`;
+};
+
+/** `1,204`. */
+const formatCount = (value: number): string => Math.round(clean(value)).toLocaleString('en-US');
+
+const plural = (count: number, one: string, many: string): string =>
+  `${formatCount(count)} ${count === 1 ? one : many}`;
+
+const startOfDay = (time: number): number => {
+  const date = new Date(time);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
+/** A run as an app stores it: when it began and how it ended. */
+export interface AgentSummaryRunRecord {
+  startedAt: number | string | Date;
+  /** `error` counts as failed. An AI SDK `finishReason` fits here as it is. */
+  status?: string;
+}
+
+/**
+ * Daily activity from a list of stored runs, oldest day first, with a row for
+ * every day in the window including the quiet ones.
+ *
+ * @example
+ * // Store one record in the agent's `onFinish`, then:
+ * <AgentSummary activity={agentSummaryActivity(runs)} name="Billing triage" />
+ */
+export const agentSummaryActivity = (
+  runs: readonly AgentSummaryRunRecord[],
+  { days = 14, now = Date.now() }: { days?: number; now?: number } = {},
+): AgentSummaryDay[] => {
+  const count = Math.max(1, Math.round(days));
+  const today = startOfDay(now);
+  const buckets: AgentSummaryDay[] = [];
+  for (let back = count - 1; back >= 0; back -= 1) {
+    const date = new Date(today);
+    // Stepping the calendar day keeps a daylight-saving change from drifting.
+    date.setDate(date.getDate() - back);
+    buckets.push({ date: date.getTime(), failed: 0, runs: 0 });
+  }
+  const index = new Map(buckets.map((bucket, at) => [Number(bucket.date), at] as const));
+  for (const run of runs) {
+    const at = index.get(startOfDay(new Date(run.startedAt).getTime()));
+    const bucket = at === undefined ? undefined : buckets[at];
+    if (bucket) {
+      bucket.runs += 1;
+      bucket.failed = clean(bucket.failed) + (run.status === 'error' ? 1 : 0);
+    }
+  }
+  return buckets;
+};
+
+/**
+ * The last run, from an AI SDK result. Pass the caught error's message as
+ * `error` when the call threw instead of returning.
+ */
+export const agentSummaryRunFromResult = (
+  result: { finishReason?: string; response?: { timestamp?: Date } } | undefined,
+  error?: string,
+): AgentSummaryRun => {
+  const failed = error !== undefined || result?.finishReason === 'error';
+  return {
+    at: result?.response?.timestamp?.getTime() ?? Date.now(),
+    error: failed ? error : undefined,
+    status: failed ? 'error' : 'done',
+  };
+};
+
+/** The one thing on the card that asks for a decision. */
+export interface AgentSummaryAttention {
+  text: string;
+  tone?: 'neutral' | 'error';
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
+export interface AgentSummaryClassNames {
+  root?: string;
+  header?: string;
+  icon?: string;
+  name?: string;
+  description?: string;
+  status?: string;
+  facts?: string;
+  activity?: string;
+  bar?: string;
+  caption?: string;
+  attention?: string;
+  action?: string;
+}
+
+/**
+ * The top of an agent's page: what it is, whether it is live, how it has been
+ * running, and the one thing that needs a decision. UI only: the caller passes
+ * what it knows and handles each callback.
+ *
+ * @example
+ * <AgentSummary
+ *   activity={agentSummaryActivity(runs)}
+ *   lastRun={lastRun}
+ *   model={{ name: "Claude Sonnet 5.5" }}
+ *   name={agent.name}
+ *   onPublish={() => publish(agent.id)}
+ *   onRename={(name) => rename(agent.id, name)}
+ *   onStatusChange={(status) => setStatus(agent.id, status)}
+ *   status={agent.status}
+ *   toolCount={Object.keys(agent.tools).length}
+ *   version="v12"
+ * />
+ */
+export interface AgentSummaryProps {
+  name: string;
+  /** One line on what the agent does. */
+  description?: string;
+  /** A brand mark or avatar. Without one the card shows a monogram. */
+  icon?: ReactNode;
+  /** Defaults to `live`. */
+  status?: AgentSummaryStatus;
+  /** The version people are talking to, such as `v12`. */
+  version?: string;
+  model?: { name: string; icon?: ReactNode };
+  toolCount?: number;
+  channels?: readonly AgentSummaryChannel[];
+  /** One entry per day, oldest first. */
+  activity?: readonly AgentSummaryDay[];
+  lastRun?: AgentSummaryRun;
+  /** Saved changes that the live version does not have yet. */
+  unpublishedChanges?: number;
+  /** Replaces the sentence the card works out for itself. `null` hides it. */
+  attention?: AgentSummaryAttention | null;
+  /** Makes the name editable. Called with the new name, trimmed. */
+  onRename?: (name: string) => void;
+  /** Shows the switch on a published agent. */
+  onStatusChange?: (status: Exclude<AgentSummaryStatus, 'draft'>) => void;
+  /** The action for a draft, and for changes that are not live. */
+  onPublish?: () => void;
+  /** The action when the last run failed. */
+  onViewRun?: () => void;
+  /** Pins the clock that "4m ago" is counted against. */
+  now?: number;
+  disabled?: boolean;
+  className?: string;
+  classNames?: AgentSummaryClassNames;
+  /** Handy for overriding the --agent-summary-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const NO_CHANNELS: readonly AgentSummaryChannel[] = [];
+const NO_DAYS: readonly AgentSummaryDay[] = [];
+const CLOCK_TICK_MS = 30_000;
+/** A day with runs never draws shorter than this, so it stays visible. */
+const MIN_BAR = 0.08;
+const BAR_STAGGER_MS = 18;
+const RISE_MS = 500;
+
+const THEME_VARS = [
+  '[--agent-summary-accent:#7e4eb2] dark:[--agent-summary-accent:#bf9deb]',
+  '[--agent-summary-live:#15803d] dark:[--agent-summary-live:#4ade80]',
+  '[--agent-summary-error:var(--destructive)]',
+  '[--agent-summary-bar:color-mix(in_oklab,var(--foreground)_28%,var(--card))]',
+  '[--agent-summary-icon-bg:color-mix(in_oklab,var(--agent-summary-accent)_14%,var(--card))] dark:[--agent-summary-icon-bg:color-mix(in_oklab,var(--agent-summary-accent)_22%,var(--card))]',
+  '[--agent-summary-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
+  '[--agent-summary-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
+  'dark:[--agent-summary-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
+  'dark:[--agent-summary-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
+].join(' ');
+
+const FOCUS_CLASS =
+  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+
+const ENTER_CLASS =
+  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+
+const NAME_CLASS = 'text-[15px] leading-6 font-medium tracking-[-0.015em] text-card-foreground';
+
+const STATUS_WORD: Record<AgentSummaryStatus, string> = {
+  draft: 'Draft',
+  live: 'Live',
+  paused: 'Paused',
+};
+
+const DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
+  day: 'numeric',
+  month: 'short',
+  weekday: 'short',
+});
+
+const useClock = (pinned: number | undefined): number => {
+  const [clock, setClock] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (pinned !== undefined) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setClock(Date.now());
+    }, CLOCK_TICK_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [pinned]);
+
+  return pinned ?? clock;
+};
+
+/** The last sentence that was raised, so a closing row keeps its words. */
+const useLastAttention = (value: AgentSummaryAttention | null): AgentSummaryAttention | null => {
+  const [last, setLast] = useState(value);
+  if (
+    value !== null &&
+    (last === null || last.text !== value.text || last.tone !== value.tone || last.actionLabel !== value.actionLabel)
+  ) {
+    setLast(value);
+  }
+  return value ?? last;
+};
+
+const Collapse = ({ children, open }: { children: ReactNode; open: boolean }) => (
+  <div
+    className={cn(
+      'grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] motion-reduce:transition-none',
+      open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+    )}
+    inert={!open}
+  >
+    {/* The clip sits 4px out, so a field's line and halo are not cut off. */}
+    <div className="-m-1 min-h-0 overflow-hidden p-1">{children}</div>
+  </div>
+);
+
+/**
+ * The name, which turns into a field when pressed. Enter and leaving the field
+ * save, Escape puts the old name back.
+ */
+const Name = ({
+  className,
+  disabled,
+  name,
+  onRename,
+}: {
+  className?: string;
+  disabled: boolean;
+  name: string;
+  onRename?: (name: string) => void;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(name);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const cancelled = useRef(false);
+
+  if (!onRename || disabled) {
+    return (
+      <h2 className={cn(NAME_CLASS, 'm-0 truncate', className)} data-slot="agent-summary-name" title={name}>
+        {name}
+      </h2>
+    );
+  }
+
+  const finish = (save: boolean) => {
+    const next = text.trim();
+    if (save && next.length > 0 && next !== name) {
+      onRename(next);
+    }
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <Input
+        aria-label="Agent name"
+        autoFocus
+        className={cn(
+          NAME_CLASS,
+          '-mx-1.5 h-6 w-[calc(100%+0.75rem)] rounded-md border-0 bg-card px-1.5 py-0 shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_11%,transparent)] transition-[background-color,box-shadow] duration-150 ease-out focus-visible:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_34%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_8%,transparent)] focus-visible:ring-0 motion-reduce:transition-none md:text-[15px] dark:bg-card dark:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_16%,transparent)] dark:focus-visible:shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_42%,transparent),0_0_0_3px_color-mix(in_oklab,var(--foreground)_12%,transparent)]',
+          className,
+        )}
+        data-slot="agent-summary-name-field"
+        maxLength={80}
+        onBlur={() => {
+          finish(!cancelled.current);
+          cancelled.current = false;
+        }}
+        onChange={(event) => {
+          setText(event.target.value);
+        }}
+        onFocus={(event) => {
+          event.target.select();
+        }}
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing) {
+            return;
+          }
+          if (event.key === 'Enter' || event.key === 'Escape') {
+            event.preventDefault();
+            cancelled.current = event.key === 'Escape';
+            event.currentTarget.blur();
+            // The field is gone after this render, so focus goes back to the name.
+            requestAnimationFrame(() => {
+              buttonRef.current?.focus({ preventScroll: true });
+            });
+          }
+        }}
+        value={text}
+      />
+    );
+  }
+
+  return (
+    <h2 className="m-0 flex min-w-0">
+      <button
+        className={cn(
+          NAME_CLASS,
+          '-mx-1.5 min-w-0 cursor-text truncate rounded-md border-0 bg-transparent px-1.5 text-left transition-colors duration-150 ease-out hover:bg-foreground/5 motion-reduce:transition-none',
+          FOCUS_CLASS,
+          className,
+        )}
+        data-slot="agent-summary-name"
+        onClick={() => {
+          setText(name);
+          setEditing(true);
+        }}
+        ref={buttonRef}
+        title="Rename"
+        type="button"
+      >
+        {name}
+      </button>
+    </h2>
+  );
+};
+
+interface ActivityProps {
+  className?: string;
+  classNames?: AgentSummaryClassNames;
+  days: readonly AgentSummaryDay[];
+}
+
+/**
+ * One bar a day. Pointing at a day, or walking to it with the arrow keys,
+ * turns the caption under the bars into that day's numbers.
+ */
+const Activity = ({ className, classNames, days }: ActivityProps) => {
+  const captionId = useId();
+  const [active, setActive] = useState<number | null>(null);
+  // Bars start flat, rise once in a stagger, and after that answer at once.
+  const [phase, setPhase] = useState<'flat' | 'rising' | 'settled'>('flat');
+  const count = days.length;
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setPhase('rising');
+    });
+    const timer = setTimeout(
+      () => {
+        setPhase('settled');
+      },
+      count * BAR_STAGGER_MS + RISE_MS,
+    );
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+    // The rise plays once, for the days the card was first drawn with.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const risen = phase !== 'flat';
+
+  const peak = Math.max(1, ...days.map((day) => clean(day.runs)));
+  const total = days.reduce((sum, day) => sum + clean(day.runs), 0);
+  const failed = days.reduce((sum, day) => sum + clean(day.failed), 0);
+  const day = active === null ? undefined : days[active];
+
+  let caption = `${plural(total, 'run', 'runs')} in ${plural(days.length, 'day', 'days')}`;
+  if (total > 0) {
+    caption += failed > 0 ? `, ${formatCount(failed)} failed` : ', none failed';
+  }
+  if (day) {
+    const dayFailed = clean(day.failed);
+    caption = `${DAY_FORMAT.format(new Date(day.date))}: ${plural(clean(day.runs), 'run', 'runs')}${dayFailed > 0 ? `, ${formatCount(dayFailed)} failed` : ''}`;
+  }
+
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const at = Math.floor(((event.clientX - box.left) / box.width) * days.length);
+    setActive(Math.min(days.length - 1, Math.max(0, at)));
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const last = days.length - 1;
+    const from = active ?? last + 1;
+    const next = {
+      ArrowLeft: Math.max(0, from - 1),
+      ArrowRight: Math.min(last, from + 1),
+      End: last,
+      Home: 0,
+    }[event.key];
+    if (next !== undefined) {
+      event.preventDefault();
+      setActive(next);
+    } else if (event.key === 'Escape') {
+      setActive(null);
+    }
+  };
+
+  return (
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)} data-slot="agent-summary-activity">
+      <div
+        aria-describedby={captionId}
+        aria-label="Runs per day"
+        className={cn(
+          'flex h-9 min-w-0 cursor-default touch-pan-y items-end gap-[3px] rounded-sm',
+          FOCUS_CLASS,
+          'focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+        )}
+        onBlur={() => {
+          setActive(null);
+        }}
+        onKeyDown={onKeyDown}
+        onPointerLeave={() => {
+          setActive(null);
+        }}
+        onPointerMove={onPointerMove}
+        role="group"
+        // The bars are read with the arrow keys.
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+      >
+        {days.map((item, index) => {
+          const runs = clean(item.runs);
+          const share = runs === 0 ? 0 : Math.max(MIN_BAR, runs / peak);
+          const failedShare = runs === 0 ? 0 : Math.min(1, clean(item.failed) / runs);
+          return (
+            <span
+              className="flex h-full min-w-0 flex-1 items-end"
+              // oxlint-disable-next-line react/no-array-index-key -- days are positions on an axis
+              key={index}
+            >
+              <span
+                className={cn(
+                  'flex w-full flex-col overflow-hidden rounded-[3px] bg-(--agent-summary-bar) transition-[height,opacity] duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] motion-reduce:transition-none',
+                  runs === 0 && 'bg-foreground/10',
+                  active !== null && active !== index && 'opacity-40',
+                  classNames?.bar,
+                )}
+                data-slot="agent-summary-bar"
+                style={{
+                  height: runs === 0 ? 2 : `${(risen ? share : 0) * 100}%`,
+                  minHeight: 2,
+                  transitionDelay: phase === 'settled' ? '0ms' : `${index * BAR_STAGGER_MS}ms, 0ms`,
+                  // Height settles slowly, the dimming of the other days does not.
+                  transitionDuration: `${RISE_MS}ms, 150ms`,
+                }}
+              >
+                {failedShare > 0 ? (
+                  <span
+                    className="block w-full flex-none bg-(--agent-summary-error)"
+                    style={{
+                      height: `${Math.max(failedShare * 100, 12)}%`,
+                      minHeight: 2,
+                    }}
+                  />
+                ) : null}
+              </span>
+            </span>
+          );
+        })}
+      </div>
+      <p
+        aria-live="polite"
+        className={cn('m-0 truncate text-xs leading-4 text-muted-foreground tabular-nums', classNames?.caption)}
+        data-slot="agent-summary-caption"
+        id={captionId}
+        suppressHydrationWarning
+      >
+        {caption}
+      </p>
+    </div>
+  );
+};
+
+export const AgentSummary = ({
+  name,
+  description,
+  icon,
+  status = 'live',
+  version,
+  model,
+  toolCount,
+  channels = NO_CHANNELS,
+  activity = NO_DAYS,
+  lastRun,
+  unpublishedChanges = 0,
+  attention,
+  onRename,
+  onStatusChange,
+  onPublish,
+  onViewRun,
+  now,
+  disabled = false,
+  className,
+  classNames,
+  style,
+}: AgentSummaryProps) => {
+  const clock = useClock(now);
+  const switchId = useId();
+  const changes = Math.round(clean(unpublishedChanges));
+
+  /** The card raises one thing at a time, the most pressing first. */
+  const derive = (): AgentSummaryAttention | null => {
+    if (lastRun?.status === 'error' && status !== 'draft') {
+      const when = lastRun.at === undefined ? '' : ` ${formatAgo(clock - lastRun.at)}`;
+      return {
+        actionLabel: onViewRun ? 'View run' : undefined,
+        onAction: onViewRun,
+        text: `The last run failed${when}.${lastRun.error ? ` ${lastRun.error}` : ''}`,
+        tone: 'error',
+      };
+    }
+    if (status === 'paused') {
+      return {
+        text: 'Paused. Nothing starts this agent until it is switched back on.',
+      };
+    }
+    if (status === 'draft') {
+      return {
+        actionLabel: onPublish ? 'Publish' : undefined,
+        onAction: onPublish,
+        text: 'Not published yet. Only you can run it.',
+      };
+    }
+    if (changes > 0) {
+      return {
+        actionLabel: onPublish ? 'Review and publish' : undefined,
+        onAction: onPublish,
+        text: `${plural(changes, 'change', 'changes')}${version ? ` since ${version}` : ''} ${changes === 1 ? 'is' : 'are'} not live.`,
+      };
+    }
+    return null;
+  };
+
+  const raised = attention === undefined ? derive() : attention;
+  // A closing row keeps the sentence it held.
+  const shown = useLastAttention(raised);
+  const running = lastRun?.status === 'running';
+  const canSwitch = Boolean(onStatusChange) && status !== 'draft';
+  const hasFacts = running || Boolean(version) || Boolean(model) || toolCount !== undefined || channels.length > 0;
+
+  return (
+    <section
+      aria-label={name}
+      className={cn(
+        THEME_VARS,
+        '@container flex w-full max-w-full min-w-0 flex-col rounded-2xl bg-card p-3 text-card-foreground shadow-(--agent-summary-shadow) transition-shadow duration-150 ease-out hover:shadow-(--agent-summary-shadow-hover)',
+        className,
+        classNames?.root,
+      )}
+      data-slot="agent-summary"
+      data-status={status}
+      style={style}
+    >
+      <div
+        className={cn(ENTER_CLASS, 'flex min-w-0 items-start gap-3', classNames?.header)}
+        data-slot="agent-summary-header"
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'inline-flex size-10 flex-none items-center justify-center rounded-xl text-base leading-none font-semibold uppercase transition-[opacity,filter] duration-300 ease-out motion-reduce:transition-none [&_img]:size-full [&_img]:rounded-[inherit] [&_img]:object-cover [&_svg]:size-5',
+            icon ? 'bg-muted dark:bg-background' : 'bg-(--agent-summary-icon-bg) text-(--agent-summary-accent)',
+            status === 'paused' && 'opacity-55 grayscale',
+            classNames?.icon,
+          )}
+          data-slot="agent-summary-icon"
+        >
+          {icon ?? [...name.trim()][0] ?? 'A'}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex h-6 min-w-0 items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <Name className={classNames?.name} disabled={disabled} name={name} onRename={onRename} />
+            </div>
+            <div
+              className={cn('flex h-6 flex-none items-center gap-2', classNames?.status)}
+              data-slot="agent-summary-status"
+            >
+              <label
+                className={cn(
+                  'flex items-center gap-1.5 text-xs leading-none font-medium transition-colors duration-200 ease-out motion-reduce:transition-none',
+                  status === 'live' ? 'text-(--agent-summary-live)' : 'text-muted-foreground',
+                  canSwitch && !disabled && 'cursor-pointer',
+                )}
+                htmlFor={canSwitch ? switchId : undefined}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'size-1.5 flex-none rounded-full transition-[background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none',
+                    status === 'live'
+                      ? 'bg-(--agent-summary-live) shadow-[0_0_0_3px_color-mix(in_oklab,var(--agent-summary-live)_22%,transparent)]'
+                      : 'bg-muted-foreground/50',
+                  )}
+                />
+                {STATUS_WORD[status]}
+              </label>
+              {canSwitch ? (
+                <Switch
+                  aria-label="Live"
+                  checked={status === 'live'}
+                  className="flex-none cursor-pointer after:-inset-x-1 after:-inset-y-2 data-unchecked:bg-foreground/15 dark:data-unchecked:bg-foreground/20"
+                  data-slot="agent-summary-switch"
+                  disabled={disabled}
+                  id={switchId}
+                  onCheckedChange={(next) => {
+                    onStatusChange?.(next ? 'live' : 'paused');
+                  }}
+                  size="sm"
+                />
+              ) : null}
+            </div>
+          </div>
+          {description ? (
+            <p
+              className={cn('m-0 truncate text-[13px] leading-5 text-muted-foreground', classNames?.description)}
+              data-slot="agent-summary-description"
+              title={description}
+            >
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {hasFacts ? (
+        <ul
+          className={cn(
+            ENTER_CLASS,
+            'm-0 flex min-w-0 list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 pt-3 text-xs leading-4 text-muted-foreground delay-75',
+            classNames?.facts,
+          )}
+          data-slot="agent-summary-facts"
+        >
+          {running ? (
+            <li className="flex items-center gap-1 text-card-foreground">
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="size-3 flex-none animate-spin text-(--agent-summary-accent) motion-reduce:animate-none"
+                icon={Loading03Icon}
+                strokeWidth={2.5}
+              />
+              Running now
+            </li>
+          ) : null}
+          {version ? <li className="font-medium text-card-foreground tabular-nums">{version}</li> : null}
+          {model ? (
+            <li className="flex min-w-0 items-center gap-1.5 [&_img]:size-3.5 [&_svg]:size-3.5 [&_svg]:flex-none">
+              {model.icon}
+              <span className="truncate">{model.name}</span>
+            </li>
+          ) : null}
+          {toolCount === undefined ? null : (
+            <li className="flex items-center gap-1">
+              <HugeiconsIcon aria-hidden="true" className="size-3.5 flex-none" icon={Wrench01Icon} strokeWidth={2} />
+              {plural(clean(toolCount), 'tool', 'tools')}
+            </li>
+          )}
+          {channels.length > 0 ? (
+            <li className="flex min-w-0 items-center gap-1.5">
+              <span className="flex items-center gap-1 [&_img]:size-3.5 [&_svg]:size-3.5 [&_svg]:flex-none">
+                {channels.map((channel) => (
+                  <span className="inline-flex items-center" key={channel.id} title={channel.label}>
+                    {channel.icon}
+                  </span>
+                ))}
+              </span>
+              <span className="truncate">{channels.map((channel) => channel.label).join(', ')}</span>
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
+
+      {activity.length > 0 ? (
+        <Activity
+          className={cn(ENTER_CLASS, 'pt-3 delay-100', classNames?.activity)}
+          classNames={classNames}
+          days={activity}
+        />
+      ) : null}
+
+      <Collapse open={raised !== null}>
+        <div className="pt-3">
+          <div
+            className={cn(
+              'flex min-w-0 items-center gap-3 rounded-xl bg-muted py-2 pr-2 pl-3 dark:bg-background',
+              classNames?.attention,
+            )}
+            data-slot="agent-summary-attention"
+            data-tone={shown?.tone ?? 'neutral'}
+          >
+            <output
+              aria-live="polite"
+              className={cn(
+                'min-w-0 flex-1 py-0.5 text-[13px] leading-[18px] text-pretty wrap-break-word',
+                shown?.tone === 'error' ? 'text-(--agent-summary-error)' : 'text-card-foreground',
+              )}
+              suppressHydrationWarning
+            >
+              {shown?.text}
+            </output>
+            {shown?.actionLabel && shown.onAction ? (
+              <Button
+                className={cn(
+                  'flex-none rounded-full px-3 transition-[background-color,scale] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
+                  classNames?.action,
+                )}
+                data-slot="agent-summary-action"
+                disabled={disabled}
+                onClick={shown.onAction}
+                size="xs"
+                type="button"
+              >
+                {shown.actionLabel}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </Collapse>
+    </section>
+  );
+};

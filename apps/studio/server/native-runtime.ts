@@ -107,6 +107,12 @@ export function createNativeRuntime(store: StudioStore, registry: NodeRegistry) 
       };
       switch (op.kind) {
         case 'step': {
+          // The harness owns its model/tool checkpoints. Never wrap its lifecycle in one DBOS step.
+          if (['stackproc.process-agent.v1', 'stackproc.process-agent.v2'].includes(op.handler)) {
+            const result = await registry.executeProcessAgent(value(op.input), context);
+            if (flow._compiled?.version === 2) validatePort(ports(node).output, result, `Node ${node.name} output`);
+            return { value: result };
+          }
           const result = await DBOS.runStep(
             async () => {
               const resolvedInput = value(op.input);
@@ -130,12 +136,17 @@ export function createNativeRuntime(store: StudioStore, registry: NodeRegistry) 
                   )
                 : registry.executeStep(op.handler, value(op.input), {
                     ...context,
-                    signal: DBOS.stepStatus?.timeoutSignal,
+                    signal: DBOS.stepStatus
+                      ? AbortSignal.any([
+                          DBOS.stepStatus.cancelSignal,
+                          ...(DBOS.stepStatus.timeoutSignal ? [DBOS.stepStatus.timeoutSignal] : []),
+                        ])
+                      : undefined,
                   }));
               if (flow._compiled?.version === 2)
                 validatePort(
                   ports(node).output,
-                  node.config.code ? (result as CodeResult).value : result,
+                  node.config.code || op.handler.startsWith('workspace_tool.') ? (result as CodeResult).value : result,
                   `Node ${node.name} output`,
                 );
               return result;
@@ -148,7 +159,7 @@ export function createNativeRuntime(store: StudioStore, registry: NodeRegistry) 
               timeoutMS: node.config.execution?.timeoutMS ?? 60000,
             },
           );
-          if (node.config.code) {
+          if (node.config.code || op.handler.startsWith('workspace_tool.')) {
             const code = result as CodeResult;
             return { value: code.value, metadata: { logs: code.logs, revision: code.revision } };
           }

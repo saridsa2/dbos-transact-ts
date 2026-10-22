@@ -10,11 +10,13 @@ export function SchemaFields({
   onChange,
   label = 'Value schema',
   depth = 0,
+  types = ['any', 'string', 'number', 'integer', 'boolean', 'null', 'object', 'array'],
 }: {
   value: ValueSchema;
   onChange: (schema: ValueSchema) => void;
   label?: string;
   depth?: number;
+  types?: readonly string[];
 }) {
   const type = typeof value.type === 'string' ? value.type : 'any';
   const properties = (value.properties ?? {}) as Record<string, ValueSchema>;
@@ -38,13 +40,14 @@ export function SchemaFields({
           )
         }
       >
-        {['any', 'string', 'number', 'integer', 'boolean', 'null', 'object', 'array'].map((t) => (
+        {types.map((t) => (
           <option key={t}>{t}</option>
         ))}
       </ControlSelect>
       {type === 'object' && (
         <>
           <Checkbox
+            className="nc-checkbox-row"
             label="Allow additional properties"
             isSelected={value.additionalProperties !== false}
             onChange={(v) => onChange({ ...value, additionalProperties: v })}
@@ -64,6 +67,7 @@ export function SchemaFields({
                 }
               />
               <Checkbox
+                className="nc-checkbox-row"
                 label={`${key} required`}
                 isSelected={required.includes(key)}
                 onChange={(v) =>

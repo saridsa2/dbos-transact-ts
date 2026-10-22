@@ -1,5 +1,6 @@
 'use client';
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { ConfigurationDialog } from '@/components/graph-editor/configuration-dialog';
+import { useState, useRef, useEffect, type ReactNode, type ComponentType } from 'react';
 import { ModalOverlay, Modal, Dialog } from '@/components/application/modals/modal';
 import { Tabs } from '@/components/application/tabs/tabs';
 import { Button } from '@/components/base/buttons/button';
@@ -36,6 +37,8 @@ import { flowSchema } from '@/lib/flows/validation';
 
 type Props = {
   node: FlowNodeData;
+  persistenceLabel?: string;
+  presentation?: { icon: ComponentType<{ className?: string }>; label: string };
   flow: AgentFlow;
   readOnly: boolean;
   runInput: string;
@@ -52,6 +55,8 @@ type Props = {
 };
 export function NodeConfigDialog({
   node,
+  presentation,
+  persistenceLabel = 'Apply updates the graph draft. Save the workflow to persist it.',
   flow: parentFlow,
   readOnly,
   runInput,
@@ -66,6 +71,7 @@ export function NodeConfigDialog({
   onInspectDefinition,
   renderLegacy,
 }: Props) {
+  const HeaderIcon = presentation?.icon ?? Activity;
   const [definitions, setDefinitions] = useState(parentFlow.definitions ?? {});
   const flow = { ...parentFlow, definitions };
   const [mappingTarget, setMappingTarget] = useState<MappingTarget | null>(null);
@@ -619,21 +625,16 @@ export function NodeConfigDialog({
       }}
     >
       <FieldIssues.Provider value={issues}>
-        <ModalOverlay
-          isOpen
-          isDismissable
-          onOpenChange={(open) => {
-            if (!open) close();
-          }}
-          className="nc-overlay"
-        >
-          <Modal className="nc-modal">
-            <Dialog aria-label={`Configure ${node.name}`} className="nc-dialog">
-              <header className="nc-header">
-                <div className="nc-heading">
-                  <Activity />
-                  <div>
-                    <span>
+        <ConfigurationDialog label={`Configure ${node.name}`} onClose={close}>
+          <header className="nc-header">
+            <div className="nc-heading">
+              <HeaderIcon />
+              <div>
+                <span>
+                  {presentation ? (
+                    presentation.label
+                  ) : (
+                    <>
                       {definition?.title ?? node.kind} ·{' '}
                       {contract.classification === 'control'
                         ? 'Control structure'
@@ -644,428 +645,416 @@ export function NodeConfigDialog({
                             : contract.classification === 'entry'
                               ? 'Entry point'
                               : 'Operation'}
-                      {readOnly ? ' · execution snapshot' : ''}
-                    </span>
-                    <h2>{draft.name || 'Untitled node'}</h2>
-                  </div>
-                </div>
-                <Button color="tertiary" iconLeading={X} aria-label="Close node configuration" onPress={close} />
-              </header>
-              <Tabs
-                orientation="vertical"
-                selectedKey={view === 'configure' ? section : view}
-                onSelectionChange={(key) => {
-                  const selected = String(key);
-                  if (pickerOpen) dismissPicker();
-                  if (selected === 'help' || selected === 'results') {
-                    setView(selected);
-                    if (selected === 'results' && contextMode === 'schema')
-                      setContextMode(scope ? 'recorded' : 'sample');
-                  } else {
-                    setSection(selected as EditorSection);
-                    setView('configure');
-                  }
-                }}
-                className="nc-workspace"
-              >
-                <Tabs.List
-                  aria-label="Node configuration"
-                  orientation="vertical"
-                  type="line"
-                  className="nc-section-nav"
-                >
-                  {(['input', 'process', 'output'] as const).map((id) => (
-                    <Tabs.Item
-                      id={id}
-                      key={id}
-                      aria-label={`${id === 'input' ? 'Input' : id === 'process' ? 'Process' : 'Output'}${issues.some((issue) => editorIssueLocation(draft, issue).section === id) ? ' — contains errors' : ''}`}
-                    >
-                      {id === 'input' ? 'Input' : id === 'process' ? 'Process' : 'Output'}
-                      {issues.some((issue) => editorIssueLocation(draft, issue).section === id) && <ErrorMark />}
-                    </Tabs.Item>
-                  ))}
-                  <Tabs.Item id="results" className="nc-inspection-tab">
-                    Test & results
-                  </Tabs.Item>
-                  <Tabs.Item id="help">Help</Tabs.Item>
-                </Tabs.List>
-                <Tabs.Panel id={view === 'configure' ? section : view} className="nc-section-panel">
-                  {pickerOpen ? (
-                    <section
-                      className="nc-picker"
-                      ref={pickerRef}
-                      tabIndex={-1}
-                      aria-label={`Choose data for ${mappingTarget?.label}`}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Escape') {
-                          e.stopPropagation();
-                          if (pendingMapping) setPendingMapping(null);
-                          else dismissPicker();
-                        }
-                      }}
-                    >
-                      <header>
-                        <div>
-                          <h3>Use workflow data</h3>
-                          <p>Choose a value for {mappingTarget?.label}.</p>
-                        </div>
-                        <ControlButton onClick={dismissPicker}>Back to field</ControlButton>
-                      </header>
-                      <div className="nc-picker-body">{availableData()}</div>
-                    </section>
-                  ) : view === 'help' ? (
-                    <section className="nc-help" aria-label={`Help for ${draft.name}`}>
-                      <header>
-                        <h3>{definition?.title ?? draft.kind}</h3>
-                        <p>{help.purpose}</p>
-                      </header>
-                      <dl>
-                        <div>
-                          <dt>Input</dt>
-                          <dd>{help.input}</dd>
-                        </div>
-                        <div>
-                          <dt>Process</dt>
-                          <dd>{help.process}</dd>
-                        </div>
-                        <div>
-                          <dt>Output</dt>
-                          <dd>{help.output}</dd>
-                        </div>
-                      </dl>
-                      <h4>Things to know</h4>
-                      <ul>
-                        {help.tips.map((tip) => (
-                          <li key={tip}>{tip}</li>
-                        ))}
-                      </ul>
-                      {help.reference && (
-                        <a href={help.reference} target="_blank" rel="noreferrer">
-                          Read the DBOS documentation ↗
-                        </a>
-                      )}
-                    </section>
-                  ) : view === 'configure' ? (
-                    <>
-                      <div className="nc-section-heading">
-                        <h3>
-                          {section === 'input'
-                            ? 'What this node receives'
-                            : section === 'process'
-                              ? 'What this node does'
-                              : 'What this node produces'}
-                        </h3>
-                      </div>
-                      <Tabs
-                        selectedKey={activePage.id}
-                        onSelectionChange={(key) => setPages((old) => ({ ...old, [section]: String(key) }))}
-                        className="nc-config-tabs"
-                      >
-                        <Tabs.List
-                          aria-label={`${section} sections`}
-                          type="underline"
-                          className={contract.sections[section].length === 1 ? 'sr-only' : undefined}
-                        >
-                          {contract.sections[section].map((page) => (
-                            <Tabs.Item
-                              id={page.id}
-                              key={page.id}
-                              aria-label={`${page.label}${
-                                issues.some((issue) => {
-                                  const loc = editorIssueLocation(draft, issue);
-                                  return loc.section === section && loc.page === page.id;
-                                })
-                                  ? ' — contains errors'
-                                  : ''
-                              }`}
-                            >
-                              {page.label}
-                              {issues.some((issue) => {
-                                const loc = editorIssueLocation(draft, issue);
-                                return loc.section === section && loc.page === page.id;
-                              }) && <ErrorMark />}
-                            </Tabs.Item>
-                          ))}
-                        </Tabs.List>
-                        {issues.length > 0 && (
-                          <div role="alert" className="nc-errors">
-                            <strong>Check the configuration</strong>
-                            <ul>
-                              {issues.map((issue, i) => (
-                                <li key={i}>
-                                  <Button color="link-destructive" onPress={() => revealIssue(issue)}>
-                                    {issue.replace(/^config\.(parameters|code|merge)\./, '')}
-                                  </Button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        <Tabs.Panel id={activePage.id} className="nc-config-body" key={`${section}:${activePage.id}`}>
-                          <fieldset disabled={readOnly} className="nc-edit-fields">
-                            {renderPage()}
-                          </fieldset>
-                          {readOnly && <p className="nc-readonly">Viewing an immutable execution snapshot.</p>}
-                        </Tabs.Panel>
-                      </Tabs>
                     </>
-                  ) : (
-                    <section className="nc-results" aria-label="Test and execution results">
-                      <header className="nc-execution-summary">
-                        <h3>{readOnly ? `Node execution · ${status}` : 'Test & results'}</h3>
-                        {readOnly ? (
-                          <p>
-                            {execution.startedAt
-                              ? `Started ${new Date(execution.startedAt).toLocaleString()}`
-                              : 'Start time not recorded'}
-                            {execution.elapsedMs !== undefined &&
-                              ` · Elapsed ${execution.elapsedMs < 1000 ? `${execution.elapsedMs} ms` : `${(execution.elapsedMs / 1000).toFixed(2)} s`}`}
-                          </p>
-                        ) : testResult ? (
-                          <p>
-                            {testResult.fingerprint !== fingerprint
-                              ? 'Stale test · configuration or test data changed'
-                              : 'Latest standalone test'}{' '}
-                            · {testResult.error ? 'Failed' : 'Succeeded'}
-                          </p>
-                        ) : (
-                          <p>Preview resolved inputs or test code before running the workflow.</p>
-                        )}
-                      </header>
-                      <Tabs
-                        selectedKey={resultPage}
-                        onSelectionChange={(key) => setResultPage(String(key))}
-                        className="nc-result-tabs"
-                      >
-                        <Tabs.List
-                          aria-label={readOnly ? 'Execution views' : 'Test views'}
-                          orientation="horizontal"
-                          type="underline"
+                  )}
+                  {readOnly ? ' · execution snapshot' : ''}
+                </span>
+                <h2>{draft.name || 'Untitled node'}</h2>
+              </div>
+            </div>
+            <Button color="tertiary" iconLeading={X} aria-label="Close node configuration" onPress={close} />
+          </header>
+          <Tabs
+            orientation="vertical"
+            selectedKey={view === 'configure' ? section : view}
+            onSelectionChange={(key) => {
+              const selected = String(key);
+              if (pickerOpen) dismissPicker();
+              if (selected === 'help' || selected === 'results') {
+                setView(selected);
+                if (selected === 'results' && contextMode === 'schema') setContextMode(scope ? 'recorded' : 'sample');
+              } else {
+                setSection(selected as EditorSection);
+                setView('configure');
+              }
+            }}
+            className="nc-workspace"
+          >
+            <Tabs.List aria-label="Node configuration" orientation="vertical" type="line" className="nc-section-nav">
+              {(['input', 'process', 'output'] as const).map((id) => (
+                <Tabs.Item
+                  id={id}
+                  key={id}
+                  aria-label={`${id === 'input' ? 'Input' : id === 'process' ? 'Process' : 'Output'}${issues.some((issue) => editorIssueLocation(draft, issue).section === id) ? ' — contains errors' : ''}`}
+                >
+                  {id === 'input' ? 'Input' : id === 'process' ? 'Process' : 'Output'}
+                  {issues.some((issue) => editorIssueLocation(draft, issue).section === id) && <ErrorMark />}
+                </Tabs.Item>
+              ))}
+              <Tabs.Item id="results" className="nc-inspection-tab">
+                Test & results
+              </Tabs.Item>
+              <Tabs.Item id="help">Help</Tabs.Item>
+            </Tabs.List>
+            <Tabs.Panel id={view === 'configure' ? section : view} className="nc-section-panel">
+              {pickerOpen ? (
+                <section
+                  className="nc-picker"
+                  ref={pickerRef}
+                  tabIndex={-1}
+                  aria-label={`Choose data for ${mappingTarget?.label}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      if (pendingMapping) setPendingMapping(null);
+                      else dismissPicker();
+                    }
+                  }}
+                >
+                  <header>
+                    <div>
+                      <h3>Use workflow data</h3>
+                      <p>Choose a value for {mappingTarget?.label}.</p>
+                    </div>
+                    <ControlButton onClick={dismissPicker}>Back to field</ControlButton>
+                  </header>
+                  <div className="nc-picker-body">{availableData()}</div>
+                </section>
+              ) : view === 'help' ? (
+                <section className="nc-help" aria-label={`Help for ${draft.name}`}>
+                  <header>
+                    <h3>{definition?.title ?? draft.kind}</h3>
+                    <p>{help.purpose}</p>
+                  </header>
+                  <dl>
+                    <div>
+                      <dt>Input</dt>
+                      <dd>{help.input}</dd>
+                    </div>
+                    <div>
+                      <dt>Process</dt>
+                      <dd>{help.process}</dd>
+                    </div>
+                    <div>
+                      <dt>Output</dt>
+                      <dd>{help.output}</dd>
+                    </div>
+                  </dl>
+                  <h4>Things to know</h4>
+                  <ul>
+                    {help.tips.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                  {help.reference && (
+                    <a href={help.reference} target="_blank" rel="noreferrer">
+                      Read the DBOS documentation ↗
+                    </a>
+                  )}
+                </section>
+              ) : view === 'configure' ? (
+                <>
+                  <div className="nc-section-heading">
+                    <h3>
+                      {section === 'input'
+                        ? 'What this node receives'
+                        : section === 'process'
+                          ? 'What this node does'
+                          : 'What this node produces'}
+                    </h3>
+                  </div>
+                  <Tabs
+                    selectedKey={activePage.id}
+                    onSelectionChange={(key) => setPages((old) => ({ ...old, [section]: String(key) }))}
+                    className="nc-config-tabs"
+                  >
+                    <Tabs.List
+                      aria-label={`${section} sections`}
+                      type="underline"
+                      className={contract.sections[section].length === 1 ? 'sr-only' : undefined}
+                    >
+                      {contract.sections[section].map((page) => (
+                        <Tabs.Item
+                          id={page.id}
+                          key={page.id}
+                          aria-label={`${page.label}${
+                            issues.some((issue) => {
+                              const loc = editorIssueLocation(draft, issue);
+                              return loc.section === section && loc.page === page.id;
+                            })
+                              ? ' — contains errors'
+                              : ''
+                          }`}
                         >
-                          {!readOnly && <Tabs.Item id="setup">Test setup</Tabs.Item>}
-                          <Tabs.Item id="result">Result</Tabs.Item>
-                          {readOnly && <Tabs.Item id="input">Input</Tabs.Item>}
-                          <Tabs.Item id="logs">Logs</Tabs.Item>
-                          {readOnly && <Tabs.Item id="details">Details</Tabs.Item>}
-                        </Tabs.List>
-                        <Tabs.Panel id={resultPage} className="nc-result-panel">
-                          {resultPage === 'setup' && !readOnly ? (
-                            <div className="nc-results-context">
-                              <p>
-                                Preview resolves inputs without executing an operation. Test code runs a standalone code
-                                test without a workflow checkpoint.
+                          {page.label}
+                          {issues.some((issue) => {
+                            const loc = editorIssueLocation(draft, issue);
+                            return loc.section === section && loc.page === page.id;
+                          }) && <ErrorMark />}
+                        </Tabs.Item>
+                      ))}
+                    </Tabs.List>
+                    {issues.length > 0 && (
+                      <div role="alert" className="nc-errors">
+                        <strong>Check the configuration</strong>
+                        <ul>
+                          {issues.map((issue, i) => (
+                            <li key={i}>
+                              <Button color="link-destructive" onPress={() => revealIssue(issue)}>
+                                {issue.replace(/^config\.(parameters|code|merge)\./, '')}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <Tabs.Panel id={activePage.id} className="nc-config-body" key={`${section}:${activePage.id}`}>
+                      <fieldset disabled={readOnly} className="nc-edit-fields">
+                        {renderPage()}
+                      </fieldset>
+                      {readOnly && <p className="nc-readonly">Viewing an immutable execution snapshot.</p>}
+                    </Tabs.Panel>
+                  </Tabs>
+                </>
+              ) : (
+                <section className="nc-results" aria-label="Test and execution results">
+                  <header className="nc-execution-summary">
+                    <h3>{readOnly ? `Node execution · ${status}` : 'Test & results'}</h3>
+                    {readOnly ? (
+                      <p>
+                        {execution.startedAt
+                          ? `Started ${new Date(execution.startedAt).toLocaleString()}`
+                          : 'Start time not recorded'}
+                        {execution.elapsedMs !== undefined &&
+                          ` · Elapsed ${execution.elapsedMs < 1000 ? `${execution.elapsedMs} ms` : `${(execution.elapsedMs / 1000).toFixed(2)} s`}`}
+                      </p>
+                    ) : testResult ? (
+                      <p>
+                        {testResult.fingerprint !== fingerprint
+                          ? 'Stale test · configuration or test data changed'
+                          : 'Latest standalone test'}{' '}
+                        · {testResult.error ? 'Failed' : 'Succeeded'}
+                      </p>
+                    ) : (
+                      <p>Preview resolved inputs or test code before running the workflow.</p>
+                    )}
+                  </header>
+                  <Tabs
+                    selectedKey={resultPage}
+                    onSelectionChange={(key) => setResultPage(String(key))}
+                    className="nc-result-tabs"
+                  >
+                    <Tabs.List
+                      aria-label={readOnly ? 'Execution views' : 'Test views'}
+                      orientation="horizontal"
+                      type="underline"
+                    >
+                      {!readOnly && <Tabs.Item id="setup">Test setup</Tabs.Item>}
+                      <Tabs.Item id="result">Result</Tabs.Item>
+                      {readOnly && <Tabs.Item id="input">Input</Tabs.Item>}
+                      <Tabs.Item id="logs">Logs</Tabs.Item>
+                      {readOnly && <Tabs.Item id="details">Details</Tabs.Item>}
+                    </Tabs.List>
+                    <Tabs.Panel id={resultPage} className="nc-result-panel">
+                      {resultPage === 'setup' && !readOnly ? (
+                        <div className="nc-results-context">
+                          <p>
+                            Preview resolves inputs without executing an operation. Test code runs a standalone code
+                            test without a workflow checkpoint.
+                          </p>
+                          <label>
+                            Test data source
+                            <ControlSelect
+                              aria-label="Test data source"
+                              value={contextMode}
+                              onChange={(e) => {
+                                setContextMode(e.target.value);
+                                setPreview(null);
+                              }}
+                            >
+                              <option value="sample">Workflow test input</option>
+                              {scope && <option value="recorded">Recorded invocation</option>}
+                            </ControlSelect>
+                          </label>
+                          {contextMode === 'sample' && (
+                            <details>
+                              <summary>Edit workflow test input</summary>
+                              <LiteralFields
+                                label="Workflow test input"
+                                value={sample}
+                                onChange={(next) => {
+                                  setSample(next);
+                                  setPreview(null);
+                                }}
+                              />
+                            </details>
+                          )}
+                          <div className="nc-result-actions">
+                            <ControlButton onClick={previewInputs}>Preview inputs</ControlButton>
+                            {draft.config.code && (
+                              <ControlButton disabled={testing} onClick={() => void testCode()}>
+                                {testing ? 'Testing…' : 'Test code'}
+                              </ControlButton>
+                            )}
+                            {testing && (
+                              <ControlButton onClick={() => testAbort.current?.abort()}>Cancel test</ControlButton>
+                            )}
+                          </div>
+                          {preview &&
+                            (preview.error ? (
+                              <p role="alert">{preview.error}</p>
+                            ) : (
+                              <ResultValue
+                                key={JSON.stringify(preview.value)}
+                                value={preview.value}
+                                label="Resolved inputs"
+                              />
+                            ))}
+                        </div>
+                      ) : resultPage === 'result' ? (
+                        readOnly ? (
+                          <>
+                            {error && <p role="alert">{error}</p>}
+                            {execution.presence === 'absent' ? (
+                              <p className="nc-empty">This node completed without an output value.</p>
+                            ) : Object.hasOwn(outputs, node.id) ? (
+                              <ResultValue
+                                key={JSON.stringify(outputs[node.id])}
+                                value={outputs[node.id]}
+                                label="Output"
+                              />
+                            ) : (
+                              <p className="nc-empty">
+                                {status === 'skipped'
+                                  ? `Node skipped${execution.reason ? `: ${execution.reason}` : '.'}`
+                                  : status === 'running' || status === 'waiting'
+                                    ? 'This node has not produced an output yet.'
+                                    : 'No output was recorded for this node.'}
                               </p>
-                              <label>
-                                Test data source
-                                <ControlSelect
-                                  aria-label="Test data source"
-                                  value={contextMode}
-                                  onChange={(e) => {
-                                    setContextMode(e.target.value);
-                                    setPreview(null);
-                                  }}
-                                >
-                                  <option value="sample">Workflow test input</option>
-                                  {scope && <option value="recorded">Recorded invocation</option>}
-                                </ControlSelect>
-                              </label>
-                              {contextMode === 'sample' && (
-                                <details>
-                                  <summary>Edit workflow test input</summary>
-                                  <LiteralFields
-                                    label="Workflow test input"
-                                    value={sample}
-                                    onChange={(next) => {
-                                      setSample(next);
-                                      setPreview(null);
-                                    }}
-                                  />
-                                </details>
-                              )}
-                              <div className="nc-result-actions">
-                                <ControlButton onClick={previewInputs}>Preview inputs</ControlButton>
-                                {draft.config.code && (
-                                  <ControlButton disabled={testing} onClick={() => void testCode()}>
-                                    {testing ? 'Testing…' : 'Test code'}
-                                  </ControlButton>
-                                )}
-                                {testing && (
-                                  <ControlButton onClick={() => testAbort.current?.abort()}>Cancel test</ControlButton>
-                                )}
-                              </div>
-                              {preview &&
-                                (preview.error ? (
-                                  <p role="alert">{preview.error}</p>
-                                ) : (
-                                  <ResultValue
-                                    key={JSON.stringify(preview.value)}
-                                    value={preview.value}
-                                    label="Resolved inputs"
-                                  />
-                                ))}
+                            )}
+                          </>
+                        ) : testResult ? (
+                          <>
+                            {testResult.error ? (
+                              <p role="alert">{testResult.error}</p>
+                            ) : (
+                              <ResultValue
+                                key={JSON.stringify(testResult.value)}
+                                value={testResult.value}
+                                label="Test output"
+                              />
+                            )}
+                            <p className="nc-result-note">
+                              Standalone test ·{' '}
+                              {testResult.startedAt && new Date(testResult.startedAt).toLocaleString()}
+                              {testResult.startedAt &&
+                                testResult.endedAt &&
+                                ` · ${Date.parse(testResult.endedAt) - Date.parse(testResult.startedAt)} ms`}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="nc-empty">
+                            {draft.config.code
+                              ? 'No code test yet. Run Test code from Test setup.'
+                              : 'Run the workflow to record this node’s output. Open that execution from All runs.'}
+                          </p>
+                        )
+                      ) : resultPage === 'input' && readOnly ? (
+                        scope && Object.hasOwn(scope, 'nodeInput') ? (
+                          <ResultValue value={scope.nodeInput} label="Captured input" />
+                        ) : (
+                          <p className="nc-empty">This execution did not capture the resolved input for this node.</p>
+                        )
+                      ) : resultPage === 'logs' ? (
+                        <ResultLogs logs={readOnly ? metadata?.logs : testResult?.logs} />
+                      ) : resultPage === 'details' && readOnly ? (
+                        <dl className="nc-execution-details">
+                          <div>
+                            <dt>Node ID</dt>
+                            <dd>
+                              <code>{node.id}</code>
+                            </dd>
+                          </div>
+                          {execution.runId && (
+                            <div>
+                              <dt>Run ID</dt>
+                              <dd>
+                                <code>{execution.runId}</code>
+                              </dd>
                             </div>
-                          ) : resultPage === 'result' ? (
-                            readOnly ? (
-                              <>
-                                {error && <p role="alert">{error}</p>}
-                                {execution.presence === 'absent' ? (
-                                  <p className="nc-empty">This node completed without an output value.</p>
-                                ) : Object.hasOwn(outputs, node.id) ? (
-                                  <ResultValue
-                                    key={JSON.stringify(outputs[node.id])}
-                                    value={outputs[node.id]}
-                                    label="Output"
-                                  />
-                                ) : (
-                                  <p className="nc-empty">
-                                    {status === 'skipped'
-                                      ? `Node skipped${execution.reason ? `: ${execution.reason}` : '.'}`
-                                      : status === 'running' || status === 'waiting'
-                                        ? 'This node has not produced an output yet.'
-                                        : 'No output was recorded for this node.'}
-                                  </p>
-                                )}
-                              </>
-                            ) : testResult ? (
-                              <>
-                                {testResult.error ? (
-                                  <p role="alert">{testResult.error}</p>
-                                ) : (
-                                  <ResultValue
-                                    key={JSON.stringify(testResult.value)}
-                                    value={testResult.value}
-                                    label="Test output"
-                                  />
-                                )}
-                                <p className="nc-result-note">
-                                  Standalone test ·{' '}
-                                  {testResult.startedAt && new Date(testResult.startedAt).toLocaleString()}
-                                  {testResult.startedAt &&
-                                    testResult.endedAt &&
-                                    ` · ${Date.parse(testResult.endedAt) - Date.parse(testResult.startedAt)} ms`}
-                                </p>
-                              </>
-                            ) : (
-                              <p className="nc-empty">
-                                {draft.config.code
-                                  ? 'No code test yet. Run Test code from Test setup.'
-                                  : 'Run the workflow to record this node’s output. Open that execution from All runs.'}
-                              </p>
-                            )
-                          ) : resultPage === 'input' && readOnly ? (
-                            scope && Object.hasOwn(scope, 'nodeInput') ? (
-                              <ResultValue value={scope.nodeInput} label="Captured input" />
-                            ) : (
-                              <p className="nc-empty">
-                                This execution did not capture the resolved input for this node.
-                              </p>
-                            )
-                          ) : resultPage === 'logs' ? (
-                            <ResultLogs logs={readOnly ? metadata?.logs : testResult?.logs} />
-                          ) : resultPage === 'details' && readOnly ? (
-                            <dl className="nc-execution-details">
-                              <div>
-                                <dt>Node ID</dt>
-                                <dd>
-                                  <code>{node.id}</code>
-                                </dd>
-                              </div>
-                              {execution.runId && (
-                                <div>
-                                  <dt>Run ID</dt>
-                                  <dd>
-                                    <code>{execution.runId}</code>
-                                  </dd>
-                                </div>
-                              )}
-                              {execution.startedAt && (
-                                <div>
-                                  <dt>Started</dt>
-                                  <dd>{execution.startedAt}</dd>
-                                </div>
-                              )}
-                              {execution.endedAt && (
-                                <div>
-                                  <dt>Ended</dt>
-                                  <dd>{execution.endedAt}</dd>
-                                </div>
-                              )}
-                              {scope && (
-                                <div>
-                                  <dt>Execution scope</dt>
-                                  <dd>
-                                    <code>{scope.id}</code>
-                                  </dd>
-                                </div>
-                              )}
-                              {metadata?.revision && (
-                                <div>
-                                  <dt>Code revision</dt>
-                                  <dd>
-                                    <code>{metadata.revision}</code>
-                                  </dd>
-                                </div>
-                              )}
-                            </dl>
-                          ) : null}
-                        </Tabs.Panel>
-                      </Tabs>
-                    </section>
-                  )}
-                </Tabs.Panel>
-              </Tabs>
-              {pendingMapping && (
-                <section className="nc-discard" aria-label="Replace field mapping">
-                  <p>Replace the current value of {pendingMapping.target.label}?</p>
-                  <ControlButton onClick={() => setPendingMapping(null)}>Keep value</ControlButton>
-                  <ControlButton
-                    className="cp-primary"
-                    onClick={() => {
-                      pendingMapping.target.insert(pendingMapping.expression);
-                      setPendingMapping(null);
-                      dismissPicker();
-                    }}
-                  >
-                    Replace mapping
-                  </ControlButton>
+                          )}
+                          {execution.startedAt && (
+                            <div>
+                              <dt>Started</dt>
+                              <dd>{execution.startedAt}</dd>
+                            </div>
+                          )}
+                          {execution.endedAt && (
+                            <div>
+                              <dt>Ended</dt>
+                              <dd>{execution.endedAt}</dd>
+                            </div>
+                          )}
+                          {scope && (
+                            <div>
+                              <dt>Execution scope</dt>
+                              <dd>
+                                <code>{scope.id}</code>
+                              </dd>
+                            </div>
+                          )}
+                          {metadata?.revision && (
+                            <div>
+                              <dt>Code revision</dt>
+                              <dd>
+                                <code>{metadata.revision}</code>
+                              </dd>
+                            </div>
+                          )}
+                        </dl>
+                      ) : null}
+                    </Tabs.Panel>
+                  </Tabs>
                 </section>
               )}
-              {discardOpen && (
-                <section className="nc-discard" aria-label="Unsaved node changes">
-                  <p>
-                    {testing
-                      ? 'A standalone test is running. Discarding cancels that test.'
-                      : 'Discard staged node changes?'}
-                  </p>
-                  <ControlButton onClick={() => setDiscardOpen(false)}>Keep editing</ControlButton>
-                  <ControlButton
-                    onClick={() => {
-                      testAbort.current?.abort();
-                      onClose();
-                    }}
-                  >
-                    Discard changes
-                  </ControlButton>
-                </section>
+            </Tabs.Panel>
+          </Tabs>
+          {pendingMapping && (
+            <section className="nc-discard" aria-label="Replace field mapping">
+              <p>Replace the current value of {pendingMapping.target.label}?</p>
+              <ControlButton onClick={() => setPendingMapping(null)}>Keep value</ControlButton>
+              <ControlButton
+                className="cp-primary"
+                onClick={() => {
+                  pendingMapping.target.insert(pendingMapping.expression);
+                  setPendingMapping(null);
+                  dismissPicker();
+                }}
+              >
+                Replace mapping
+              </ControlButton>
+            </section>
+          )}
+          {discardOpen && (
+            <section className="nc-discard" aria-label="Unsaved node changes">
+              <p>
+                {testing
+                  ? 'A standalone test is running. Discarding cancels that test.'
+                  : 'Discard staged node changes?'}
+              </p>
+              <ControlButton onClick={() => setDiscardOpen(false)}>Keep editing</ControlButton>
+              <ControlButton
+                onClick={() => {
+                  testAbort.current?.abort();
+                  onClose();
+                }}
+              >
+                Discard changes
+              </ControlButton>
+            </section>
+          )}
+          <footer className="nc-footer">
+            <p>{readOnly ? 'Recorded results remain unchanged.' : persistenceLabel}</p>
+            <div>
+              <ControlButton onClick={close}>{readOnly ? 'Close' : 'Cancel'}</ControlButton>
+              {!readOnly && (
+                <ControlButton className="cp-primary" onClick={apply}>
+                  Apply
+                </ControlButton>
               )}
-              <footer className="nc-footer">
-                <p>
-                  {readOnly
-                    ? 'Recorded results remain unchanged.'
-                    : 'Apply updates the graph draft. Save the workflow to persist it.'}
-                </p>
-                <div>
-                  <ControlButton onClick={close}>{readOnly ? 'Close' : 'Cancel'}</ControlButton>
-                  {!readOnly && (
-                    <ControlButton className="cp-primary" onClick={apply}>
-                      Apply
-                    </ControlButton>
-                  )}
-                </div>
-              </footer>
-            </Dialog>
-          </Modal>
-        </ModalOverlay>
+            </div>
+          </footer>
+        </ConfigurationDialog>
       </FieldIssues.Provider>
     </MappingContext.Provider>
   );

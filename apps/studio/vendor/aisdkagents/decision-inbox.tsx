@@ -1,0 +1,837 @@
+'use client';
+
+import { AlertCircleIcon, ArrowLeft01Icon, ArrowRight01Icon, InboxIcon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import type { IconSvgElement } from '@hugeicons/react';
+import type { UIMessage } from 'ai';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { CSSProperties, FormEvent, ReactNode, Ref } from 'react';
+
+import { cn } from '@/lib/utils';
+
+export type DecisionInboxRisk = 'low' | 'medium' | 'high';
+
+export interface DecisionInboxField {
+  label: string;
+  value: string;
+}
+
+export interface DecisionInboxItem {
+  /** The approval id. Handed back in `onDecide`. */
+  id: string;
+  /** What the agent wants to do, as one line. */
+  title: string;
+  /** Why it wants to. */
+  description?: string;
+  /** Which agent is asking. */
+  agent?: string;
+  /** The run, ticket, or thread it is working on. */
+  context?: string;
+  /** Tool name as the model called it. */
+  tool?: string;
+  /** When the agent stopped to ask. */
+  requestedAt?: Date | number | string;
+  risk?: DecisionInboxRisk;
+  /** The details a reviewer needs, such as the tool input. */
+  fields?: readonly DecisionInboxField[];
+  /** Id of the `DecisionInboxSource` this came from. */
+  sourceId?: string;
+}
+
+export interface DecisionInboxDecision {
+  approved: boolean;
+  /** Typed when denying. Sent back to the agent. */
+  reason?: string;
+}
+
+/** `issue_refund`, `issueRefund`, and `issue-refund` all read as `Issue refund`. */
+export const toolLabel = (name: string): string => {
+  const words = name
+    .replaceAll(/[_-]+/gu, ' ')
+    .replaceAll(/([a-z\d])([A-Z])/gu, '$1 $2')
+    .trim()
+    .toLowerCase();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : name;
+};
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** `Just now`, `12m ago`, `3h ago`, `2d ago`. */
+export const formatAge = (ms: number): string => {
+  if (!Number.isFinite(ms) || ms < MINUTE) {
+    return 'Just now';
+  }
+  if (ms < HOUR) {
+    return `${Math.floor(ms / MINUTE)}m ago`;
+  }
+  if (ms < DAY) {
+    return `${Math.floor(ms / HOUR)}h ago`;
+  }
+  return `${Math.floor(ms / DAY)}d ago`;
+};
+
+const fieldValue = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value) ?? '';
+  } catch {
+    return '';
+  }
+};
+
+const inputFields = (input: unknown): DecisionInboxField[] =>
+  typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? Object.entries(input).map(([key, value]) => ({
+        label: toolLabel(key),
+        value: fieldValue(value),
+      }))
+    : [];
+
+/** One agent conversation that may be waiting on an approval. */
+export interface DecisionInboxSource {
+  /** Tells you which chat to answer. Copied to `item.sourceId`. */
+  id: string;
+  agent?: string;
+  context?: string;
+  /** `messages` from that agent's `useChat`, or loaded from your store. */
+  messages: readonly UIMessage[];
+}
+
+export interface DecisionInboxRequest {
+  toolName: string;
+  input: unknown;
+  source: DecisionInboxSource;
+}
+
+/**
+ * Collects every tool call that is waiting for approval across your agents'
+ * messages. Each item carries the AI SDK approval id, so answering is one
+ * call. Pass `describe` to give a tool a better title, a risk, or fewer
+ * fields than its raw input.
+ *
+ * @example
+ * const { messages, addToolApprovalResponse } = useChat();
+ * const items = decisionInboxItems([
+ *   { agent: "Refund agent", id: "refunds", messages },
+ * ]);
+ *
+ * <DecisionInbox
+ *   items={items}
+ *   onDecide={(item, { approved, reason }) =>
+ *     addToolApprovalResponse({ approved, id: item.id, reason })
+ *   }
+ * />
+ */
+export const decisionInboxItems = (
+  sources: readonly DecisionInboxSource[],
+  describe?: (request: DecisionInboxRequest) => Partial<DecisionInboxItem>,
+): DecisionInboxItem[] => {
+  const items: DecisionInboxItem[] = [];
+  for (const source of sources) {
+    for (const message of source.messages) {
+      for (const part of message.parts) {
+        if (
+          (part.type !== 'dynamic-tool' && !part.type.startsWith('tool-')) ||
+          !('state' in part) ||
+          part.state !== 'approval-requested'
+        ) {
+          continue;
+        }
+        const toolName = part.type === 'dynamic-tool' ? part.toolName : part.type.slice(5);
+        const input = 'input' in part ? part.input : undefined;
+        items.push({
+          agent: source.agent,
+          context: source.context,
+          description: part.approval.requestReason,
+          fields: inputFields(input),
+          id: part.approval.id,
+          sourceId: source.id,
+          title: toolLabel(toolName),
+          tool: toolName,
+          ...describe?.({ input, source, toolName }),
+        });
+      }
+    }
+  }
+  return items;
+};
+
+export interface DecisionInboxClassNames {
+  root?: string;
+  header?: string;
+  item?: string;
+  fields?: string;
+  footer?: string;
+}
+
+export interface DecisionInboxProps {
+  /** Everything waiting, oldest first. Shown one at a time. */
+  items?: readonly DecisionInboxItem[];
+  /**
+   * Called with the answer. Return a promise to hold the item until it is
+   * sent. If it rejects, the item stays and an error shows.
+   */
+  onDecide?: (item: DecisionInboxItem, decision: DecisionInboxDecision) => void | Promise<void>;
+  title?: string;
+  approveLabel?: string;
+  denyLabel?: string;
+  /** Asks for an optional reason before a denial is sent. */
+  askReason?: boolean;
+  /**
+   * Listens for the shortcuts on the whole page while the card is on screen,
+   * so answering needs no click first. Typing in a field, another form, and an
+   * open dialog are never intercepted. Turn off to drive it with the buttons
+   * only.
+   */
+  shortcuts?: boolean;
+  className?: string;
+  classNames?: DecisionInboxClassNames;
+  /** Handy for overriding the --decision-inbox-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const DEFAULT_ITEMS: DecisionInboxItem[] = [
+  {
+    agent: 'Support agent',
+    context: 'Ticket 2291',
+    description: 'The customer was billed for a plan they cancelled.',
+    fields: [
+      { label: 'Amount', value: '$29.00' },
+      { label: 'Invoice', value: 'INV-7702' },
+    ],
+    id: 'approval-1',
+    risk: 'medium',
+    title: 'Refund $29.00 for invoice INV-7702',
+    tool: 'issue_refund',
+  },
+  {
+    agent: 'Docs agent',
+    context: 'Changelog',
+    description: 'Three merged changes are missing from the public notes.',
+    fields: [{ label: 'Page', value: '/changelog' }],
+    id: 'approval-2',
+    risk: 'low',
+    title: "Publish this week's changelog",
+    tool: 'publish_page',
+  },
+];
+
+const EASE = [0.4, 0, 0.2, 1] as const;
+const TICK_MS = 30_000;
+const APPLE_PLATFORM_RE = /Mac|iPhone|iPad|iPod/u;
+const SEND_ERROR = 'That did not send. Try again.';
+
+const ENTER_CLASS =
+  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+
+const THEME_VARS = [
+  '[--decision-inbox-accent:#9a5b13] dark:[--decision-inbox-accent:#e5b267]',
+  '[--decision-inbox-icon-bg:color-mix(in_oklab,var(--decision-inbox-accent)_14%,var(--card))] dark:[--decision-inbox-icon-bg:color-mix(in_oklab,var(--decision-inbox-accent)_22%,var(--card))]',
+  '[--decision-inbox-low:#4a6b24] dark:[--decision-inbox-low:#a8c66a]',
+  '[--decision-inbox-medium:#b35900] dark:[--decision-inbox-medium:#ffab70]',
+  '[--decision-inbox-high:var(--destructive)]',
+  '[--decision-inbox-done:#15803d] dark:[--decision-inbox-done:#4ade80]',
+  '[--decision-inbox-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
+  '[--decision-inbox-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
+  'dark:[--decision-inbox-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
+  'dark:[--decision-inbox-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
+].join(' ');
+
+const RISK: Record<DecisionInboxRisk, { label: string; color: string }> = {
+  high: { color: 'var(--decision-inbox-high)', label: 'High risk' },
+  low: { color: 'var(--decision-inbox-low)', label: 'Low risk' },
+  medium: { color: 'var(--decision-inbox-medium)', label: 'Medium risk' },
+};
+
+const FOCUS_CLASS =
+  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+
+const noop = () => {
+  // useSyncExternalStore never unsubscribes from this snapshot.
+};
+
+const emptySubscribe = () => noop;
+
+const getApplePlatformSnapshot = () => APPLE_PLATFORM_RE.test(navigator.userAgent);
+
+const useIsApplePlatform = () => useSyncExternalStore(emptySubscribe, getApplePlatformSnapshot, () => true);
+
+const isTyping = (target: HTMLElement): boolean =>
+  target.tagName === 'INPUT' ||
+  target.tagName === 'TEXTAREA' ||
+  target.tagName === 'SELECT' ||
+  target.isContentEditable;
+
+/** Focus is somewhere that already has its own use for the key. */
+const isClaimed = (target: HTMLElement): boolean => isTyping(target) || target.closest('form, [role=dialog]') !== null;
+
+const isOnScreen = (element: HTMLElement): boolean => {
+  const box = element.getBoundingClientRect();
+  return (
+    box.width > 0 && box.bottom > 0 && box.top < window.innerHeight && box.right > 0 && box.left < window.innerWidth
+  );
+};
+
+/** The current time, refreshed often enough for "12m ago". Null on the server. */
+const useNow = (): number | null => {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, TICK_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  return now;
+};
+
+const Icon = ({ icon, className }: { icon: IconSvgElement; className?: string }) => (
+  <HugeiconsIcon aria-hidden="true" className={cn('size-3.5 flex-none', className)} icon={icon} strokeWidth={2} />
+);
+
+const DigitColumn = ({ char, dir, reduce }: { char: string; dir: 'up' | 'down'; reduce: boolean }) => (
+  <span className="relative inline-block h-[1em] overflow-hidden leading-none">
+    <AnimatePresence initial={false} mode="popLayout">
+      <motion.span
+        animate={{ y: 0 }}
+        className="inline-block h-[1em] leading-none"
+        exit={{ y: dir === 'up' ? '-1em' : '1em' }}
+        initial={{ y: dir === 'up' ? '1em' : '-1em' }}
+        key={char}
+        transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
+      >
+        {char}
+      </motion.span>
+    </AnimatePresence>
+  </span>
+);
+
+const RollingNumber = ({ value }: { value: number }) => {
+  const reduce = useReducedMotion();
+  const previous = useRef(value);
+  const [dir, setDir] = useState<'up' | 'down'>('up');
+
+  useEffect(() => {
+    if (previous.current === value) {
+      return;
+    }
+    setDir(value < previous.current ? 'down' : 'up');
+    previous.current = value;
+  }, [value]);
+
+  return (
+    <span className="inline-flex">
+      {[...String(value)].map((char, position) => (
+        <DigitColumn
+          char={char}
+          dir={dir}
+          // oxlint-disable-next-line react/no-array-index-key -- digits are positions in a number
+          key={position}
+          reduce={Boolean(reduce)}
+        />
+      ))}
+    </span>
+  );
+};
+
+const KBD_CLASS =
+  'pointer-events-none inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary-foreground/20 px-1 font-sans text-[10px] leading-none font-medium text-primary-foreground select-none';
+
+const ActionButton = ({
+  slot,
+  variant,
+  disabled,
+  submit,
+  shortcutKeys,
+  buttonRef,
+  onClick,
+  children,
+}: {
+  slot: string;
+  variant: 'ghost' | 'primary';
+  disabled?: boolean;
+  submit?: boolean;
+  shortcutKeys?: string;
+  buttonRef?: Ref<HTMLButtonElement>;
+  onClick?: () => void;
+  children: ReactNode;
+}) => (
+  <button
+    aria-keyshortcuts={shortcutKeys}
+    className={cn(
+      "relative z-0 inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-2.5 text-xs leading-none font-medium whitespace-nowrap transition-transform duration-150 ease-out before:absolute before:inset-0 before:-z-1 before:rounded-full before:transition-colors before:duration-150 before:ease-out before:content-[''] after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] active:scale-[0.96] aria-disabled:pointer-events-none aria-disabled:opacity-50 motion-reduce:transition-none",
+      FOCUS_CLASS,
+      variant === 'ghost' && 'text-card-foreground before:bg-foreground/6 hover:before:bg-foreground/10',
+      variant === 'primary' && 'text-primary-foreground before:bg-primary hover:before:bg-primary/90',
+    )}
+    // Stays focusable while a decision sends, so the shortcut keeps working.
+    aria-disabled={disabled}
+    data-slot={slot}
+    onClick={disabled ? undefined : onClick}
+    ref={buttonRef}
+    type={submit ? 'submit' : 'button'}
+  >
+    {children}
+  </button>
+);
+
+const NAV_BUTTON_CLASS = cn(
+  "relative inline-flex size-4.5 cursor-pointer items-center justify-center rounded-[5px] border-0 bg-transparent p-0 text-muted-foreground transition-[color,transform] duration-150 ease-out after:absolute after:-inset-1.5 after:content-[''] hover:enabled:text-card-foreground active:enabled:scale-[0.96] disabled:cursor-default disabled:opacity-35 motion-reduce:transition-none",
+  FOCUS_CLASS,
+);
+
+const QueueNav = ({
+  index,
+  count,
+  disabled,
+  shortcuts,
+  onChange,
+}: {
+  index: number;
+  count: number;
+  disabled: boolean;
+  shortcuts: boolean;
+  onChange: (index: number) => void;
+}) => (
+  <nav
+    aria-label={`Request ${index + 1} of ${count}`}
+    className="inline-flex h-6 flex-none items-center gap-0.5 text-muted-foreground"
+    data-slot="decision-inbox-nav"
+  >
+    <button
+      aria-keyshortcuts={shortcuts ? 'ArrowLeft' : undefined}
+      aria-label="Previous request"
+      className={NAV_BUTTON_CLASS}
+      disabled={disabled || index <= 0}
+      onClick={() => {
+        onChange(index - 1);
+      }}
+      type="button"
+    >
+      <Icon icon={ArrowLeft01Icon} />
+    </button>
+    <span className="inline-flex items-center gap-1 text-xs leading-none font-medium whitespace-nowrap tabular-nums">
+      <RollingNumber value={index + 1} />
+      <span aria-hidden="true">/</span>
+      <RollingNumber value={count} />
+    </span>
+    <button
+      aria-keyshortcuts={shortcuts ? 'ArrowRight' : undefined}
+      aria-label="Next request"
+      className={NAV_BUTTON_CLASS}
+      disabled={disabled || index >= count - 1}
+      onClick={() => {
+        onChange(index + 1);
+      }}
+      type="button"
+    >
+      <Icon icon={ArrowRight01Icon} />
+    </button>
+  </nav>
+);
+
+const RiskBadge = ({ risk }: { risk: DecisionInboxRisk }) => (
+  <span
+    className="inline-flex h-4.5 flex-none items-center rounded-[5px] bg-[color-mix(in_oklab,var(--decision-inbox-risk)_12%,transparent)] px-1.5 text-[11px] leading-none font-medium whitespace-nowrap text-(--decision-inbox-risk)"
+    data-risk={risk}
+    data-slot="decision-inbox-risk"
+    style={
+      // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
+      { '--decision-inbox-risk': RISK[risk].color } as CSSProperties
+    }
+  >
+    {RISK[risk].label}
+  </span>
+);
+
+const ageOf = (item: DecisionInboxItem, now: number | null): string | null => {
+  if (now === null || item.requestedAt === undefined) {
+    return null;
+  }
+  const at = new Date(item.requestedAt).getTime();
+  return Number.isNaN(at) ? null : formatAge(now - at);
+};
+
+const RequestBody = ({
+  item,
+  now,
+  classNames,
+}: {
+  item: DecisionInboxItem;
+  now: number | null;
+  classNames?: DecisionInboxClassNames;
+}) => {
+  const meta = [item.agent, item.context, ageOf(item, now)].filter(Boolean);
+  const fields = [...(item.fields ?? []), ...(item.tool ? [{ label: 'Tool', value: item.tool }] : [])];
+  return (
+    <div className={cn('flex flex-col gap-3', classNames?.item)} data-slot="decision-inbox-item">
+      <div className="flex flex-col gap-1.5 px-0.5">
+        {meta.length > 0 || item.risk ? (
+          <div className="flex min-h-4.5 items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-xs leading-4 text-muted-foreground">{meta.join(' · ')}</span>
+            {item.risk ? <RiskBadge risk={item.risk} /> : null}
+          </div>
+        ) : null}
+        <div className="text-sm leading-[1.4] font-medium text-pretty">{item.title}</div>
+        {item.description ? (
+          <p className="m-0 text-[13px] leading-[1.45] text-pretty text-muted-foreground">{item.description}</p>
+        ) : null}
+      </div>
+      {fields.length > 0 ? (
+        <dl
+          className={cn(
+            'm-0 grid grid-cols-[minmax(0,5.5rem)_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-lg bg-muted px-2.5 py-2 text-[13px] leading-[1.35] dark:bg-background',
+            classNames?.fields,
+          )}
+          data-slot="decision-inbox-fields"
+        >
+          {fields.map((field) => (
+            <div className="contents" key={field.label}>
+              <dt className="truncate text-muted-foreground">{field.label}</dt>
+              <dd
+                className={cn(
+                  'm-0 line-clamp-2 min-w-0 [overflow-wrap:anywhere]',
+                  field.label === 'Tool' && 'font-mono text-xs leading-[1.5]',
+                )}
+              >
+                {field.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </div>
+  );
+};
+
+const tallyText = (approved: number, denied: number): string => {
+  const parts = [...(approved > 0 ? [`${approved} approved`] : []), ...(denied > 0 ? [`${denied} denied`] : [])];
+  return parts.length > 0 ? `${parts.join(', ')}.` : 'Agents will ask here when they need you.';
+};
+
+const EmptyState = ({ approved, denied }: { approved: number; denied: number }) => (
+  <div className="flex flex-col items-center gap-2 px-4 py-6 text-center" data-slot="decision-inbox-empty">
+    <span className="inline-flex size-7 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--decision-inbox-done)_14%,transparent)] text-(--decision-inbox-done)">
+      <Icon icon={Tick02Icon} />
+    </span>
+    <div className="flex flex-col gap-0.5">
+      <div className="text-sm leading-[1.4] font-medium">{approved + denied > 0 ? 'All clear' : 'Nothing waiting'}</div>
+      <p className="m-0 text-[13px] leading-[1.45] text-muted-foreground tabular-nums">{tallyText(approved, denied)}</p>
+    </div>
+  </div>
+);
+
+/**
+ * The edges of the requests still underneath the one on top. Painted deepest
+ * first, so each card sits over the narrower one behind it.
+ */
+const Pile = ({ depth }: { depth: number }) => (
+  <>
+    {[2, 1].map((layer) => (
+      <span
+        aria-hidden="true"
+        className={cn(
+          'absolute h-8 rounded-2xl bg-card shadow-(--decision-inbox-shadow) transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
+          layer === 1 ? 'inset-x-3 bottom-[5px]' : 'inset-x-6 bottom-0',
+          depth >= layer ? 'opacity-100' : '-translate-y-1.5 opacity-0',
+        )}
+        data-slot="decision-inbox-pile"
+        key={layer}
+      />
+    ))}
+  </>
+);
+
+type Pending = 'approve' | 'deny' | null;
+
+export const DecisionInbox = ({
+  items = DEFAULT_ITEMS,
+  onDecide,
+  title = 'Decisions',
+  approveLabel = 'Approve',
+  denyLabel = 'Deny',
+  askReason = true,
+  shortcuts = true,
+  className,
+  classNames,
+  style,
+}: DecisionInboxProps) => {
+  const reduce = useReducedMotion();
+  const root = useRef<HTMLDivElement>(null);
+  const isApple = useIsApplePlatform();
+  const now = useNow();
+  const [decided, setDecided] = useState<ReadonlySet<string>>(new Set());
+  const [tally, setTally] = useState({ approved: 0, denied: 0 });
+  const [cursor, setCursor] = useState(0);
+  const [denying, setDenying] = useState(false);
+  const [reason, setReason] = useState('');
+  const [pending, setPending] = useState<Pending>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reasonField = useRef<HTMLInputElement>(null);
+  const denyButton = useRef<HTMLButtonElement>(null);
+  const wasDenying = useRef(false);
+
+  useEffect(() => {
+    if (denying) {
+      reasonField.current?.focus();
+    } else if (wasDenying.current) {
+      denyButton.current?.focus();
+    }
+    wasDenying.current = denying;
+  }, [denying]);
+
+  const queue = items.filter((item) => !decided.has(item.id));
+  const index = Math.min(cursor, Math.max(0, queue.length - 1));
+  const current = queue[index];
+  const busy = pending !== null;
+  const approveKeys = isApple ? 'Meta+Enter' : 'Control+Enter';
+
+  const go = (next: number) => {
+    setCursor(next);
+    setDenying(false);
+    setReason('');
+    setError(null);
+  };
+
+  const decide = async (approved: boolean) => {
+    if (!current || busy) {
+      return;
+    }
+    const note = reason.trim();
+    setPending(approved ? 'approve' : 'deny');
+    setError(null);
+    try {
+      await onDecide?.(current, {
+        approved,
+        reason: approved || !note ? undefined : note,
+      });
+      setDecided((previous) => new Set(previous).add(current.id));
+      setTally((previous) => ({
+        approved: previous.approved + (approved ? 1 : 0),
+        denied: previous.denied + (approved ? 0 : 1),
+      }));
+      setDenying(false);
+      setReason('');
+    } catch {
+      setError(SEND_ERROR);
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void decide(!denying);
+  };
+
+  const onKey = (event: globalThis.KeyboardEvent) => {
+    const card = root.current;
+    const { target } = event;
+    if (
+      !card ||
+      !current ||
+      denying ||
+      event.defaultPrevented ||
+      event.altKey ||
+      event.shiftKey ||
+      !(target instanceof HTMLElement)
+    ) {
+      return;
+    }
+    const inside = card.contains(target);
+    const command = event.metaKey || event.ctrlKey;
+    if (event.key === 'Enter' && command) {
+      // Inside the card it always approves. From elsewhere it stays out of the
+      // way of a field, form, or dialog that has its own use for the key.
+      if (event.repeat || !(inside || (!isClaimed(target) && isOnScreen(card)))) {
+        return;
+      }
+      event.preventDefault();
+      void decide(true);
+      return;
+    }
+    // Arrows already mean something on most focused controls, so they only
+    // count on the card's own buttons or when nothing has focus.
+    const free = inside ? !isTyping(target) : target === document.body;
+    if (command || busy || !free || !isOnScreen(card)) {
+      return;
+    }
+    if (event.key === 'ArrowLeft' && index > 0) {
+      go(index - 1);
+    } else if (event.key === 'ArrowRight' && index < queue.length - 1) {
+      go(index + 1);
+    } else {
+      return;
+    }
+    event.preventDefault();
+  };
+
+  // Subscribed on every render so the handler always sees the current item.
+  useEffect(() => {
+    if (!shortcuts) {
+      return;
+    }
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  });
+
+  return (
+    <div
+      className={cn(THEME_VARS, 'relative w-full max-w-full pb-2.5', className)}
+      data-slot="decision-inbox"
+      data-state={current ? 'pending' : 'empty'}
+      ref={root}
+      style={style}
+    >
+      <Pile depth={Math.min(2, Math.max(0, queue.length - 1))} />
+      <form
+        aria-label={title}
+        className={cn(
+          'relative flex w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--decision-inbox-shadow) transition-shadow duration-150 ease-out hover:shadow-(--decision-inbox-shadow-hover)',
+          classNames?.root,
+        )}
+        onSubmit={submit}
+      >
+        <div
+          className={cn(ENTER_CLASS, 'flex h-6 min-w-0 items-center gap-2', classNames?.header)}
+          data-slot="decision-inbox-header"
+        >
+          <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--decision-inbox-icon-bg)">
+            <Icon className="text-(--decision-inbox-accent)" icon={InboxIcon} />
+          </span>
+          <div className="min-w-0 flex-1 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+            {title}
+          </div>
+          {queue.length > 0 ? (
+            <output
+              aria-live="polite"
+              className="inline-flex flex-none items-center gap-1 text-xs leading-none text-muted-foreground tabular-nums"
+              data-slot="decision-inbox-count"
+            >
+              <RollingNumber value={queue.length} />
+              left
+            </output>
+          ) : null}
+        </div>
+
+        <div className={cn(ENTER_CLASS, 'delay-100')}>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+              exit={{ filter: 'blur(2px)', opacity: 0, y: -6 }}
+              initial={{ filter: 'blur(2px)', opacity: 0, y: 6 }}
+              key={current?.id ?? 'empty'}
+              transition={{ duration: reduce ? 0 : 0.16, ease: EASE }}
+            >
+              {current ? (
+                <RequestBody classNames={classNames} item={current} now={now} />
+              ) : (
+                <EmptyState approved={tally.approved} denied={tally.denied} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {current ? (
+          <div
+            className={cn(ENTER_CLASS, 'flex flex-col gap-2 delay-200', classNames?.footer)}
+            data-slot="decision-inbox-footer"
+          >
+            {error ? (
+              <p className="m-0 flex items-center gap-1.5 px-0.5 text-xs leading-4 text-destructive" role="alert">
+                <Icon icon={AlertCircleIcon} />
+                {error}
+              </p>
+            ) : null}
+            {denying ? (
+              <div className="flex min-h-6 items-center gap-1.5">
+                <input
+                  aria-label="Reason for denying"
+                  className="h-6 min-w-0 flex-1 rounded-full border-0 bg-foreground/6 px-2.5 text-xs leading-none text-card-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80"
+                  readOnly={busy}
+                  onChange={(event) => {
+                    setReason(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      setDenying(false);
+                    }
+                  }}
+                  placeholder="Tell the agent why (optional)"
+                  ref={reasonField}
+                  value={reason}
+                />
+                <ActionButton
+                  disabled={busy}
+                  onClick={() => {
+                    setDenying(false);
+                  }}
+                  slot="decision-inbox-back"
+                  variant="ghost"
+                >
+                  Back
+                </ActionButton>
+                <ActionButton disabled={busy} slot="decision-inbox-confirm-deny" submit variant="primary">
+                  {pending === 'deny' ? 'Sending…' : denyLabel}
+                </ActionButton>
+              </div>
+            ) : (
+              <div className="flex min-h-6 items-center gap-1.5">
+                <div className="min-w-0 flex-1">
+                  {queue.length > 1 ? (
+                    <QueueNav count={queue.length} disabled={busy} index={index} onChange={go} shortcuts={shortcuts} />
+                  ) : null}
+                </div>
+                <ActionButton
+                  buttonRef={denyButton}
+                  disabled={busy}
+                  onClick={() => {
+                    if (askReason) {
+                      setDenying(true);
+                    } else {
+                      void decide(false);
+                    }
+                  }}
+                  slot="decision-inbox-deny"
+                  variant="ghost"
+                >
+                  {pending === 'deny' ? 'Sending…' : denyLabel}
+                </ActionButton>
+                <ActionButton
+                  disabled={busy}
+                  shortcutKeys={shortcuts ? approveKeys : undefined}
+                  slot="decision-inbox-approve"
+                  submit
+                  variant="primary"
+                >
+                  {pending === 'approve' ? 'Sending…' : approveLabel}
+                  {pending === 'approve' || !shortcuts ? null : (
+                    <span aria-hidden="true" className="-mr-1 inline-flex gap-0.5">
+                      <kbd className={KBD_CLASS}>{isApple ? '⌘' : 'Ctrl'}</kbd>
+                      <kbd className={KBD_CLASS}>↵</kbd>
+                    </span>
+                  )}
+                </ActionButton>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </form>
+    </div>
+  );
+};

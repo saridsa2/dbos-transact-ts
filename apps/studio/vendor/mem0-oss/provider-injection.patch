@@ -1,0 +1,136 @@
+--- mem0ai-3.3.1/dist/oss/index.mjs
++++ stackproc/dist/oss/index.mjs
+@@ -1,3 +1,5 @@
++// Adapted from mem0ai 3.3.1; Apache-2.0. See LICENSE and PROVENANCE.json.
++// Stack Proc: explicit providers and deterministic identity; telemetry/notices disabled.
+ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+   get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+ }) : x)(function(x) {
+@@ -14717,10 +14719,10 @@
+ 
+ // src/oss/src/utils/telemetry.ts
+ var version = true ? "3.3.1" : "dev";
+-var MEM0_TELEMETRY = true;
++var MEM0_TELEMETRY = false;
+ var _a, _b;
+ try {
+-  MEM0_TELEMETRY = ((_b = (_a = process == null ? void 0 : process.env) == null ? void 0 : _a.MEM0_TELEMETRY) == null ? void 0 : _b.toLowerCase()) === "false" ? false : true;
++  MEM0_TELEMETRY = false;
+ } catch (error) {
+ }
+ var POSTHOG_API_KEY = "phc_hgJkUVJFYtmaJqrvf6CYN67TIQ8yhXAkWzUn9AMU4yX";
+@@ -16994,15 +16996,16 @@
+   }
+ }
+ var Memory = class _Memory {
+-  constructor(config = {}) {
++  constructor(config = {}, components = {}) {
++    this.components = components;
+     this.reranker = null;
+     this.config = ConfigManager.mergeConfig(config);
+     this.customInstructions = this.config.customInstructions;
+-    this.embedder = EmbedderFactory.create(
++    this.embedder = this.components?.embedder ?? EmbedderFactory.create(
+       this.config.embedder.provider,
+       this.config.embedder.config
+     );
+-    this.llm = LLMFactory.create(
++    this.llm = this.components?.llm ?? LLMFactory.create(
+       this.config.llm.provider,
+       this.config.llm.config
+     );
+@@ -17043,7 +17046,7 @@
+         );
+       }
+     }
+-    this.vectorStore = VectorStoreFactory.create(
++    this.vectorStore = this.components?.vectorStore ?? VectorStoreFactory.create(
+       this.config.vectorStore.provider,
+       this.config.vectorStore.config
+     );
+@@ -17282,6 +17285,7 @@
+     return parts.join("&");
+   }
+   async _initializeTelemetry() {
++    return;
+     try {
+       await this._getTelemetryId();
+       await captureClientEvent("init", this, {
+@@ -17308,6 +17312,7 @@
+     }
+   }
+   async _captureEvent(methodName, additionalData = {}) {
++    return;
+     try {
+       await this._getTelemetryId();
+       await captureClientEvent(methodName, this, {
+@@ -17320,6 +17325,7 @@
+     }
+   }
+   async _displayFirstRunNotice(triggerFunction) {
++    return;
+     try {
+       await this._getTelemetryId();
+       await displayFirstRunNotice(this, triggerFunction);
+@@ -17334,6 +17340,7 @@
+     }
+   }
+   async _displayTemporalUsageNotice(trigger) {
++    return;
+     try {
+       await this._getTelemetryId();
+       await displayTemporalUsageNotice(this, trigger);
+@@ -17341,6 +17348,7 @@
+     }
+   }
+   async _displayScaleThresholdNotice(trigger) {
++    return;
+     try {
+       await this._getTelemetryId();
+       await displayScaleThresholdNotice(this, trigger);
+@@ -17615,7 +17623,7 @@
+       }
+       seenHashes.add(memHash);
+       const textLemmatized = lemmatizeForBm25(text);
+-      const memoryId = uuidv45();
++      const memoryId = this.components.idFor ? this.components.idFor(metadata) : uuidv45();
+       const now = (/* @__PURE__ */ new Date()).toISOString();
+       const memPayload = {
+         ...metadata,
+@@ -17964,7 +17972,7 @@
+       }
+     }
+     const entityBoosts = {};
+-    if (queryEntities.length > 0) {
++    if (!this.components.disableEntityBoost && queryEntities.length > 0) {
+       try {
+         const seen = /* @__PURE__ */ new Set();
+         const deduped = [];
+@@ -18256,11 +18264,11 @@
+       }
+       this._entityStore = void 0;
+     }
+-    this.embedder = EmbedderFactory.create(
++    this.embedder = this.components?.embedder ?? EmbedderFactory.create(
+       this.config.embedder.provider,
+       this.config.embedder.config
+     );
+-    this.llm = LLMFactory.create(
++    this.llm = this.components?.llm ?? LLMFactory.create(
+       this.config.llm.provider,
+       this.config.llm.config
+     );
+@@ -18327,7 +18335,7 @@
+     return result;
+   }
+   async createMemory(data, existingEmbeddings, metadata) {
+-    const memoryId = uuidv45();
++    const memoryId = this.components.idFor ? this.components.idFor(metadata) : uuidv45();
+     const embedding = Object.prototype.hasOwnProperty.call(
+       existingEmbeddings,
+       data
+@@ -18615,4 +18623,3 @@
+   extractProvider,
+   quoteIdentifier
+ };
+-//# sourceMappingURL=index.mjs.map

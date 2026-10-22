@@ -1,0 +1,1830 @@
+{
+  "reviewedOn": "2026-10-20",
+  "source": "https://www.aisdkagents.com/ai-components",
+  "coverage": {
+    "catalogEntries": 201,
+    "groups": 31,
+    "detailDescriptionsInspected": 194,
+    "detailUnavailable": [
+      "Instructions editor",
+      "Source ingest",
+      "Retrieval inspector",
+      "Agent plan",
+      "Cursor-style questions panel",
+      "Workspace switcher",
+      "Profile settings"
+    ]
+  },
+  "scope": "Design suitability review, not a source-code, accessibility, security or runtime integration audit. Most initial preview captures were still loading. No product code or vendor source installed. Recommendations are Stack Proc design judgments, not claims about implemented capabilities.",
+  "rows": [
+    {
+      "component": "Prompt input",
+      "group": "Chat/Composer",
+      "recommendation": "Core",
+      "stackprocArea": "Activity instruction area",
+      "assessment": "Use mentions and attachments to scope a request to an activity; adapt presentation to existing typography and square controls.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/prompt-input"
+    },
+    {
+      "component": "Mention menu",
+      "group": "Chat/Composer",
+      "recommendation": "Core",
+      "stackprocArea": "Activity context",
+      "assessment": "Reference workspace resources by stable IDs, including draft/saved revision distinctions.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/mention-menu"
+    },
+    {
+      "component": "Slash command menu",
+      "group": "Chat/Composer",
+      "recommendation": "Adapt",
+      "stackprocArea": "Explicit actions",
+      "assessment": "Map commands to supported operations with typed arguments and permissions.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/slash-command-menu"
+    },
+    {
+      "component": "Starter prompts",
+      "group": "Chat/Composer",
+      "recommendation": "Adapt",
+      "stackprocArea": "Activity instruction area",
+      "assessment": "Use contextual directions and explicit resource references; do not make messages the activity model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/starter-prompts"
+    },
+    {
+      "component": "Context window",
+      "group": "Chat/Composer",
+      "recommendation": "Adapt",
+      "stackprocArea": "Context inspector",
+      "assessment": "Show included resources and actual context usage without exposing private reasoning.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/context-window"
+    },
+    {
+      "component": "Voice session",
+      "group": "Chat/Composer",
+      "recommendation": "Later",
+      "stackprocArea": "Optional interaction mode",
+      "assessment": "Do not add listening or speaking UI before implementing a real audio transport.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/voice-session"
+    },
+    {
+      "component": "Model picker",
+      "group": "Chat/Composer",
+      "recommendation": "Later",
+      "stackprocArea": "Model configuration",
+      "assessment": "MiniMax remains required; provider selection is not a prerequisite for activity layout.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/model-picker"
+    },
+    {
+      "component": "Attachments tray",
+      "group": "Chat/Composer",
+      "recommendation": "Core",
+      "stackprocArea": "Activity inputs",
+      "assessment": "Show ingestion status and errors; a file chip does not mean its content has been processed.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/attachments-tray"
+    },
+    {
+      "component": "Claude composer input",
+      "group": "Chat/Composer",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Reference only",
+      "assessment": "Cloning a branded chat landing page does not establish activity-centered navigation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-input"
+    },
+    {
+      "component": "OpenAI image chat",
+      "group": "Chat/Composer",
+      "recommendation": "Later",
+      "stackprocArea": "Image-specific editor",
+      "assessment": "Optional domain renderer rather than a common workspace composer.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/openai-chat-image"
+    },
+    {
+      "component": "Limit reached",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evidence and communication",
+      "assessment": "Attach responses and failures to the activity or artifact they concern.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/limit-reached"
+    },
+    {
+      "component": "Knowledge sources",
+      "group": "Chat/Answers",
+      "recommendation": "Core",
+      "stackprocArea": "Activity context",
+      "assessment": "Show connected knowledge health and scope separately from messages.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/knowledge-sources"
+    },
+    {
+      "component": "Report output",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evidence and communication",
+      "assessment": "Attach responses and failures to the activity or artifact they concern.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/report-output"
+    },
+    {
+      "component": "Model compare",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evidence and communication",
+      "assessment": "Attach responses and failures to the activity or artifact they concern.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/model-compare"
+    },
+    {
+      "component": "Interrupted reply",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Communication recovery",
+      "assessment": "Resuming displayed text must not silently restart an activity or repeat side effects.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/interrupted-reply"
+    },
+    {
+      "component": "Model unavailable",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Failure and recovery",
+      "assessment": "Respect provider and durable-host retry semantics; do not auto-repeat uncertain tool effects.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/model-unavailable"
+    },
+    {
+      "component": "AI answer",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evidence and communication",
+      "assessment": "Attach responses and failures to the activity or artifact they concern.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/ai-answer"
+    },
+    {
+      "component": "Source viewer",
+      "group": "Chat/Answers",
+      "recommendation": "Core",
+      "stackprocArea": "Evidence inspector",
+      "assessment": "Open the actual cited passage and preserve provenance back to the source revision.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/source-viewer"
+    },
+    {
+      "component": "Message actions",
+      "group": "Chat/Answers",
+      "recommendation": "Later",
+      "stackprocArea": "Optional communication detail",
+      "assessment": "Retain useful copy/edit behavior without turning the activity screen into a message list.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/message-actions"
+    },
+    {
+      "component": "Selection actions",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evidence and communication",
+      "assessment": "Attach responses and failures to the activity or artifact they concern.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/selection-actions"
+    },
+    {
+      "component": "Message branches",
+      "group": "Chat/Answers",
+      "recommendation": "Later",
+      "stackprocArea": "Optional communication detail",
+      "assessment": "Activity runs, artifact revisions and message variants are different records.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/message-branches"
+    },
+    {
+      "component": "Thinking state",
+      "group": "Chat/Answers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Execution summary",
+      "assessment": "Use recorded tool/status events, never simulated progress or private chain-of-thought.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/thinking-state"
+    },
+    {
+      "component": "Edit region",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/edit-region"
+    },
+    {
+      "component": "Point and ask",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/point-and-ask"
+    },
+    {
+      "component": "Region overlay",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/region-overlay"
+    },
+    {
+      "component": "Before and after",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/before-after"
+    },
+    {
+      "component": "Image results",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/image-results"
+    },
+    {
+      "component": "OpenAI image loader",
+      "group": "Chat/Images",
+      "recommendation": "Later",
+      "stackprocArea": "Domain-specific artifact renderer",
+      "assessment": "Useful when an actual image or document-vision capability exists; not required for the common workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/openai-image-loader"
+    },
+    {
+      "component": "Session list",
+      "group": "Chat/Sessions",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Activity overview instead",
+      "assessment": "Replace chat history with durable activities, grouped by state and work product.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/session-list"
+    },
+    {
+      "component": "Session tabs",
+      "group": "Chat/Sessions",
+      "recommendation": "Reframe",
+      "stackprocArea": "Open activity tabs",
+      "assessment": "Tab identity should represent work or an artifact, not a chat session.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/session-tabs"
+    },
+    {
+      "component": "Chat thread",
+      "group": "Chat/Screens",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Fullscreen workspace",
+      "assessment": "A transcript-centered shell would reproduce the current structural problem.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/chat-thread"
+    },
+    {
+      "component": "Panel dock",
+      "group": "Chat/Screens",
+      "recommendation": "Core",
+      "stackprocArea": "Supporting inspector",
+      "assessment": "Useful mounted tabs for sources, evidence and previews; main artifacts remain central.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/panel-dock"
+    },
+    {
+      "component": "Thread header",
+      "group": "Chat/Screens",
+      "recommendation": "Reframe",
+      "stackprocArea": "Activity header",
+      "assessment": "Show objective, workspace, state and contextual actions instead of model and chat title.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/thread-header"
+    },
+    {
+      "component": "Chat screen",
+      "group": "Chat/Screens",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Fullscreen workspace",
+      "assessment": "A transcript-centered shell would reproduce the current structural problem.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/chat-screen"
+    },
+    {
+      "component": "Prose diff",
+      "group": "Chat/Writing",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact review",
+      "assessment": "Review proposed document changes against an immutable base revision.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/prose-diff"
+    },
+    {
+      "component": "Inline prompt",
+      "group": "Chat/Writing",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact editing",
+      "assessment": "A selected passage can supply scope to the ambient agent without owning the document.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/inline-prompt"
+    },
+    {
+      "component": "Ghost completion",
+      "group": "Chat/Writing",
+      "recommendation": "Later",
+      "stackprocArea": "Optional editor assistance",
+      "assessment": "Requires cancellation, stale-result handling and a real completion endpoint.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/ghost-completion"
+    },
+    {
+      "component": "Document history",
+      "group": "Chat/Writing",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact revisions",
+      "assessment": "Show user and agent changes with provenance; restoring creates a new revision.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/document-history"
+    },
+    {
+      "component": "MCP server list",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/mcp-server-list"
+    },
+    {
+      "component": "Connector sync",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/connector-sync"
+    },
+    {
+      "component": "Instructions editor",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/instructions-editor"
+    },
+    {
+      "component": "Tool picker",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/tool-picker"
+    },
+    {
+      "component": "Tool permissions",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/tool-permissions"
+    },
+    {
+      "component": "Agent list",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/agent-list"
+    },
+    {
+      "component": "Agent create",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/agent-create"
+    },
+    {
+      "component": "Agent summary",
+      "group": "Agents/Configuration",
+      "recommendation": "Core",
+      "stackprocArea": "Activity/agent overview",
+      "assessment": "Keep agent definition, activity objective and individual run state distinguishable.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/agent-summary"
+    },
+    {
+      "component": "Model settings",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/model-settings"
+    },
+    {
+      "component": "Workflow step",
+      "group": "Agents/Configuration",
+      "recommendation": "Existing editor reference",
+      "stackprocArea": "Workflow canvas",
+      "assessment": "Compare interaction details against our atomic node model; do not replace DBOS semantics.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/workflow-step"
+    },
+    {
+      "component": "Workflow canvas",
+      "group": "Agents/Configuration",
+      "recommendation": "Existing editor reference",
+      "stackprocArea": "Workflow canvas",
+      "assessment": "Retain the current editor; borrow only compatible interaction improvements.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/workflow-canvas"
+    },
+    {
+      "component": "Step picker",
+      "group": "Agents/Configuration",
+      "recommendation": "Existing editor reference",
+      "stackprocArea": "Node catalog",
+      "assessment": "Keep operation definitions and connection requirements authoritative.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/step-picker"
+    },
+    {
+      "component": "Step inspector",
+      "group": "Agents/Configuration",
+      "recommendation": "Existing editor reference",
+      "stackprocArea": "Node configuration",
+      "assessment": "Preserve Input/Process/Output contracts and fixed/expression field semantics.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/step-inspector"
+    },
+    {
+      "component": "Version history",
+      "group": "Agents/Configuration",
+      "recommendation": "Core",
+      "stackprocArea": "Agent and tool revisions",
+      "assessment": "Bind release/review views to immutable revisions and actual checked changes.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/version-history"
+    },
+    {
+      "component": "Source ingest",
+      "group": "Agents/Configuration",
+      "recommendation": "Core",
+      "stackprocArea": "Activity inputs",
+      "assessment": "A document import should initiate tracked ingestion with provenance and reviewable outputs.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/source-ingest"
+    },
+    {
+      "component": "Retrieval inspector",
+      "group": "Agents/Configuration",
+      "recommendation": "Core",
+      "stackprocArea": "Evidence inspector",
+      "assessment": "Show retrieved source passages and relevance as execution evidence, not model authority.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/retrieval-inspector"
+    },
+    {
+      "component": "Secrets manager",
+      "group": "Agents/Configuration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent configuration and tools",
+      "assessment": "Bind configuration controls to versioned, workspace-authorized runtime capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/secrets-manager"
+    },
+    {
+      "component": "Trigger list",
+      "group": "Agents/Triggers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Activity initiation",
+      "assessment": "Expose the real source of work and configure explicit event, schedule or manual triggers.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/trigger-list"
+    },
+    {
+      "component": "Webhook trigger",
+      "group": "Agents/Triggers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Activity initiation",
+      "assessment": "Expose the real source of work and configure explicit event, schedule or manual triggers.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/webhook-trigger"
+    },
+    {
+      "component": "Event trigger",
+      "group": "Agents/Triggers",
+      "recommendation": "Adapt",
+      "stackprocArea": "Activity initiation",
+      "assessment": "Expose the real source of work and configure explicit event, schedule or manual triggers.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/event-trigger"
+    },
+    {
+      "component": "Publish review",
+      "group": "Agents/Deploy",
+      "recommendation": "Core",
+      "stackprocArea": "Release decision",
+      "assessment": "Summarize real checks and revision changes before publishing.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/publish-review"
+    },
+    {
+      "component": "Deploy channels",
+      "group": "Agents/Deploy",
+      "recommendation": "Later",
+      "stackprocArea": "Publication and delivery",
+      "assessment": "Useful for releasing agents and selecting delivery channels; not the intelligence workspace skeleton.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/deploy-channels"
+    },
+    {
+      "component": "Channel setup",
+      "group": "Agents/Deploy",
+      "recommendation": "Later",
+      "stackprocArea": "Publication and delivery",
+      "assessment": "Useful for releasing agents and selecting delivery channels; not the intelligence workspace skeleton.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/channel-setup"
+    },
+    {
+      "component": "Embed configurator",
+      "group": "Agents/Deploy",
+      "recommendation": "Later",
+      "stackprocArea": "Publication and delivery",
+      "assessment": "Useful for releasing agents and selecting delivery channels; not the intelligence workspace skeleton.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/embed-configurator"
+    },
+    {
+      "component": "Embed widget",
+      "group": "Agents/Deploy",
+      "recommendation": "Later",
+      "stackprocArea": "Publication and delivery",
+      "assessment": "Useful for releasing agents and selecting delivery channels; not the intelligence workspace skeleton.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/embed-widget"
+    },
+    {
+      "component": "Test run panel",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/test-run-panel"
+    },
+    {
+      "component": "Review queue",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/review-queue"
+    },
+    {
+      "component": "Eval scorecard",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/eval-scorecard"
+    },
+    {
+      "component": "Eval dataset",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/eval-dataset"
+    },
+    {
+      "component": "Eval case editor",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/eval-case-editor"
+    },
+    {
+      "component": "Eval criteria editor",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/eval-criteria-editor"
+    },
+    {
+      "component": "Eval run history",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/eval-run-history"
+    },
+    {
+      "component": "Quality trend",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/quality-trend"
+    },
+    {
+      "component": "Quality drop",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/quality-drop"
+    },
+    {
+      "component": "Change impact",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/change-impact"
+    },
+    {
+      "component": "Failure clusters",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/failure-clusters"
+    },
+    {
+      "component": "Quality alerts",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/quality-alerts"
+    },
+    {
+      "component": "Judge sampling",
+      "group": "Agents/Evals",
+      "recommendation": "Adapt",
+      "stackprocArea": "Evaluation workbench",
+      "assessment": "Evaluate cases, criteria and revisions separately from a single activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/judge-sampling"
+    },
+    {
+      "component": "Research job",
+      "group": "Agents/Progress",
+      "recommendation": "Core",
+      "stackprocArea": "Long-running activity",
+      "assessment": "Generalize its lifecycle to any activity; research itself is not an atomic workflow node.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/research-job"
+    },
+    {
+      "component": "Task tray",
+      "group": "Agents/Progress",
+      "recommendation": "Core",
+      "stackprocArea": "Ambient entry point",
+      "assessment": "The orb can expose active work and decisions without owning a second conversation history.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/task-tray"
+    },
+    {
+      "component": "Browser session",
+      "group": "Agents/Progress",
+      "recommendation": "Later",
+      "stackprocArea": "Optional live tool view",
+      "assessment": "Requires an actual browser execution tool and handoff protocol; preview alone supplies neither.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/browser-session"
+    },
+    {
+      "component": "Run recovery",
+      "group": "Agents/Progress",
+      "recommendation": "Core",
+      "stackprocArea": "Activity recovery",
+      "assessment": "Resume only through the durable host with checkpoint and uncertain-outcome rules.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/run-recovery"
+    },
+    {
+      "component": "Agent run tree",
+      "group": "Agents/Progress",
+      "recommendation": "Adapt",
+      "stackprocArea": "Execution inspector",
+      "assessment": "Display real child tasks if the runtime supports them; never infer delegation from UI state.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/agent-run-tree"
+    },
+    {
+      "component": "Tool call card",
+      "group": "Agents/Progress",
+      "recommendation": "Core",
+      "stackprocArea": "Activity execution",
+      "assessment": "Show observed work state, completed actions and recovery choices from durable receipts.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/tool-call-card"
+    },
+    {
+      "component": "File import",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/file-import"
+    },
+    {
+      "component": "Column mapper",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/column-mapper"
+    },
+    {
+      "component": "Import review",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/import-review"
+    },
+    {
+      "component": "Enrichment grid",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/enrichment-grid"
+    },
+    {
+      "component": "AI column create",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/ai-column-create"
+    },
+    {
+      "component": "Run estimate",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Later",
+      "stackprocArea": "Preflight estimate",
+      "assessment": "Provide ranges only from measured data; do not invent cost or completion time.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/run-estimate"
+    },
+    {
+      "component": "Cell inspector",
+      "group": "Agents/Bulk runs",
+      "recommendation": "Adapt",
+      "stackprocArea": "Import and batch work surface",
+      "assessment": "Keep row-level state and corrections attached to imported domain data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/cell-inspector"
+    },
+    {
+      "component": "Agent gate",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Typed interaction host",
+      "assessment": "One host can dispatch questions, approvals, connection requests and reviewable results.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/agent-gate"
+    },
+    {
+      "component": "Decision inbox",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Decision surface",
+      "assessment": "A decision is a typed interaction belonging to an activity, not an assistant message.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/decision-inbox"
+    },
+    {
+      "component": "Tool call approval",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Decision surface",
+      "assessment": "A decision is a typed interaction belonging to an activity, not an assistant message.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/tool-call-approval"
+    },
+    {
+      "component": "Generative form",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Typed decision input",
+      "assessment": "Render approved schema-driven controls; validate values on the server.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/generative-form"
+    },
+    {
+      "component": "Edit before run",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Execution decision",
+      "assessment": "Record edited arguments and approval against the exact pending invocation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/edit-before-run"
+    },
+    {
+      "component": "Guardrail notice",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Decision surface",
+      "assessment": "A decision is a typed interaction belonging to an activity, not an assistant message.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/guardrail-notice"
+    },
+    {
+      "component": "Schedule card",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Decision surface",
+      "assessment": "A decision is a typed interaction belonging to an activity, not an assistant message.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/schedule-card"
+    },
+    {
+      "component": "Agent plan",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Activity plan",
+      "assessment": "A plan is proposed intent; observed execution remains a separate durable record.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/agent-plan"
+    },
+    {
+      "component": "Cursor-style questions panel",
+      "group": "Agents/Approvals",
+      "recommendation": "Core",
+      "stackprocArea": "Activity questions",
+      "assessment": "Use compact typed questions at the point of blockage, preserving submitted answers.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/cursor-questions-panel"
+    },
+    {
+      "component": "Line items",
+      "group": "Agents/Results",
+      "recommendation": "Adapt",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Treat invoice/order rows as typed domain output; not a generic transcript card.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/line-items"
+    },
+    {
+      "component": "Artifact panel",
+      "group": "Agents/Results",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact work surface",
+      "assessment": "Render validated tool outputs through registered domain views, with stable artifact identity.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/artifact-panel"
+    },
+    {
+      "component": "Live preview",
+      "group": "Agents/Results",
+      "recommendation": "Adapt",
+      "stackprocArea": "Artifact preview",
+      "assessment": "Use a bounded isolated preview; generated HTML must not execute in the application origin.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/live-preview"
+    },
+    {
+      "component": "Data table result",
+      "group": "Agents/Results",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact work surface",
+      "assessment": "Render validated tool outputs through registered domain views, with stable artifact identity.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/data-table-result"
+    },
+    {
+      "component": "Chart result",
+      "group": "Agents/Results",
+      "recommendation": "Core",
+      "stackprocArea": "Artifact work surface",
+      "assessment": "Render validated tool outputs through registered domain views, with stable artifact identity.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/chart-result"
+    },
+    {
+      "component": "Claude map itinerary",
+      "group": "Agents/Results",
+      "recommendation": "Later",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Demonstrates domain-specific UI bindings; add only for a relevant domain operation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-map-itinerary-tool"
+    },
+    {
+      "component": "Claude recipe tool",
+      "group": "Agents/Results",
+      "recommendation": "Later",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Reference for rich typed outputs; cooking is not a default workspace feature.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-recipe-tool"
+    },
+    {
+      "component": "Claude text message tool",
+      "group": "Agents/Results",
+      "recommendation": "Later",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Drafting and sending are separate operations with explicit recipients and permissions.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-text-tool"
+    },
+    {
+      "component": "Claude email tool",
+      "group": "Agents/Results",
+      "recommendation": "Later",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Keep email draft review separate from externally sending a message.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-email-tool"
+    },
+    {
+      "component": "Claude image search tool",
+      "group": "Agents/Results",
+      "recommendation": "Later",
+      "stackprocArea": "Domain artifact renderer",
+      "assessment": "Useful when a supported search operation returns image results.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/claude-image-search-tool"
+    },
+    {
+      "component": "File diff",
+      "group": "Agents/Code",
+      "recommendation": "Core",
+      "stackprocArea": "Tool and artifact review",
+      "assessment": "Show proposed code changes before application; retain immutable before/after identities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/file-diff"
+    },
+    {
+      "component": "Terminal result",
+      "group": "Agents/Code",
+      "recommendation": "Adapt",
+      "stackprocArea": "Tool execution evidence",
+      "assessment": "Display receipts only for supported execution tools; no arbitrary shell capability implied.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/terminal-result"
+    },
+    {
+      "component": "Test run result",
+      "group": "Agents/Code",
+      "recommendation": "Core",
+      "stackprocArea": "Tool builder validation",
+      "assessment": "Present actual fixture results and failed assertions alongside the tested revision.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/test-run-result"
+    },
+    {
+      "component": "App sidebar",
+      "group": "Workspace/App shell",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Existing workspace shell",
+      "assessment": "Preserve Stack Proc fullscreen editors and admin navigation instead of adopting a chat shell.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/app-sidebar"
+    },
+    {
+      "component": "Chat layout",
+      "group": "Workspace/App shell",
+      "recommendation": "Avoid as shell",
+      "stackprocArea": "Existing workspace shell",
+      "assessment": "Preserve Stack Proc fullscreen editors and admin navigation instead of adopting a chat shell.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/chat-layout"
+    },
+    {
+      "component": "Notification center",
+      "group": "Workspace/Notifications",
+      "recommendation": "Core",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link each event to an activity, artifact or decision; use existing SSE and notification primitives.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/notification-center"
+    },
+    {
+      "component": "Notification preferences",
+      "group": "Workspace/Notifications",
+      "recommendation": "Adapt",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link updates to durable activities and pending decisions; notifications do not own execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/notification-preferences"
+    },
+    {
+      "component": "Notification channels",
+      "group": "Workspace/Notifications",
+      "recommendation": "Adapt",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link updates to durable activities and pending decisions; notifications do not own execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/notification-channels"
+    },
+    {
+      "component": "Quiet hours",
+      "group": "Workspace/Notifications",
+      "recommendation": "Adapt",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link updates to durable activities and pending decisions; notifications do not own execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/quiet-hours"
+    },
+    {
+      "component": "Email unsubscribe",
+      "group": "Workspace/Notifications",
+      "recommendation": "Adapt",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link updates to durable activities and pending decisions; notifications do not own execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/email-unsubscribe"
+    },
+    {
+      "component": "Away digest",
+      "group": "Workspace/Notifications",
+      "recommendation": "Core",
+      "stackprocArea": "Workspace activity overview",
+      "assessment": "On return, lead with decisions and failures, then completed work, rather than unread chats.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/away-digest"
+    },
+    {
+      "component": "Notify when done",
+      "group": "Workspace/Notifications",
+      "recommendation": "Core",
+      "stackprocArea": "Long-running activity",
+      "assessment": "Let users leave; notifications subscribe to real terminal states.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/notify-when-done"
+    },
+    {
+      "component": "Run finished toast",
+      "group": "Workspace/Notifications",
+      "recommendation": "Core",
+      "stackprocArea": "Cross-workspace updates",
+      "assessment": "Group related completion notices and provide a route back to the work.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/run-finished-toast"
+    },
+    {
+      "component": "Email layout",
+      "group": "Workspace/Notifications",
+      "recommendation": "Adapt",
+      "stackprocArea": "Ambient workspace updates",
+      "assessment": "Link updates to durable activities and pending decisions; notifications do not own execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/email-layout"
+    },
+    {
+      "component": "Connector setup",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/connector-setup"
+    },
+    {
+      "component": "Sign-up card",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/sign-up-card"
+    },
+    {
+      "component": "Role and goal picker",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/role-goal-picker"
+    },
+    {
+      "component": "Setup checklist",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/setup-checklist"
+    },
+    {
+      "component": "Terms consent",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/terms-consent"
+    },
+    {
+      "component": "OpenAI What's New dialog",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/openai-whats-new-dialog"
+    },
+    {
+      "component": "Workspace create",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/workspace-create"
+    },
+    {
+      "component": "Invite accept",
+      "group": "Workspace/Onboarding",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Customer control plane",
+      "assessment": "Useful for setup flows; keep separate from the fullscreen work surface.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/invite-accept"
+    },
+    {
+      "component": "Data controls",
+      "group": "Workspace/Personalization",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent context and recurring work",
+      "assessment": "Expose actual persisted context and policy; distinguish user preference from workspace authority.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/data-controls"
+    },
+    {
+      "component": "Memory manager",
+      "group": "Workspace/Personalization",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent context",
+      "assessment": "Show provenance, scope and editable persisted memory; ontology is a separate domain model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/memory-manager"
+    },
+    {
+      "component": "Scheduled tasks",
+      "group": "Workspace/Personalization",
+      "recommendation": "Core",
+      "stackprocArea": "Recurring activities",
+      "assessment": "Show real schedule, policy, next occurrence and previous run outcomes.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/scheduled-tasks"
+    },
+    {
+      "component": "Custom instructions",
+      "group": "Workspace/Personalization",
+      "recommendation": "Adapt",
+      "stackprocArea": "Agent context and recurring work",
+      "assessment": "Expose actual persisted context and policy; distinguish user preference from workspace authority.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/custom-instructions"
+    },
+    {
+      "component": "Skill library",
+      "group": "Workspace/Extensions",
+      "recommendation": "Adapt",
+      "stackprocArea": "Tool and skill catalog",
+      "assessment": "Describe installed capabilities and their permissions; preserve our execution adapter boundary.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/skill-library"
+    },
+    {
+      "component": "Skill detail",
+      "group": "Workspace/Extensions",
+      "recommendation": "Adapt",
+      "stackprocArea": "Tool and skill catalog",
+      "assessment": "Describe installed capabilities and their permissions; preserve our execution adapter boundary.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/skill-detail"
+    },
+    {
+      "component": "Extension directory",
+      "group": "Workspace/Extensions",
+      "recommendation": "Adapt",
+      "stackprocArea": "Tool and skill catalog",
+      "assessment": "Describe installed capabilities and their permissions; preserve our execution adapter boundary.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/extension-directory"
+    },
+    {
+      "component": "Invite members",
+      "group": "Workspace/Team",
+      "recommendation": "Admin reference",
+      "stackprocArea": "People and workspace access",
+      "assessment": "Apply interaction ideas to the existing authorized control plane, retaining Untitled UI controls.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/invite-members"
+    },
+    {
+      "component": "Members table",
+      "group": "Workspace/Team",
+      "recommendation": "Admin reference",
+      "stackprocArea": "People and workspace access",
+      "assessment": "Apply interaction ideas to the existing authorized control plane, retaining Untitled UI controls.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/members-table"
+    },
+    {
+      "component": "Access request",
+      "group": "Workspace/Team",
+      "recommendation": "Admin reference",
+      "stackprocArea": "People and workspace access",
+      "assessment": "Apply interaction ideas to the existing authorized control plane, retaining Untitled UI controls.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/access-request"
+    },
+    {
+      "component": "Workspace switcher",
+      "group": "Workspace/Team",
+      "recommendation": "Admin reference",
+      "stackprocArea": "People and workspace access",
+      "assessment": "Apply interaction ideas to the existing authorized control plane, retaining Untitled UI controls.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/workspace-switcher"
+    },
+    {
+      "component": "Profile settings",
+      "group": "Workspace/Account",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Account settings",
+      "assessment": "Keep account administration separate from activity execution.",
+      "evidence": "Catalog entry inspected; detail page unavailable",
+      "url": "https://www.aisdkagents.com/ai-components/profile-settings"
+    },
+    {
+      "component": "Account security",
+      "group": "Workspace/Account",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Account settings",
+      "assessment": "Keep account administration separate from activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/account-security"
+    },
+    {
+      "component": "Device sessions",
+      "group": "Workspace/Account",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Account settings",
+      "assessment": "Keep account administration separate from activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/device-sessions"
+    },
+    {
+      "component": "Leave workspace",
+      "group": "Workspace/Account",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Account settings",
+      "assessment": "Keep account administration separate from activity execution.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/leave-workspace"
+    },
+    {
+      "component": "Checkout summary",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/checkout-summary"
+    },
+    {
+      "component": "Upgrade paywall",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/upgrade-paywall"
+    },
+    {
+      "component": "Plan picker",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/plan-picker"
+    },
+    {
+      "component": "Trial banner",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/trial-banner"
+    },
+    {
+      "component": "Trial ended",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/trial-ended"
+    },
+    {
+      "component": "Subscription status",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/subscription-status"
+    },
+    {
+      "component": "Downgrade impact",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/downgrade-impact"
+    },
+    {
+      "component": "Cancel flow",
+      "group": "Workspace/Billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Billing settings",
+      "assessment": "Useful commercial interactions, not part of the activity-centered editor design.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/cancel-flow"
+    },
+    {
+      "component": "Share thread",
+      "group": "Workspace/Collaboration",
+      "recommendation": "Reframe",
+      "stackprocArea": "Activity sharing",
+      "assessment": "Define whether sharing includes artifacts, logs and decisions; preserve resource access checks.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/share-thread"
+    },
+    {
+      "component": "Multiplayer thread",
+      "group": "Workspace/Collaboration",
+      "recommendation": "Reframe",
+      "stackprocArea": "Activity collaboration",
+      "assessment": "Collaborate around shared work and authorship; do not adopt the thread as the workspace root.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/multiplayer-thread"
+    },
+    {
+      "component": "Handoff card",
+      "group": "Workspace/Collaboration",
+      "recommendation": "Core",
+      "stackprocArea": "Activity collaboration",
+      "assessment": "Transfer explicit ownership and pending decisions without losing execution history.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/handoff-card"
+    },
+    {
+      "component": "Answer comments",
+      "group": "Workspace/Collaboration",
+      "recommendation": "Reframe",
+      "stackprocArea": "Artifact comments",
+      "assessment": "Anchor comments to work-product revisions, not only assistant response text.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/answer-comments"
+    },
+    {
+      "component": "Prompt library",
+      "group": "Workspace/Collaboration",
+      "recommendation": "Adapt",
+      "stackprocArea": "Activity collaboration",
+      "assessment": "Anchor participation, comments and handoffs to shared work and explicit permissions.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/prompt-library"
+    },
+    {
+      "component": "Run receipt",
+      "group": "Developer/Logs & traces",
+      "recommendation": "Core",
+      "stackprocArea": "Execution inspector",
+      "assessment": "Attach measured cost and timing to the exact activity run and operation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/run-receipt"
+    },
+    {
+      "component": "Trace viewer",
+      "group": "Developer/Logs & traces",
+      "recommendation": "Core",
+      "stackprocArea": "Execution inspector",
+      "assessment": "Use durable model/tool events and DBOS checkpoints as the source.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/trace-viewer"
+    },
+    {
+      "component": "Run log",
+      "group": "Developer/Logs & traces",
+      "recommendation": "Core",
+      "stackprocArea": "Workspace activity history",
+      "assessment": "A run is an execution attempt under an activity; opening it restores the correct snapshot.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/run-log"
+    },
+    {
+      "component": "Request log",
+      "group": "Developer/Logs & traces",
+      "recommendation": "Adapt",
+      "stackprocArea": "Technical diagnostics",
+      "assessment": "Provider transport diagnostics remain separate from user-facing activity progress.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/request-log"
+    },
+    {
+      "component": "Rate limit status",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/rate-limit-status"
+    },
+    {
+      "component": "API key manager",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/api-key-manager"
+    },
+    {
+      "component": "Quickstart",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/quickstart"
+    },
+    {
+      "component": "Endpoint bar",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/endpoint-bar"
+    },
+    {
+      "component": "Schema fields",
+      "group": "Developer/API",
+      "recommendation": "Core",
+      "stackprocArea": "Tool builder contract inspector",
+      "assessment": "Nested schema inspection complements the code editor and typed manifest.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/schema-fields"
+    },
+    {
+      "component": "Response examples",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/response-examples"
+    },
+    {
+      "component": "API reference nav",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/api-reference-nav"
+    },
+    {
+      "component": "Copy page menu",
+      "group": "Developer/API",
+      "recommendation": "Adapt",
+      "stackprocArea": "Developer tools and CLI support",
+      "assessment": "Present typed operation contracts and scoped credentials through existing server authorization.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/copy-page-menu"
+    },
+    {
+      "component": "Spend breakdown",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/spend-breakdown"
+    },
+    {
+      "component": "Invoice history",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/invoice-history"
+    },
+    {
+      "component": "Usage meter",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/usage-meter"
+    },
+    {
+      "component": "Budget alerts",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/budget-alerts"
+    },
+    {
+      "component": "Spend limits",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/spend-limits"
+    },
+    {
+      "component": "Plan compare",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/plan-compare"
+    },
+    {
+      "component": "Payment method",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/payment-method"
+    },
+    {
+      "component": "Credit top-up",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/credit-top-up"
+    },
+    {
+      "component": "Top spenders",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/top-spenders"
+    },
+    {
+      "component": "Seat usage",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/seat-usage"
+    },
+    {
+      "component": "Cost anomaly",
+      "group": "Admin/Usage & billing",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Usage and costs",
+      "assessment": "Use measured usage; do not display estimates or savings unless supported by actual data.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/cost-anomaly"
+    },
+    {
+      "component": "Data retention",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/data-retention"
+    },
+    {
+      "component": "Model access",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/model-access"
+    },
+    {
+      "component": "Audit log",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/audit-log"
+    },
+    {
+      "component": "Moderation queue",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/moderation-queue"
+    },
+    {
+      "component": "Workspace data policy",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/workspace-data-policy"
+    },
+    {
+      "component": "Trust center",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/trust-center"
+    },
+    {
+      "component": "Subprocessor list",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/subprocessor-list"
+    },
+    {
+      "component": "Data region",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/data-region"
+    },
+    {
+      "component": "Role editor",
+      "group": "Admin/Governance",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Workspace policy and audit",
+      "assessment": "Apply centrally enforced policies; a UI component is not a security or compliance implementation.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/role-editor"
+    },
+    {
+      "component": "Domain verification",
+      "group": "Admin/Identity",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Identity adapter settings",
+      "assessment": "Keep enterprise federation behind the auth adapter and verify provider-specific capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/domain-verification"
+    },
+    {
+      "component": "SSO setup",
+      "group": "Admin/Identity",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Identity adapter settings",
+      "assessment": "Keep enterprise federation behind the auth adapter and verify provider-specific capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/sso-setup"
+    },
+    {
+      "component": "SCIM provisioning",
+      "group": "Admin/Identity",
+      "recommendation": "Admin reference",
+      "stackprocArea": "Identity adapter settings",
+      "assessment": "Keep enterprise federation behind the auth adapter and verify provider-specific capabilities.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/scim-provisioning"
+    },
+    {
+      "component": "Feature code block",
+      "group": "Marketing/Sections",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing only",
+      "assessment": "Decorative marketing layouts do not solve the workspace activity model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-feature-code-block"
+    },
+    {
+      "component": "Feature Grid 1",
+      "group": "Marketing/Sections",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing only",
+      "assessment": "Decorative marketing layouts do not solve the workspace activity model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-feature-grid-1"
+    },
+    {
+      "component": "Bento Layout 1",
+      "group": "Marketing/Sections",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing only",
+      "assessment": "Decorative marketing layouts do not solve the workspace activity model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-bento-1"
+    },
+    {
+      "component": "Integration Showcase 1",
+      "group": "Marketing/Sections",
+      "recommendation": "Reframe",
+      "stackprocArea": "Connections overview",
+      "assessment": "Connection health can inform our existing control plane; avoid decorative showcase layout.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-integrations-1"
+    },
+    {
+      "component": "AI Integrations Circle",
+      "group": "Marketing/Sections",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing only",
+      "assessment": "Decorative marketing layouts do not solve the workspace activity model.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-integrations-2"
+    },
+    {
+      "component": "Model comparison",
+      "group": "Marketing/Comparison",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing or procurement",
+      "assessment": "Not part of the common intelligence or tool-authoring workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-model-comparison"
+    },
+    {
+      "component": "Comparison Table 1",
+      "group": "Marketing/Comparison",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing or procurement",
+      "assessment": "Not part of the common intelligence or tool-authoring workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-model-comparison-table-1"
+    },
+    {
+      "component": "Agent ROI Calculator",
+      "group": "Marketing/Comparison",
+      "recommendation": "Exclude",
+      "stackprocArea": "Marketing or procurement",
+      "assessment": "Not part of the common intelligence or tool-authoring workspace.",
+      "evidence": "Public detail description inspected; interactive states and paid source not audited",
+      "url": "https://www.aisdkagents.com/ai-components/marketing-calculator-agent-roi"
+    }
+  ]
+}

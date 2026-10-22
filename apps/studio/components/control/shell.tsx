@@ -1,6 +1,8 @@
 'use client';
+import { Badge } from '@/components/base/badges/badges';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/base/buttons/button';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { Dropdown } from '@/components/base/dropdown/dropdown';
@@ -17,6 +19,8 @@ import {
   ShieldCheck,
   Users,
   WorkflowIcon,
+  DatabaseIcon,
+  SettingsIcon,
   X,
   User01,
 } from '@/components/fa-icons';
@@ -26,7 +30,7 @@ import { notificationDestination } from '@/lib/control/notifications';
 import { canManage, type Session } from '@/lib/control/contracts';
 import { Onboarding, controlRequest } from './access';
 import { ControlModal } from './controls';
-import { StackProcLogo } from './stackproc-logo';
+import { StackProcLogo, StackProcIcon } from './stackproc-logo';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: Building2 },
@@ -34,6 +38,7 @@ const sections = [
   { id: 'team', label: 'People', icon: Users },
   { id: 'runs', label: 'Run history', icon: Activity },
   { id: 'audit', label: 'Audit trail', icon: ShieldCheck },
+  { id: 'keys', label: 'API keys', icon: KeyRound },
   { id: 'identity', label: 'Identity', icon: KeyRound },
 ] as const;
 export function StackProcShell({
@@ -46,6 +51,7 @@ export function StackProcShell({
   children: ReactNode;
 }) {
   const { pathname, tab, navigate } = useControlNavigation();
+  const search = useSearchParams();
   const workspace = session.workspace,
     user = session.user!;
   const [menuOpen, setMenuOpen] = useState(false),
@@ -53,13 +59,23 @@ export function StackProcShell({
     [error, setError] = useState(''),
     [profileOpen, setProfileOpen] = useState(false);
   const stream = useWorkspaceEvents(workspace?.id, () => void refresh(), workspace?.role);
-  const unread = stream.notifications.filter((event) => !event.readAt).length;
+  // Keep AI history in the backend while its presentation is being redesigned.
+  const notifications = stream.notifications.filter(
+    (event) => !['agent_request', 'agent_work_item', 'workspace_agent', 'intelligence_task'].includes(event.entityType),
+  );
+  const unread = notifications.filter((event) => !event.readAt).length;
   const control = pathname === '/control';
   const pageName = control
     ? sections.find((item) => item.id === tab)?.label
     : pathname === '/flows'
       ? 'Workflow builder'
-      : 'Workflows';
+      : pathname === '/knowledge'
+        ? 'Knowledge'
+        : pathname === '/tools'
+          ? 'Tools'
+          : pathname === '/sources'
+            ? 'Sources'
+            : 'Workflows';
   const initials = user.displayName
     .split(/\s+/)
     .map((word) => word[0])
@@ -82,7 +98,13 @@ export function StackProcShell({
       setError(error instanceof Error ? error.message : 'Could not sign out.');
     }
   }
-  if (pathname === '/flows')
+  if (
+    pathname === '/flows' ||
+    pathname === '/ontology' ||
+    pathname === '/processes' ||
+    pathname === '/intelligence' ||
+    (pathname === '/tools' && (search.has('id') || search.has('capability')))
+  )
     return (
       <WorkspaceStreamContext.Provider value={stream}>
         <div className="stackproc-builder-fullscreen" key={workspace?.id}>
@@ -94,9 +116,9 @@ export function StackProcShell({
     <WorkspaceStreamContext.Provider value={stream}>
       <div className={`stackproc-shell ${menuOpen ? 'is-navigation-open' : ''}`}>
         <header className="stackproc-header">
-          <Link href="/control" className="stackproc-brand" aria-label="Stack Proc home">
+          <Link href="/control" className="stackproc-brand" aria-label="Procczar home">
             <StackProcLogo />
-            <span>Stack Proc</span>
+            <span>Procczar</span>
           </Link>
           <div className="stackproc-header-content">
             <Button
@@ -128,8 +150,13 @@ export function StackProcShell({
                   className="stackproc-notification-button"
                   aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}
                   iconLeading={Bell}
-                  iconTrailing={unread ? <span className="stackproc-unread-count">{unread}</span> : undefined}
-                />
+                >
+                  {unread > 0 && (
+                    <Badge type="color" size="sm" className="stackproc-unread-count">
+                      {unread > 99 ? '99+' : unread}
+                    </Badge>
+                  )}
+                </Button>
                 <Dropdown.Popover className="stackproc-notifications" placement="bottom end">
                   <Dropdown.Menu
                     aria-label="Workspace notifications"
@@ -138,11 +165,11 @@ export function StackProcShell({
                         try {
                           if (key === 'mark-read') {
                             await stream.markRead(
-                              stream.notifications.filter((event) => !event.readAt).map((event) => event.id),
+                              notifications.filter((event) => !event.readAt).map((event) => event.id),
                             );
                             return;
                           }
-                          const event = stream.notifications.find((item) => `event:${item.id}` === key);
+                          const event = notifications.find((item) => `event:${item.id}` === key);
                           if (!event) return;
                           await stream.markRead([event.id]);
                           window.location.href = notificationDestination(event);
@@ -156,7 +183,7 @@ export function StackProcShell({
                       <Dropdown.SectionHeader className="stackproc-menu-heading">
                         Notifications <span>Active workspace</span>
                       </Dropdown.SectionHeader>
-                      {stream.notifications.map((event) => (
+                      {notifications.map((event) => (
                         <Dropdown.Item key={event.id} id={`event:${event.id}`} textValue={event.title}>
                           <div className={`stackproc-notification-item ${!event.readAt ? 'unread' : ''}`}>
                             <strong>{event.title}</strong>
@@ -167,7 +194,7 @@ export function StackProcShell({
                           </div>
                         </Dropdown.Item>
                       ))}
-                      {!stream.notifications.length && (
+                      {!notifications.length && (
                         <Dropdown.Item id="empty" isDisabled>
                           No notifications yet
                         </Dropdown.Item>
@@ -229,11 +256,28 @@ export function StackProcShell({
               href="/"
               color="tertiary"
               iconLeading={WorkflowIcon}
-              className={!control ? 'selected' : ''}
-              aria-current={!control ? 'page' : undefined}
+              className={pathname === '/' ? 'selected' : ''}
+              aria-current={pathname === '/' ? 'page' : undefined}
             >
               Workflows
             </Button>
+            {[
+              { href: '/knowledge', label: 'Knowledge', icon: Link2 },
+              { href: '/sources', label: 'Sources', icon: DatabaseIcon },
+              { href: '/tools', label: 'Tools', icon: SettingsIcon },
+              { href: '/intelligence', label: 'Workspace intelligence', icon: StackProcIcon },
+            ].map((item) => (
+              <Button
+                key={item.href}
+                href={item.href}
+                color="tertiary"
+                iconLeading={item.icon}
+                className={pathname === item.href ? 'selected' : ''}
+                aria-current={pathname === item.href ? 'page' : undefined}
+              >
+                {item.label}
+              </Button>
+            ))}
             <p>Workspace</p>
             {sections
               .filter((item) => item.id !== 'audit' || (workspace && canManage(workspace.role)))

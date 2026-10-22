@@ -1,4 +1,5 @@
 'use client';
+import { json } from '@codemirror/lang-json';
 import { expressionAst } from '@/lib/authoring/expressions';
 import { useEffect, useRef } from 'react';
 import { EditorView, lineNumbers, highlightActiveLine, keymap } from '@codemirror/view';
@@ -16,10 +17,12 @@ export function CodeEditor({
   expression = false,
   ariaLabel = 'Code source',
   completions = [],
+  completionsOnly = false,
 }: {
   value: string;
   onChange: (value: string) => void;
-  language: 'javascript' | 'typescript';
+  language: 'javascript' | 'typescript' | 'json' | 'text';
+  completionsOnly?: boolean;
   readOnly?: boolean;
   expression?: boolean;
   ariaLabel?: string;
@@ -42,7 +45,11 @@ export function CodeEditor({
           highlightActiveLine(),
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
-          javascript({ typescript: language === 'typescript' }),
+          language === 'text'
+            ? []
+            : language === 'json'
+              ? json()
+              : javascript({ typescript: language === 'typescript' }),
           syntaxHighlighting(defaultHighlightStyle),
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
@@ -54,26 +61,28 @@ export function CodeEditor({
                 if (!word || (!word.text && !ctx.explicit)) return null;
                 return {
                   from: word.from,
-                  options: expression
-                    ? options.current
-                    : [
-                        ...options.current,
-                        { label: 'input', type: 'variable', info: 'Configured JSON input' },
-                        {
-                          label: 'variables',
-                          type: 'variable',
-                          info: 'Visible scope values; guest changes do not update workflow state',
-                        },
-                        { label: 'console.log', type: 'function' },
-                        { label: 'console.warn', type: 'function' },
-                        { label: 'return', type: 'keyword' },
-                      ],
+                  options:
+                    expression || completionsOnly
+                      ? options.current
+                      : [
+                          ...options.current,
+                          { label: 'input', type: 'variable', info: 'Configured JSON input' },
+                          {
+                            label: 'variables',
+                            type: 'variable',
+                            info: 'Visible scope values; guest changes do not update workflow state',
+                          },
+                          { label: 'console.log', type: 'function' },
+                          { label: 'console.warn', type: 'function' },
+                          { label: 'return', type: 'keyword' },
+                        ],
                 };
               },
             ],
           }),
           lintGutter(),
           linter((v) => {
+            if (language === 'text') return [];
             const issues: { from: number; to: number; severity: 'error'; message: string }[] = [];
             if (expression) {
               try {
@@ -114,7 +123,7 @@ export function CodeEditor({
       editor.destroy();
       view.current = null;
     };
-  }, [language, readOnly, expression, ariaLabel]);
+  }, [language, readOnly, expression, ariaLabel, completionsOnly]);
   useEffect(() => {
     const editor = view.current;
     if (editor && editor.state.doc.toString() !== value)

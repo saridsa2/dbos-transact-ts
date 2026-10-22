@@ -1,3 +1,10 @@
+import { changeProcessLanes, assignProcessLane, resizeProcessLane } from '../lib/processes/lanes';
+import { migrateProcess } from '../lib/processes/model';
+import { starterFiles } from '../lib/tools/contracts';
+import { graph as toolGraph, node as toolNode, end as toolEnd } from '../lib/native/graph';
+import { readFileSync } from 'node:fs';
+import { toPlayground, fromPlayground } from '../lib/knowledge/playground';
+import { knowledgeFixtures } from '../lib/knowledge/fixtures';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -8,7 +15,7 @@ import { scopedExamples } from '../lib/authoring/examples';
 import { defaultCode } from '../lib/authoring/model';
 import { nativeExamples } from '../lib/native/examples';
 import { createStarterFlow } from '../lib/flows/templates';
-import type { AgentFlow, FlowRunEvent } from '../lib/flows/types';
+import type { AgentFlow, FlowNodeData, FlowRunEvent } from '../lib/flows/types';
 
 describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service integration', () => {
   let service: ChildProcess | undefined;
@@ -106,6 +113,38 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
     const events = await run(flow, variables ? { variables } : flow.defaultInput);
     return terminal(events[0].runId);
   }
+  it('reviews a compilation preview, rejects stale digests and reports implementation drift', async () => {
+    const fixture = knowledgeFixtures()[0];
+    const created = await request('/api/knowledge/artifacts', {
+      name: 'Compilation review fixture',
+      kind: 'process',
+      content: migrateProcess(fixture.process),
+    }).then((r) => r.json());
+    await request(`/api/knowledge/artifacts/${created.artifact.id}/review`, {
+      revisionId: created.revision.id,
+      expectedVersion: 1,
+    });
+    const path = `/api/knowledge/artifacts/${created.artifact.id}`;
+    const preview = await request(`${path}/compile-preview`, { expectedVersion: 1 }).then((r) => r.json());
+    expect(preview.digest).toMatch(/^[a-f0-9]{64}$/);
+    expect(preview.nodes).toHaveLength(3);
+    expect((await request(`${path}/generate`, { expectedVersion: 1, previewDigest: '0'.repeat(64) })).status).toBe(409);
+    const generated = await request(`${path}/generate`, { expectedVersion: 1, previewDigest: preview.digest }).then(
+      (r) => r.json(),
+    );
+    expect(generated.flowId).toBeTruthy();
+    const duplicate = await request(`${path}/generate`, { expectedVersion: 1, previewDigest: preview.digest }).then(
+      (r) => r.json(),
+    );
+    expect(duplicate.flowId).toBe(generated.flowId);
+    const before = await api(`${path}/implementations`).then((r) => r.json());
+    expect(before.items[0].drifted).toBe(false);
+    const graph = await api(`/api/flows/${generated.flowId}`).then((r) => r.json());
+    graph.name = 'Changed implementation';
+    expect((await request(`/api/flows/${generated.flowId}`, graph, 'PUT')).status).toBe(200);
+    const after = await api(`${path}/implementations`).then((r) => r.json());
+    expect(after.items[0].drifted).toBe(true);
+  });
   beforeAll(async () => {
     const admin = new pg.Client({ connectionString: 'postgresql://postgres:dbos@127.0.0.1:55432/studio' });
     await admin.connect();
@@ -135,6 +174,1224 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
   afterAll(async () => {
     await crash();
     await pool?.end();
+  });
+
+  it('lists workspace activities independently of sessions and opens older activity messages', async () => {
+    await agentConfig(false);
+    const channel = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Activity isolation test',
+    }).then((r) => r.json());
+    const first = await request(`/api/agent/sessions/${channel.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: 'First independent activity',
+    }).then((r) => r.json());
+    await agentWait(first.workItemId, 'completed');
+    const version = await api(`/api/agent/sessions/${channel.id}`).then((r) => r.json());
+    const second = await request(`/api/agent/sessions/${channel.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: version.session.editVersion,
+      text: 'Second independent activity',
+    }).then((r) => r.json());
+    await agentWait(second.workItemId, 'completed');
+    const response = await api('/api/agent/activities');
+    expect(response.status).toBe(200);
+    const rows = (await response.json()).items;
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: first.workItemId, goal: 'First independent activity' }),
+        expect.objectContaining({ id: second.workItemId, goal: 'Second independent activity' }),
+      ]),
+    );
+    const older = await api(`/api/agent/work-items/${first.workItemId}`).then((r) => r.json());
+    expect(older.messages.some((m: any) => m.id === first.workItemId)).toBe(true);
+    expect(older.messages.some((m: any) => m.id === second.workItemId || m.workItemId === second.workItemId)).toBe(
+      false,
+    );
+    const other = clientApi();
+    await post(other, '/api/control/session/development', {
+      email: `activity-isolation-${crypto.randomUUID()}@example.test`,
+      displayName: 'Other activity workspace',
+    });
+    await post(other, '/api/control/onboarding', {
+      customerName: 'Other activity customer',
+      workspaceName: 'Other activity workspace',
+    });
+    expect((await other('/api/agent/activities').then((r) => r.json())).items).toEqual([]);
+    expect((await other(`/api/agent/work-items/${first.workItemId}`)).status).toBe(404);
+  });
+
+  async function agentConfig(allowModel = false) {
+    let connection: any;
+    if (allowModel) {
+      const response = await request('/api/control/connections', {
+        name: 'Agent fixture MiniMax',
+        provider: 'minimax',
+        config: { model: 'MiniMax-M2.7' },
+        secret: 'fixture-not-a-real-key',
+      });
+      expect(response.status).toBe(201);
+      connection = await response.json();
+    }
+    const state = await api('/api/agent/state').then((r) => r.json());
+    const response = await request(
+      '/api/agent/configuration',
+      {
+        expectedVersion: state.configuration?.editVersion ?? 0,
+        enabled: true,
+        mode: allowModel ? 'assist' : 'observe',
+        allowModel,
+        ...(connection ? { connectionId: connection.id, connectionRevision: connection.revision ?? 1 } : {}),
+        triggers: [],
+        limits: { turns: 4, tools: 8, outputTokens: 1024 },
+      },
+      'PUT',
+    );
+    expect(response.status).toBe(200);
+    return response.json();
+  }
+  async function agentWait(workId: string, state: string) {
+    for (let i = 0; i < 200; i++) {
+      const work = await api(`/api/agent/work-items/${workId}`).then((r) => r.json());
+      if (work.state === state) return work;
+      if (['failed', 'suspended', 'uncertain'].includes(work.state) && state !== work.state)
+        throw new Error(`Agent failed: ${JSON.stringify(work)} ${log}`);
+      await delay(100);
+    }
+    throw new Error(`Agent did not reach ${state}: ${log}`);
+  }
+  async function intakeWait(requestId: string) {
+    for (let i = 0; i < 200; i++) {
+      const receipt = await api(`/api/agent/requests/${requestId}`).then((r) => r.json());
+      if (receipt.state === 'dispatched') return receipt;
+      if (receipt.state === 'rejected') throw new Error(`Intake rejected: ${JSON.stringify(receipt)}`);
+      await delay(100);
+    }
+    throw new Error('Intake did not dispatch.');
+  }
+  it('accepts shell intents idempotently and dispatches persisted context through the partitioned harness queue', async () => {
+    await agentConfig();
+    const artifact = await request('/api/knowledge/artifacts', {
+      name: 'Shell context fixture',
+      kind: 'ontology',
+      content: knowledgeFixtures()[0].ontology,
+    }).then((r) => r.json());
+    const input = {
+      clientRequestId: crypto.randomUUID(),
+      text: 'Inspect the saved ontology from this screen',
+      context: {
+        surface: 'ontology',
+        resource: { kind: 'ontology', id: artifact.artifact.id, revisionId: artifact.revision.id },
+      },
+    };
+    const response = await request('/api/agent/requests', input);
+    expect(response.status).toBe(202);
+    const receipt = await response.json();
+    expect(receipt.state).toBe('queued');
+    expect((await request('/api/agent/requests', input).then((r) => r.json())).requestId).toBe(receipt.requestId);
+    expect((await request('/api/agent/requests', { ...input, text: 'Reused key with another intent' })).status).toBe(
+      409,
+    );
+    await crash();
+    await start();
+    const dispatched = await intakeWait(receipt.requestId);
+    await agentWait(dispatched.workItemId, 'completed');
+    const context = (await pool.query('SELECT request_context FROM wa_work_items WHERE id=$1', [dispatched.workItemId]))
+      .rows[0].request_context;
+    expect(context.resource.revisionId).toBe(artifact.revision.id);
+    const ambient = await api('/api/agent/ambient').then((r) => r.json());
+    expect(ambient.session.id).toBe(dispatched.sessionId);
+    expect(ambient.modelQueue).toBe('stackproc.agent.harness.v1');
+    const system = new pg.Pool({
+      connectionString: 'postgresql://postgres:dbos@127.0.0.1:55432/studio_integration_dbos',
+    });
+    try {
+      const workflow = (
+        await system.query(
+          'SELECT queue_name,queue_partition_key FROM dbos.workflow_status WHERE workflow_uuid LIKE $1',
+          [
+            `wa:%:${(await pool.query('SELECT id FROM wa_command_outbox WHERE work_item_id=$1', [dispatched.workItemId])).rows[0].id}`,
+          ],
+        )
+      ).rows[0];
+      expect(workflow.queue_name).toBe('stackproc.agent.harness.v1');
+      expect(workflow.queue_partition_key).toBeTruthy();
+    } finally {
+      await system.end();
+    }
+  });
+  it('routes full-screen chat through intake to the selected conversation', async () => {
+    await agentConfig(false);
+    const selected = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Full-screen conversation',
+    }).then((r) => r.json());
+    const reply = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      sessionId: selected.id,
+      origin: 'workbench',
+      text: 'Inspect the workspace in this conversation',
+      context: { surface: 'intelligence' },
+    });
+    expect(reply.status).toBe(202);
+    const dispatched = await intakeWait((await reply.json()).requestId);
+    expect(dispatched.sessionId).toBe(selected.id);
+    await agentWait(dispatched.workItemId, 'completed');
+    const ambient = await api(`/api/agent/ambient?session=${selected.id}`).then((r) => r.json());
+    expect(ambient.session.id).toBe(selected.id);
+    expect(ambient.messages.some((m: any) => m.content === 'Inspect the workspace in this conversation')).toBe(true);
+    expect(
+      (
+        await request('/api/agent/requests', {
+          clientRequestId: crypto.randomUUID(),
+          sessionId: crypto.randomUUID(),
+          text: 'Wrong conversation',
+          context: { surface: 'intelligence' },
+        })
+      ).status,
+    ).toBe(404);
+  });
+  it('holds follow-up intents while the ambient agent waits and prioritizes a queued clarification answer', async () => {
+    await agentConfig(true);
+    const first = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: '[AGENT_ASK]',
+      context: { surface: 'control' },
+    }).then((r) => r.json());
+    const current = await intakeWait(first.requestId);
+    const question = await agentWait(current.workItemId, 'waiting_for_user');
+    const next = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: 'A follow-up goal from the ontology editor',
+      context: { surface: 'ontology' },
+    }).then((r) => r.json());
+    await delay(1200);
+    expect((await api(`/api/agent/requests/${next.requestId}`).then((r) => r.json())).state).toBe('queued');
+    await crash();
+    await start();
+    const answer = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      kind: 'answer',
+      text: 'Finance owns Account.',
+      context: { surface: 'workspace' },
+      workItemId: question.id,
+      expectedVersion: question.editVersion,
+      remember: true,
+    }).then((r) => r.json());
+    expect(answer.state).toBe('queued');
+    await intakeWait(answer.requestId);
+    await agentWait(question.id, 'completed');
+    const dispatched = await intakeWait(next.requestId);
+    expect(dispatched.sessionId).toBe(current.sessionId);
+    await agentWait(dispatched.workItemId, 'completed');
+    await agentConfig(false);
+  }, 30000);
+
+  it('saves MiniMax enablement with revision conflicts and administrator-only configuration', async () => {
+    const configured = await agentConfig(true);
+    const { sponsorId, editVersion, ...policy } = configured;
+    const input = {
+      ...policy,
+      expectedVersion: editVersion,
+      runtime: { compact: false, totalTokens: 50000 },
+      limits: { turns: 3, tools: 6, outputTokens: 2048 },
+      triggers: ['run.failed'],
+    };
+    const saved = await request('/api/agent/configuration', input, 'PUT');
+    expect(saved.status).toBe(200);
+    const current = await saved.json();
+    expect(current).toMatchObject({
+      enabled: true,
+      allowModel: true,
+      mode: 'assist',
+      connectionId: configured.connectionId,
+      connectionRevision: configured.connectionRevision,
+      runtime: { compact: false, totalTokens: 50000 },
+      limits: input.limits,
+      triggers: input.triggers,
+    });
+    expect((await request('/api/agent/configuration', input, 'PUT')).status).toBe(409);
+    const member = clientApi();
+    const email = `settings-editor-${crypto.randomUUID()}@example.test`;
+    await post(member, '/api/control/session/development', { email, displayName: 'Settings editor' });
+    const invitation = await request('/api/control/invitations', { email, role: 'editor' }).then((r) => r.json());
+    await post(member, '/api/control/invitations/accept', { token: invitation.token });
+    expect(
+      (await post(member, '/api/agent/configuration', { ...input, expectedVersion: current.editVersion }, 'PUT'))
+        .status,
+    ).toBe(403);
+    const state = await api('/api/agent/state').then((r) => r.json());
+    expect(state.configuration.editVersion).toBe(current.editVersion);
+    expect(
+      (
+        await request(
+          '/api/agent/configuration',
+          { ...input, expectedVersion: current.editVersion, enabled: false },
+          'PUT',
+        )
+      ).status,
+    ).toBe(200);
+  });
+  it('reads a large ontology source through durable revision-pinned pages and evidence', async () => {
+    const source = readFileSync(new URL('./fixtures/rdf/w3c-org.rdf', import.meta.url), 'utf8');
+    const artifact = await request('/api/knowledge/artifacts', {
+      name: 'Large ORG source',
+      kind: 'source',
+      content: { schemaVersion: 1, mediaType: 'text/plain', text: source },
+    }).then((r) => r.json());
+    const configured = await agentConfig(true);
+    const { sponsorId, editVersion, ...policy } = configured;
+    expect(
+      (
+        await request(
+          '/api/agent/configuration',
+          { ...policy, expectedVersion: editVersion, limits: { turns: 8, tools: 12, outputTokens: 2048 } },
+          'PUT',
+        )
+      ).status,
+    ).toBe(200);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Large ontology inspection',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: `[HARNESS_LARGE_SOURCE] ${artifact.artifact.id}`,
+    }).then((r) => r.json());
+    await agentWait(receipt.workItemId, 'completed');
+    const observations = (
+      await pool.query(
+        "SELECT result FROM wa_calls WHERE work_item_id=$1 AND kind='tool' AND state='completed' ORDER BY turn_no",
+        [receipt.workItemId],
+      )
+    ).rows.map((r) => r.result);
+    expect(observations).toHaveLength(4);
+    expect(observations.every((r) => r.revision.id === artifact.revision.id)).toBe(true);
+    expect(observations[0].page.view).toBe('summary');
+    expect(observations[1].summary.entityCount).toBe(9);
+    expect(observations[2].page.entityId).toBe('organization');
+    expect(observations[3].evidence[0]).toMatchObject({ kind: 'source', revisionId: artifact.revision.id });
+    await crash();
+    await start();
+    const reopened = await api(`/api/agent/work-items/${receipt.workItemId}`).then((r) => r.json());
+    expect(reopened.state).toBe('completed');
+    expect(
+      (
+        await pool.query("SELECT count(*)::int AS n FROM wa_calls WHERE work_item_id=$1 AND kind='tool'", [
+          receipt.workItemId,
+        ])
+      ).rows[0].n,
+    ).toBe(4);
+  }, 30000);
+  it('previews RDF/XML on the server and persists its native projection and source as a revision', async () => {
+    const source = readFileSync(new URL('./fixtures/rdf/ecommerce-step-1.rdf', import.meta.url), 'utf8');
+    const previous = { schemaVersion: 1, description: '', entities: [], relationships: [] };
+    const response = await request('/api/knowledge/rdf/preview', { source, previous });
+    expect(response.status).toBe(200);
+    const preview = await response.json();
+    expect(preview.model.entities.length).toBeGreaterThan(1);
+    const savedResponse = await request('/api/knowledge/artifacts', {
+      name: 'RDF projection integration fixture',
+      kind: 'ontology',
+      content: preview.model,
+    });
+    expect(savedResponse.status).toBe(201);
+    const saved = await savedResponse.json();
+    const reopened = await api(`/api/knowledge/artifacts/${saved.artifact.id}`).then((r) => r.json());
+    expect(reopened.revision.content.playground.rdfSource).toBe(source);
+    expect((await request('/api/knowledge/rdf/preview', { source: '<broken', previous })).status).toBe(422);
+    expect(
+      (
+        await request('/api/knowledge/rdf/preview', {
+          source: '<!DOCTYPE rdf SYSTEM "https://example.test/remote"><rdf/>',
+          previous,
+        })
+      ).status,
+    ).toBe(400);
+  });
+  it('previews standard vocabularies and BPMN drafts without executing imported behavior', async () => {
+    for (const file of ['w3c-org.rdf', 'w3c-skos.rdf']) {
+      const source = readFileSync(new URL(`./fixtures/rdf/${file}`, import.meta.url), 'utf8');
+      const response = await request('/api/knowledge/rdf/preview', {
+        source,
+        previous: { schemaVersion: 1, description: '', entities: [], relationships: [] },
+      });
+      expect(response.status).toBe(200);
+      expect((await response.json()).warnings.some((w: string) => w.includes('omitted'))).toBe(true);
+    }
+    const source = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="sample"><startEvent id="start"/><userTask id="review"/><endEvent id="end"/><sequenceFlow id="a" sourceRef="start" targetRef="review"/><sequenceFlow id="b" sourceRef="review" targetRef="end"/></process></definitions>`;
+    const preview = await request('/api/knowledge/bpmn/preview', { source });
+    expect(preview.status).toBe(200);
+    const content = (await preview.json()).document;
+    expect(content.graph.elements.find((e: { id: string }) => e.id === 'review').binding.kind).toBe('requirement');
+    const saved = await request('/api/knowledge/artifacts', { name: 'Imported BPMN draft', kind: 'process', content });
+    expect(saved.status).toBe(201);
+    const record = await saved.json();
+    expect(record.revision.content.bpmnSource.xml).toBe(source);
+    const generation = await request(`/api/knowledge/artifacts/${record.artifact.id}/compile-preview`, {
+      expectedVersion: record.artifact.editVersion,
+    });
+    expect(generation.status).toBe(422);
+    expect((await request('/api/knowledge/bpmn/preview', { source: '<broken' })).status).toBe(422);
+    expect((await request('/api/knowledge/bpmn/preview', { source: '<!DOCTYPE definitions>' + source })).status).toBe(
+      400,
+    );
+    const collaboration = readFileSync(new URL('./fixtures/bpmn/pizza-collaboration.bpmn', import.meta.url), 'utf8');
+    const selection = await request('/api/knowledge/bpmn/preview', { source: collaboration }).then((r) => r.json());
+    expect(selection.processes.length).toBeGreaterThan(1);
+    const blocked = await request('/api/knowledge/bpmn/preview', {
+      source: collaboration,
+      processId: selection.processes[0].id,
+    }).then((r) => r.json());
+    expect(blocked.document).toBeNull();
+    expect(blocked.diagnostics.some((d: { severity: string }) => d.severity === 'error')).toBe(true);
+  });
+  it('persists idempotent agent sessions and indexes context without a model call', async () => {
+    await agentConfig();
+    const key = crypto.randomUUID();
+    const session = await request('/api/agent/sessions', { clientKey: key, title: 'Persistent agent session' }).then(
+      (r) => r.json(),
+    );
+    expect(
+      await request('/api/agent/sessions', { clientKey: key, title: 'Persistent agent session' }).then((r) => r.json()),
+    ).toEqual(session);
+    const message = { clientMessageId: crypto.randomUUID(), expectedSessionVersion: 1, text: 'Inspect the workspace' };
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, message).then((r) => r.json());
+    expect(await request(`/api/agent/sessions/${session.id}/messages`, message).then((r) => r.json())).toEqual(receipt);
+    expect(
+      (await request(`/api/agent/sessions/${session.id}/messages`, { ...message, text: 'Different goal' })).status,
+    ).toBe(409);
+    await agentWait(receipt.workItemId, 'completed');
+    await crash();
+    await start();
+    const reopened = await api(`/api/agent/sessions/${session.id}`).then((r) => r.json());
+    expect(reopened.messages[0].content).toBe('Inspect the workspace');
+    expect(reopened.workItems[0].state).toBe('completed');
+    expect(
+      (await pool.query('SELECT count(*) FROM wa_calls WHERE work_item_id=$1', [receipt.workItemId])).rows[0].count,
+    ).toBe('0');
+  });
+  it('executes a recorded agent tool loop and resumes a durable question after restart', async () => {
+    await agentConfig(true);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Agent clarification',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: '[AGENT_ASK] inspect Account ownership',
+    }).then((r) => r.json());
+    const waiting = await agentWait(receipt.workItemId, 'waiting_for_user');
+    await crash();
+    await start();
+    const answer = {
+      clientKey: crypto.randomUUID(),
+      expectedVersion: waiting.editVersion,
+      answer: 'Finance owns the Account concept.',
+      remember: true,
+    };
+    expect((await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, answer)).status).toBe(202);
+    expect((await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, answer)).status).toBe(202);
+    const complete = await agentWait(receipt.workItemId, 'completed');
+    expect(JSON.stringify(complete)).not.toContain('fixture-private-continuation');
+    expect(
+      (await pool.query('SELECT count(*) FROM wa_memories WHERE work_item_id=$1', [receipt.workItemId])).rows[0].count,
+    ).toBe('1');
+    const messages = await api(`/api/agent/sessions/${session.id}`).then((r) => r.json());
+    expect(JSON.stringify(messages)).not.toContain('fixture-private-continuation');
+    expect(complete.activity.some((a: any) => a.kind === 'tool')).toBe(true);
+  });
+
+  it('persists structured agent controls and validates typed answers before resuming once', async () => {
+    await agentConfig(true);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Structured agent controls',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: '[AGENT_FORM]',
+    }).then((r) => r.json());
+    const waiting = await agentWait(receipt.workItemId, 'waiting_for_user');
+    expect(waiting.interaction.fields).toHaveLength(3);
+    const interactionId = waiting.interaction.id;
+    await crash();
+    await start();
+    const reopened = await api(`/api/agent/work-items/${receipt.workItemId}`).then((r) => r.json());
+    expect(reopened.interaction.id).toBe(interactionId);
+    const invalid = {
+      clientKey: crypto.randomUUID(),
+      expectedVersion: waiting.editVersion,
+      answer: '{}',
+      response: { interactionId, values: { team: 'admin', limit: 'nine', enabled: true } },
+    };
+    expect((await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, invalid)).status).toBe(400);
+    const values = { team: 'finance', limit: 0, enabled: false };
+    const answer = {
+      clientKey: crypto.randomUUID(),
+      expectedVersion: waiting.editVersion,
+      answer: JSON.stringify(values),
+      response: { interactionId, values },
+    };
+    expect((await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, answer)).status).toBe(202);
+    expect((await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, answer)).status).toBe(202);
+    expect(
+      (
+        await request(`/api/agent/work-items/${receipt.workItemId}/decisions`, {
+          ...answer,
+          clientKey: crypto.randomUUID(),
+        })
+      ).status,
+    ).toBe(409);
+    const complete = await agentWait(receipt.workItemId, 'completed');
+    expect(complete.interaction).toBeNull();
+    expect(
+      (await pool.query('SELECT count(*) FROM wa_decisions WHERE work_item_id=$1', [receipt.workItemId])).rows[0].count,
+    ).toBe('1');
+  }, 30000);
+
+  it('persists response resource references with the work that produced them', async () => {
+    await agentConfig(true);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Response links',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: 'Inspect workspace resources',
+    }).then((r) => r.json());
+    await agentWait(receipt.workItemId, 'completed');
+    const detail = await api(`/api/agent/sessions/${session.id}`).then((r) => r.json());
+    const answer = detail.messages.find((m: any) => m.role === 'assistant');
+    expect(answer.workItemId).toBe(receipt.workItemId);
+    expect(Array.isArray(answer.resources)).toBe(true);
+    const stored = (await pool.query('SELECT resource_refs FROM wa_messages WHERE id=$1', [answer.id])).rows[0];
+    expect(stored.resource_refs).toEqual(answer.resources);
+    await crash();
+    await start();
+    const reopened = await api(`/api/agent/sessions/${session.id}`).then((r) => r.json());
+    expect(reopened.messages.find((m: any) => m.id === answer.id).resources).toEqual(answer.resources);
+  }, 30000);
+
+  it('does not repeat an issued agent model request after a crash', async () => {
+    await agentConfig(true);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Interrupted agent request',
+    }).then((r) => r.json());
+    const interruptGoal = `[AGENT_INTERRUPT] ${crypto.randomUUID()}`;
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: interruptGoal,
+    }).then((r) => r.json());
+    for (let i = 0; i < 100; i++) {
+      if (
+        (await pool.query("SELECT id FROM wa_calls WHERE work_item_id=$1 AND state='issued'", [receipt.workItemId]))
+          .rowCount
+      )
+        break;
+      await delay(100);
+    }
+    // An issued receipt precedes provider dispatch. Synchronize on this request's
+    // committed fixture entry so the original in-flight INSERT cannot race the baseline.
+    let entered = false;
+    for (let i = 0; i < 100; i++) {
+      entered = Boolean(
+        (
+          await pool.query('SELECT 1 FROM studio_test_effects WHERE effect_key=$1', [
+            `agent-interrupt:${interruptGoal}`,
+          ])
+        ).rowCount,
+      );
+      if (entered) break;
+      await delay(50);
+    }
+    expect(entered).toBe(true);
+    const before = (await pool.query("SELECT count(*) FROM studio_test_effects WHERE effect_key='agent-model'")).rows[0]
+      .count;
+    await crash();
+    await start();
+    const result = await agentWait(receipt.workItemId, 'uncertain');
+    expect(result.error).toContain('not automatically repeated');
+    expect(
+      (await pool.query("SELECT count(*) FROM wa_calls WHERE work_item_id=$1 AND kind='model'", [receipt.workItemId]))
+        .rows[0].count,
+    ).toBe('1');
+    expect(
+      (await pool.query("SELECT count(*) FROM studio_test_effects WHERE effect_key='agent-model'")).rows[0].count,
+    ).toBe(before);
+  });
+  it('stages agent ontology edits for review and applies a single immutable revision idempotently', async () => {
+    await agentConfig(true);
+    const original = await request('/api/knowledge/artifacts', {
+      name: 'Agent proposal fixture',
+      kind: 'ontology',
+      content: knowledgeFixtures()[0].ontology,
+    }).then((r) => r.json());
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Review ontology proposal',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: '[AGENT_PROPOSE] encoded',
+      attachments: [{ kind: 'ontology', id: original.artifact.id, revisionId: original.revision.id }],
+    }).then((r) => r.json());
+    const result = await agentWait(receipt.workItemId, 'ready_for_review');
+    expect(result.proposals).toHaveLength(1);
+    expect((await api(`/api/knowledge/artifacts/${original.artifact.id}`).then((r) => r.json())).revision.id).toBe(
+      original.revision.id,
+    );
+    const proposal = result.proposals[0];
+    const applied = await request(`/api/agent/change-sets/${proposal.id}/apply`, { hash: proposal.hash });
+    expect(applied.status).toBe(200);
+    const appliedReceipt = await applied.json();
+    expect(
+      (await request(`/api/agent/change-sets/${proposal.id}/apply`, { hash: proposal.hash }).then((r) => r.json()))
+        .revisionId,
+    ).toBe(appliedReceipt.revisionId);
+    expect(
+      (await api(`/api/knowledge/artifacts/${original.artifact.id}`).then((r) => r.json())).revision.content
+        .description,
+    ).toBe('Reviewed account domain');
+  });
+  it('ingests a workspace change into durable ambient agent work only for enabled triggers', async () => {
+    const config = await agentConfig(true);
+    await request(
+      '/api/agent/configuration',
+      {
+        expectedVersion: config.editVersion,
+        enabled: true,
+        mode: 'assist',
+        allowModel: true,
+        connectionId: config.connectionId,
+        connectionRevision: config.connectionRevision,
+        triggers: ['knowledge.saved'],
+        limits: config.limits,
+      },
+      'PUT',
+    );
+    const saved = await request('/api/knowledge/artifacts', {
+      name: 'Ambient event fixture',
+      kind: 'ontology',
+      content: knowledgeFixtures()[0].ontology,
+    }).then((r) => r.json());
+    let workId: string | undefined;
+    for (let i = 0; i < 150; i++) {
+      const rows = await pool.query(
+        'SELECT i.work_item_id FROM wa_inbox i JOIN wa_domain_outbox o ON o.workspace_id=i.workspace_id AND o.id=i.source_event_id WHERE o.entity_id=$1',
+        [saved.artifact.id],
+      );
+      workId = rows.rows[0]?.work_item_id;
+      if (workId) break;
+      await delay(100);
+    }
+    expect(workId).toBeTruthy();
+    await agentWait(workId!, 'completed');
+    await agentConfig(false);
+  });
+
+  it('deletes a saved workflow and schedule while preserving its run snapshot and auditing the deletion', async () => {
+    const draft = structuredClone(scopedExamples()[0].flow);
+    draft.schedule = { enabled: true, cron: '0 0 0 1 1 *', timezone: 'UTC' };
+    const saved = await save(draft);
+    const events = await run(saved, saved.defaultInput);
+    const runId = events[0].runId;
+    await terminal(runId);
+    const system = new pg.Pool({
+      connectionString: 'postgresql://postgres:dbos@127.0.0.1:55432/studio_integration_dbos',
+    });
+    try {
+      expect(
+        (await system.query('SELECT 1 FROM dbos.workflow_schedules WHERE schedule_name=$1', [`studio-${saved.id}`]))
+          .rowCount,
+      ).toBe(1);
+      expect((await api(`/api/flows/${saved.id}`, { method: 'DELETE' })).status).toBe(200);
+      expect((await api(`/api/flows/${saved.id}`)).status).toBe(404);
+      expect((await api('/api/flows').then((r) => r.json())).some((flow: AgentFlow) => flow.id === saved.id)).toBe(
+        false,
+      );
+      expect(
+        (await system.query('SELECT 1 FROM dbos.workflow_schedules WHERE schedule_name=$1', [`studio-${saved.id}`]))
+          .rowCount,
+      ).toBe(0);
+      const retained = await api(`/api/runs/${runId}`).then((r) => r.json());
+      expect(retained.graph.id).toBe(saved.id);
+      expect(retained.status).toBe('succeeded');
+      expect(
+        (await pool.query("SELECT 1 FROM cp_audit WHERE entity_id=$1 AND action='workflow.deleted'", [saved.id]))
+          .rowCount,
+      ).toBe(1);
+      expect((await api(`/api/flows/${saved.id}`, { method: 'DELETE' })).status).toBe(404);
+    } finally {
+      await system.end();
+    }
+  });
+
+  it('denies deleting another workspace workflow', async () => {
+    const saved = await save(blankNativeGraph());
+    const outsider = clientApi();
+    await post(outsider, '/api/control/session/development', {
+      email: `delete-outsider-${crypto.randomUUID()}@example.test`,
+      displayName: 'Other owner',
+    });
+    await post(outsider, '/api/control/onboarding', {
+      customerName: 'Other delete customer',
+      workspaceName: 'Other delete workspace',
+    });
+    expect((await outsider(`/api/flows/${saved.id}`, { method: 'DELETE' })).status).toBe(404);
+    expect((await api(`/api/flows/${saved.id}`)).status).toBe(200);
+  });
+
+  async function knowledgeSource(text = 'Calculate invoice amount times factor.') {
+    const response = await request('/api/knowledge/artifacts', {
+      name: 'Fixture procedure',
+      kind: 'source',
+      content: { schemaVersion: 1, mediaType: 'text/plain', text },
+    });
+    expect(response.status).toBe(201);
+    return response.json();
+  }
+  async function waitIntelligence(id: string, status: string) {
+    for (let i = 0; i < 200; i++) {
+      const response = await api(`/api/intelligence/tasks/${id}`);
+      expect(response.status).toBe(200);
+      const task = await response.json();
+      if (task.status === status) return task;
+      if (task.status === 'failed') throw new Error(`Task failed: ${task.error}\n${log}`);
+      await delay(100);
+    }
+    throw new Error(`Timed out waiting for intelligence ${status}: ${log}`);
+  }
+  async function intelligenceTask(text?: string) {
+    const source = await knowledgeSource(text);
+    const response = await request('/api/control/connections', {
+      name: 'Fixture MiniMax',
+      provider: 'minimax',
+      config: { model: 'MiniMax-M2.7' },
+      secret: 'fixture-not-a-real-key',
+    });
+    expect(response.status).toBe(201);
+    const connection = await response.json();
+    const created = await request('/api/intelligence/tasks', {
+      sourceId: source.artifact.id,
+      sourceRevisionId: source.revision.id,
+      connectionId: connection.id,
+      connectionRevision: 1,
+    });
+    expect(created.status).toBe(202);
+    return { source, task: await created.json(), connection };
+  }
+  it('persists the Microsoft designer document and retains earlier immutable revisions', async () => {
+    const original = knowledgeFixtures()[0].ontology;
+    const document = toPlayground(original, 'Visual model');
+    document.entityTypes[0].properties.push({
+      name: 'Issued',
+      type: 'date',
+      stackprocId: 'issued',
+      description: 'Issue date',
+    });
+    document.entityTypes[0].properties.push({
+      name: 'Preferences',
+      type: 'object',
+      stackprocId: 'preferences',
+      required: true,
+      nullable: false,
+      schema: {
+        type: 'object',
+        properties: { tags: { type: 'array', items: { type: 'string' } } },
+        default: { tags: ['priority'] },
+      },
+    });
+    document.rdfMetadata = { ontologyIri: 'https://example.test/model', imports: [], preservedSourceFeatures: [] };
+    const content = fromPlayground(document, original);
+    const createdResponse = await request('/api/knowledge/artifacts', {
+      name: 'Visual model',
+      kind: 'ontology',
+      content,
+    });
+    expect(createdResponse.status).toBe(201);
+    const created = await createdResponse.json();
+    const reopened = await api(`/api/knowledge/artifacts/${created.artifact.id}`).then((r) => r.json());
+    expect(reopened.revision.content.playground).toEqual(document);
+    expect(
+      reopened.revision.content.entities[0].properties.find((p: { id: string }) => p.id === 'issued'),
+    ).toMatchObject({ format: 'date' });
+    expect(
+      reopened.revision.content.entities[0].properties.find((p: { id: string }) => p.id === 'preferences'),
+    ).toMatchObject({ required: true, nullable: false, schema: document.entityTypes[0].properties.at(-1)!.schema });
+    document.entityTypes[0].name = 'Renamed entity';
+    expect(
+      (
+        await request(
+          `/api/knowledge/artifacts/${created.artifact.id}`,
+          {
+            name: 'Visual model',
+            kind: 'ontology',
+            content: fromPlayground(document, reopened.revision.content),
+            expectedVersion: 1,
+          },
+          'PUT',
+        )
+      ).status,
+    ).toBe(200);
+    const old = await api(`/api/knowledge/artifacts/${created.artifact.id}?revision=${created.revision.id}`).then((r) =>
+      r.json(),
+    );
+    expect(old.revision.content.playground.entityTypes[0].name).toBe(original.entities[0].name);
+  });
+  it('versions knowledge immutably and rejects stale writes and foreign evidence', async () => {
+    const source = await knowledgeSource();
+    const fixture = knowledgeFixtures()[0];
+    const created = await request('/api/knowledge/artifacts', {
+      name: 'Invoice model',
+      kind: 'ontology',
+      content: fixture.ontology,
+    }).then((r) => r.json());
+    const changed = structuredClone(fixture.ontology);
+    changed.entities[0].name = 'Changed label';
+    expect(
+      (
+        await request(
+          `/api/knowledge/artifacts/${created.artifact.id}`,
+          { name: 'Renamed', kind: 'ontology', content: changed, expectedVersion: 1 },
+          'PUT',
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request(
+          `/api/knowledge/artifacts/${created.artifact.id}`,
+          { name: 'Stale', kind: 'ontology', content: fixture.ontology, expectedVersion: 1 },
+          'PUT',
+        )
+      ).status,
+    ).toBe(409);
+    const original = await api(`/api/knowledge/artifacts/${created.artifact.id}?revision=${created.revision.id}`).then(
+      (r) => r.json(),
+    );
+    expect(original.revision.content.entities[0].name).toBe('invoice');
+    changed.entities[0].evidence = [{ kind: 'source', revisionId: source.revision.id, blockId: 'missing' }];
+    expect(
+      (await request('/api/knowledge/artifacts', { name: 'Invalid evidence', kind: 'ontology', content: changed }))
+        .status,
+    ).toBe(422);
+    const outsider = clientApi();
+    await post(outsider, '/api/control/session/development', {
+      email: `knowledge-other-${crypto.randomUUID()}@example.test`,
+      displayName: 'Other knowledge owner',
+    });
+    await post(outsider, '/api/control/onboarding', {
+      customerName: 'Other customer',
+      workspaceName: 'Other workspace',
+    });
+    expect((await outsider(`/api/knowledge/revisions/${source.revision.id}`)).status).toBe(404);
+    changed.entities[0].evidence = [{ kind: 'source', revisionId: source.revision.id, blockId: 'block-1' }];
+    expect(
+      (
+        await post(outsider, '/api/knowledge/artifacts', {
+          name: 'Foreign evidence',
+          kind: 'ontology',
+          content: changed,
+        })
+      ).status,
+    ).toBe(422);
+  });
+  it('persists swimlane geometry and membership while retaining executable process behavior', async () => {
+    let content = changeProcessLanes(migrateProcess(knowledgeFixtures()[0].process), [
+      { id: 'operations', name: 'Operations' },
+      { id: 'risk', name: 'Risk', role: 'editor' },
+    ]);
+    content = assignProcessLane(content, ['calculate'], 'risk');
+    content = resizeProcessLane(content, 'operations', 420);
+    const savedResponse = await request('/api/knowledge/artifacts', {
+      name: 'Swimlane persistence fixture',
+      kind: 'process',
+      content,
+    });
+    expect(savedResponse.status).toBe(201);
+    const saved = await savedResponse.json(),
+      path = `/api/knowledge/artifacts/${saved.artifact.id}`;
+    const reopened = await api(path).then((r) => r.json());
+    expect(reopened.revision.content).toEqual(content);
+    expect((await request(`${path}/review`, { revisionId: saved.revision.id, expectedVersion: 1 })).status).toBe(200);
+    const generated = await request(`${path}/generate`, { expectedVersion: 1 }).then((r) => r.json());
+    const graph = await api(`/api/flows/${generated.flowId}`).then((r) => r.json());
+    expect(graph.nodes.find((n: any) => n.id === 'calculate').position).toEqual(
+      content.presentation.positions.calculate,
+    );
+    const events = await run(graph, graph.defaultInput);
+    const result = await terminal(events[0].runId);
+    expect(result.status).toBe('succeeded');
+    expect(result.output.result).toBe(knowledgeFixtures()[0].expected);
+    const manifest = (
+      await pool.query('SELECT manifest FROM wi_manual_generations WHERE process_revision_id=$1', [saved.revision.id])
+    ).rows[0].manifest;
+    expect(manifest.lanes).toEqual(content.lanes);
+    const invalid = structuredClone(content);
+    invalid.presentation.pool!.heights.risk = -1;
+    expect(
+      (await request(path, { name: 'Invalid lanes', kind: 'process', content: invalid, expectedVersion: 1 }, 'PUT'))
+        .status,
+    ).toBe(400);
+  });
+  it('saves visual process graphs, preserves old revisions and compiles supported activity intent', async () => {
+    const fixture = knowledgeFixtures()[0];
+    const original = await request('/api/knowledge/artifacts', {
+      name: 'Visual process migration',
+      kind: 'process',
+      content: fixture.process,
+    }).then((r) => r.json());
+    const content = migrateProcess(fixture.process);
+    content.presentation.positions.calculate = { x: 333, y: 777 };
+    const savedResponse = await request(
+      `/api/knowledge/artifacts/${original.artifact.id}`,
+      { name: 'Visual process migration', kind: 'process', content, expectedVersion: 1 },
+      'PUT',
+    );
+    expect(savedResponse.status).toBe(200);
+    const saved = await savedResponse.json();
+    const reopened = await api(`/api/knowledge/artifacts/${original.artifact.id}`).then((r) => r.json());
+    expect(reopened.revision.content).toEqual(content);
+    const old = await api(`/api/knowledge/artifacts/${original.artifact.id}?revision=${original.revision.id}`).then(
+      (r) => r.json(),
+    );
+    expect(old.revision.content.schemaVersion).toBe(1);
+    expect(
+      (
+        await request(
+          `/api/knowledge/artifacts/${original.artifact.id}`,
+          { name: 'Stale', kind: 'process', content, expectedVersion: 1 },
+          'PUT',
+        )
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await request(`/api/knowledge/artifacts/${original.artifact.id}/review`, {
+          revisionId: saved.revision.id,
+          expectedVersion: 2,
+        })
+      ).status,
+    ).toBe(200);
+    const generated = await request(`/api/knowledge/artifacts/${original.artifact.id}/generate`, {
+      expectedVersion: 2,
+    }).then((r) => r.json());
+    expect(generated.flowId).toBeTruthy();
+    const lineage = await pool.query('SELECT manifest FROM wi_manual_generations WHERE process_revision_id=$1', [
+      saved.revision.id,
+    ]);
+    expect(lineage.rows[0].manifest.generator).toBe('visual-linear-process@2');
+    expect(lineage.rows[0].manifest.entry.processElementId).toBe(content.graph.elements[0].id);
+    const intent = structuredClone(content);
+    const activity = intent.graph.elements.find((n) => n.id === 'calculate')!;
+    if (activity.kind === 'activity')
+      activity.binding = { kind: 'requirement', performer: 'agent', capability: 'Review evidence' };
+    const unresolved = await request('/api/knowledge/artifacts', {
+      name: 'Unresolved visual agent',
+      kind: 'process',
+      content: intent,
+    }).then((r) => r.json());
+    expect(unresolved.artifact.id).toBeTruthy();
+    expect(
+      (await request(`/api/knowledge/artifacts/${unresolved.artifact.id}/generate`, { expectedVersion: 1 })).ok,
+    ).toBe(false);
+    const broken = structuredClone(content);
+    broken.graph.flows[0].target = 'absent';
+    expect(
+      (await request('/api/knowledge/artifacts', { name: 'Broken graph', kind: 'process', content: broken })).status,
+    ).toBe(422);
+  });
+  it('generates a reviewed manual process without a model and retains its execution lineage', async () => {
+    const fixture = knowledgeFixtures()[1];
+    const created = await request('/api/knowledge/artifacts', {
+      name: fixture.name,
+      kind: 'process',
+      content: fixture.process,
+    }).then((r) => r.json());
+    expect(
+      (await request(`/api/knowledge/artifacts/${created.artifact.id}/generate`, { expectedVersion: 1 })).status,
+    ).toBe(409);
+    expect(
+      (
+        await request(`/api/knowledge/artifacts/${created.artifact.id}/review`, {
+          revisionId: created.revision.id,
+          expectedVersion: 1,
+        })
+      ).status,
+    ).toBe(200);
+    const generated = await request(`/api/knowledge/artifacts/${created.artifact.id}/generate`, { expectedVersion: 1 });
+    expect(generated.status).toBe(200);
+    const { flowId } = await generated.json();
+    expect(
+      await request(`/api/knowledge/artifacts/${created.artifact.id}/generate`, { expectedVersion: 1 }).then((r) =>
+        r.json(),
+      ),
+    ).toEqual({ flowId });
+    const flow = await api(`/api/flows/${flowId}`).then((r) => r.json());
+    const events = await run(flow, flow.defaultInput),
+      detail = await terminal(events[0].runId);
+    expect(detail.output.result).toBe(23);
+    expect(detail.graph.sourceReference).toBe(`process:${created.revision.id}`);
+  });
+  it('analyzes a source with the fixture MiniMax adapter and applies a new workflow exactly once', async () => {
+    const { task } = await intelligenceTask();
+    const ready = await waitIntelligence(task.id, 'ready');
+    expect(ready.analysis.ontology.entities[0].evidence[0].kind).toBe('source');
+    const first = await request(`/api/intelligence/tasks/${task.id}/apply`, { expectedVersion: ready.editVersion });
+    expect(first.status).toBe(200);
+    const applied = await first.json();
+    expect(
+      await request(`/api/intelligence/tasks/${task.id}/apply`, { expectedVersion: ready.editVersion }).then((r) =>
+        r.json(),
+      ),
+    ).toEqual(applied);
+    const flow = await api(`/api/flows/${applied.flowId}`).then((r) => r.json());
+    expect(flow.generationManifestId).toBe(task.id);
+    const events = await run(flow, flow.defaultInput),
+      detail = await terminal(events[0].runId);
+    expect(detail.output.result).toBe(120);
+    expect(detail.graph.generationManifestId).toBe(task.id);
+    const manifest = await api(`/api/intelligence/tasks/${task.id}/manifest`).then((r) => r.json());
+    expect(manifest.elements).toHaveLength(2);
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM wi_applications WHERE task_id=$1', [task.id])).rows[0].n,
+    ).toBe(1);
+  });
+  it('resumes intelligence clarification after restart without repeating the completed model call', async () => {
+    const { task } = await intelligenceTask('[ASK] Calculate invoice total; clarify the business owner.');
+    const waiting = await waitIntelligence(task.id, 'needs_clarification');
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+        .rows[0].n,
+    ).toBe(1);
+    await crash();
+    await start();
+    await delay(500);
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+        .rows[0].n,
+    ).toBe(1);
+    expect(
+      (
+        await request(`/api/intelligence/tasks/${task.id}/answers`, {
+          expectedVersion: waiting.editVersion,
+          answers: { owner: 'Finance' },
+        })
+      ).status,
+    ).toBe(200);
+    const ready = await waitIntelligence(task.id, 'ready');
+    expect(ready.analysis.process.questions[0].answer).toBe('Finance');
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+        .rows[0].n,
+    ).toBe(2);
+    const accepted = await request(`/api/intelligence/tasks/${task.id}/knowledge`, {
+      expectedVersion: ready.editVersion,
+    });
+    expect(accepted.status).toBe(200);
+    const ids = await accepted.json();
+    expect(
+      await request(`/api/intelligence/tasks/${task.id}/knowledge`, { expectedVersion: ready.editVersion }).then((r) =>
+        r.json(),
+      ),
+    ).toEqual(ids);
+    expect((await request(`/api/intelligence/tasks/${task.id}/cancel`, {})).status).toBe(200);
+  });
+  it('requires reviewed ontology revisions and blocks unsupported process generation', async () => {
+    const fixture = knowledgeFixtures()[0];
+    const ontology = await request('/api/knowledge/artifacts', {
+      name: 'Domain model',
+      kind: 'ontology',
+      content: fixture.ontology,
+    }).then((r) => r.json());
+    fixture.process.ontologyRefs = [{ artifactId: ontology.artifact.id, revisionId: ontology.revision.id }];
+    const process = await request('/api/knowledge/artifacts', {
+      name: 'Pinned process',
+      kind: 'process',
+      content: fixture.process,
+    }).then((r) => r.json());
+    await request(`/api/knowledge/artifacts/${process.artifact.id}/review`, {
+      revisionId: process.revision.id,
+      expectedVersion: 1,
+    });
+    expect(
+      (await request(`/api/knowledge/artifacts/${process.artifact.id}/generate`, { expectedVersion: 1 })).status,
+    ).toBe(422);
+    await request(`/api/knowledge/artifacts/${ontology.artifact.id}/review`, {
+      revisionId: ontology.revision.id,
+      expectedVersion: 1,
+    });
+    expect(
+      (await request(`/api/knowledge/artifacts/${process.artifact.id}/generate`, { expectedVersion: 1 })).status,
+    ).toBe(200);
+    const blocked = knowledgeFixtures()[1].process;
+    blocked.steps.unshift({
+      id: 'send',
+      name: 'Send notification',
+      kind: 'requirement',
+      capability: 'Notification adapter required',
+      evidence: [],
+    });
+    const draft = await request('/api/knowledge/artifacts', {
+      name: 'Blocked process',
+      kind: 'process',
+      content: blocked,
+    }).then((r) => r.json());
+    await request(`/api/knowledge/artifacts/${draft.artifact.id}/review`, {
+      revisionId: draft.revision.id,
+      expectedVersion: 1,
+    });
+    expect(
+      (await request(`/api/knowledge/artifacts/${draft.artifact.id}/generate`, { expectedVersion: 1 })).status,
+    ).toBe(422);
+    expect(
+      (
+        await request(`/api/knowledge/artifacts/${draft.artifact.id}/publish`, {
+          revisionId: draft.revision.id,
+          expectedVersion: 1,
+        })
+      ).status,
+    ).toBe(422);
+  });
+  it('does not repeat an uncertain model request after a crash', async () => {
+    const { task } = await intelligenceTask('[INTERRUPT] Calculate invoice total.');
+    for (let i = 0; i < 100; i++) {
+      if (
+        (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+          .rows[0].n === 1
+      )
+        break;
+      await delay(100);
+    }
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+        .rows[0].n,
+    ).toBe(1);
+    await crash();
+    await start();
+    const failed = await waitIntelligence(task.id, 'failed');
+    expect(failed.error).toContain('uncertain outcome');
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_test_effects WHERE effect_key=$1', [`model:${task.id}`]))
+        .rows[0].n,
+    ).toBe(1);
+  });
+  it('rejects concurrent stale workflow saves without losing the winning graph or provenance', async () => {
+    const flow = await save(blankNativeGraph());
+    const results = await Promise.all([
+      request(`/api/flows/${flow.id}`, { ...flow, name: 'First writer' }, 'PUT'),
+      request(`/api/flows/${flow.id}`, { ...flow, name: 'Second writer' }, 'PUT'),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    const loaded = await api(`/api/flows/${flow.id}`).then((r) => r.json());
+    expect(loaded.editVersion).toBe(2);
+    expect(['First writer', 'Second writer']).toContain(loaded.name);
+    expect(
+      (await pool.query('SELECT count(*)::int n FROM studio_flow_revisions WHERE flow_id=$1', [flow.id])).rows[0].n,
+    ).toBe(2);
+    expect((await request(`/api/flows/${flow.id}`, { ...flow, editVersion: undefined }, 'PUT')).status).toBe(409);
+  });
+  it('rejects stale proposals, cancels authoring tasks and preserves accepted knowledge', async () => {
+    const { task } = await intelligenceTask();
+    const ready = await waitIntelligence(task.id, 'ready');
+    const analysis = structuredClone(ready.analysis);
+    analysis.summary = 'Human corrected summary';
+    expect(
+      (await request(`/api/intelligence/tasks/${task.id}`, { expectedVersion: ready.editVersion, analysis }, 'PUT'))
+        .status,
+    ).toBe(200);
+    expect(
+      (await request(`/api/intelligence/tasks/${task.id}/apply`, { expectedVersion: ready.editVersion })).status,
+    ).toBe(409);
+    const current = await api(`/api/intelligence/tasks/${task.id}`).then((r) => r.json());
+    const accepted = await request(`/api/intelligence/tasks/${task.id}/knowledge`, {
+      expectedVersion: current.editVersion,
+    }).then((r) => r.json());
+    expect((await api(`/api/knowledge/artifacts/${accepted.processId}`)).status).toBe(200);
+    expect((await request(`/api/intelligence/tasks/${task.id}/cancel`, {})).status).toBe(200);
+    expect(
+      (await request(`/api/intelligence/tasks/${task.id}/apply`, { expectedVersion: current.editVersion })).status,
+    ).toBe(409);
+    expect((await pool.query('SELECT 1 FROM wi_applications WHERE task_id=$1', [task.id])).rowCount).toBe(0);
+    expect((await api(`/api/knowledge/artifacts/${accepted.processId}`)).status).toBe(200);
+  });
+  it('denies viewer knowledge mutations and rejects incompatible model connections', async () => {
+    const source = await knowledgeSource();
+    const other = await request('/api/control/connections', {
+      name: 'Wrong model',
+      provider: 'openai',
+      config: {},
+      secret: 'fixture',
+    }).then((r) => r.json());
+    expect(
+      (
+        await request('/api/intelligence/tasks', {
+          sourceId: source.artifact.id,
+          sourceRevisionId: source.revision.id,
+          connectionId: other.id,
+          connectionRevision: 1,
+        })
+      ).status,
+    ).toBe(422);
+    const email = `knowledge-viewer-${crypto.randomUUID()}@example.test`,
+      invitation = await request('/api/control/invitations', { email, role: 'viewer' }).then((r) => r.json());
+    const viewer = clientApi();
+    await post(viewer, '/api/control/session/development', { email, displayName: 'Knowledge viewer' });
+    await post(viewer, '/api/control/invitations/accept', { token: invitation.token });
+    expect((await viewer('/api/knowledge/artifacts')).status).toBe(200);
+    expect(
+      (
+        await post(viewer, '/api/knowledge/artifacts', {
+          name: 'Forbidden',
+          kind: 'ontology',
+          content: knowledgeFixtures()[0].ontology,
+        })
+      ).status,
+    ).toBe(403);
+    expect((await post(viewer, '/api/intelligence/tasks', {})).status).toBe(403);
+    expect(
+      (
+        await post(viewer, `/api/knowledge/artifacts/${source.artifact.id}/review`, {
+          revisionId: source.revision.id,
+          expectedVersion: 1,
+        })
+      ).status,
+    ).toBe(403);
+  });
+  it('persists workflow variable settings across a fresh fetch without changing stable references', async () => {
+    const saved = await save(structuredClone(scopedExamples()[0].flow));
+    const updated = {
+      ...saved,
+      declarations: saved.declarations!.map((declaration) => ({
+        ...declaration,
+        name: 'Renamed multiplier',
+        schema: { type: 'integer' },
+        initial: { mode: 'fixed' as const, value: 9 },
+        writable: true,
+      })),
+      schedule: { enabled: false, cron: '0 * * * * *', timezone: 'UTC' },
+    };
+    expect((await request(`/api/flows/${saved.id}`, updated, 'PUT')).status).toBe(200);
+    const response = await api(`/api/flows/${saved.id}`);
+    expect(response.status).toBe(200);
+    const loaded = await response.json();
+    expect(loaded.declarations).toEqual(updated.declarations);
+    expect(
+      loaded.nodes.find((node: FlowNodeData) => node.id === 'prepare').config.parameters.values.fields.factor,
+    ).toEqual({
+      mode: 'expression',
+      expression: '$input.variables.factor',
+    });
+    expect(loaded.schedule).toEqual(updated.schedule);
   });
 
   it('recovers a waiting run after SIGKILL without repeating its completed tool, and uses the original graph snapshot', async () => {
@@ -596,6 +1853,17 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
     expect((await other('/api/flows', { headers: { 'x-studio-workspace': ownerSession.workspace.id } })).status).toBe(
       403,
     );
+    const privateAgentSession = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Private workspace conversation',
+    }).then((r) => r.json());
+    expect((await other(`/api/agent/sessions/${privateAgentSession.id}`)).status).toBe(404);
+    const privateRequest = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: 'Private intent',
+      context: { surface: 'workspace' },
+    }).then((r) => r.json());
+    expect((await other(`/api/agent/requests/${privateRequest.requestId}`)).status).toBe(404);
     const flow = await save(example('transactions'));
     expect((await other(`/api/flows/${flow.id}`)).status).toBe(404);
     expect((await post(other, `/api/flows/${flow.id}`, flow, 'PUT')).status).toBe(404);
@@ -680,7 +1948,22 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
     expect((await post(viewer, '/api/control/invitations/accept', { token: invite.token })).status).toBe(200);
     expect((await post(viewer, '/api/control/invitations/accept', { token: invite.token })).status).toBe(409);
     expect((await viewer('/api/flows')).status).toBe(200);
+    const protectedFlow = await save(blankNativeGraph());
+    expect((await viewer(`/api/flows/${protectedFlow.id}`, { method: 'DELETE' })).status).toBe(403);
     expect((await post(viewer, '/api/authoring/test-code', { definition: defaultCode(), input: {} })).status).toBe(403);
+    expect((await viewer('/api/agent/state')).status).toBe(200);
+    expect(
+      (
+        await post(viewer, '/api/agent/requests', {
+          clientRequestId: crypto.randomUUID(),
+          text: 'Denied',
+          context: { surface: 'workspace' },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await post(viewer, '/api/agent/sessions', { clientKey: crypto.randomUUID(), title: 'Denied' })).status,
+    ).toBe(403);
     expect((await viewer('/api/control/connections')).status).toBe(200);
     expect((await post(viewer, '/api/flows', example('transactions'))).status).toBe(403);
     expect(
@@ -739,13 +2022,8 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
     };
   }
   it('pushes workspace notifications live and replays disconnected events without exposing Azure credentials', async () => {
-    // Cross a decimal boundary: event IDs travel as strings but must sort numerically.
-    // This advances only the isolated integration database's notification sequence.
-    const maxId = Number(
-      (await pool.query('SELECT COALESCE(max(id),0)::text AS id FROM cp_workspace_events')).rows[0].id,
-    );
-    const boundary = 10 ** String(Math.max(maxId, 1)).length;
-    await pool.query("SELECT setval('cp_workspace_events_id_seq',$1)", [boundary - 2]);
+    // Use the fixture database's real sequence. Exponentially advancing it on every
+    // suite run eventually overflows bigint; cursor comparisons below remain exact.
     const session = await api('/api/control/session').then((r) => r.json());
     const latest = await api('/api/control/notifications').then((r) => r.json());
     const abort = new AbortController(),
@@ -1128,4 +2406,233 @@ describe.skipIf(process.env.STUDIO_INTEGRATION !== '1')('DBOS/Postgres service i
       done.events.filter((row: any) => row.event.type === 'node.completed' && row.event.nodeId === 'code'),
     ).toHaveLength(1);
   }, 30000);
+  it('resumes a structured answer through durable intake after JSONB reorders its fields', async () => {
+    await agentConfig(true);
+    const goal = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: '[AGENT_FORM]',
+      context: { surface: 'workspace' },
+    }).then((r) => r.json());
+    const dispatched = await intakeWait(goal.requestId);
+    const history = await api(`/api/agent/sessions/${dispatched.sessionId}`).then((r) => r.json());
+    const ordinals = history.messages.map((m: any) => Number(m.ordinal));
+    expect(ordinals).toEqual([...ordinals].sort((a, b) => a - b));
+    const waiting = await agentWait(dispatched.workItemId, 'waiting_for_user');
+    // Intentionally reverse PostgreSQL JSONB's object-key order.
+    const values = { enabled: false, limit: 0, team: 'finance' };
+    const payload = {
+      clientRequestId: crypto.randomUUID(),
+      kind: 'answer',
+      text: JSON.stringify(values),
+      context: { surface: 'workspace' },
+      workItemId: waiting.id,
+      expectedVersion: waiting.editVersion,
+      response: { interactionId: waiting.interaction.id, values },
+    };
+    expect((await request('/api/agent/requests', { ...payload, text: '{"team":"sales"}' })).status).toBe(400);
+    const accepted = await request('/api/agent/requests', payload);
+    expect(accepted.status).toBe(202);
+    const answer = await accepted.json();
+    expect((await request('/api/agent/requests', payload).then((r) => r.json())).requestId).toBe(answer.requestId);
+    await intakeWait(answer.requestId);
+    await agentWait(waiting.id, 'completed');
+    expect(
+      (await pool.query('SELECT count(*) FROM wa_decisions WHERE work_item_id=$1', [waiting.id])).rows[0].count,
+    ).toBe('1');
+    await agentConfig(false);
+  }, 30000);
+  it('pauses the source port at the first typed question and records later tool calls as skipped', async () => {
+    await agentConfig(true);
+    const goal = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: '[AGENT_BATCH_PAUSE]',
+      context: { surface: 'workspace' },
+    }).then((r) => r.json());
+    const dispatched = await intakeWait(goal.requestId);
+    const waiting = await agentWait(dispatched.workItemId, 'waiting_for_user');
+    expect(waiting.engine.engine).toBe('stackproc-workspace-harness');
+    expect(waiting.engine.provider).toBe('integration-fixture');
+    expect(waiting.tools).toBe(1);
+    expect(waiting.interaction.fields[0].id).toBe('domain');
+    const calls = (
+      await pool.query(
+        "SELECT request,result FROM wa_calls WHERE work_item_id=$1 AND kind='tool' ORDER BY created_at",
+        [waiting.id],
+      )
+    ).rows;
+    expect(calls).toHaveLength(2);
+    expect(calls[1].result.skipped).toBe(true);
+    expect(calls[1].result.interaction).toBeUndefined();
+    const values = { domain: 'banking' };
+    const answer = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      kind: 'answer',
+      text: JSON.stringify(values),
+      context: { surface: 'workspace' },
+      workItemId: waiting.id,
+      expectedVersion: waiting.editVersion,
+      response: { interactionId: waiting.interaction.id, values },
+    }).then((r) => r.json());
+    await intakeWait(answer.requestId);
+    const completed = await agentWait(waiting.id, 'completed');
+    expect(completed.tools).toBe(1);
+    expect(completed.turns).toBe(2);
+    await agentConfig(false);
+  }, 30000);
+  it('renders proposal direction as a typed choice and resumes the same work after submission', async () => {
+    await agentConfig(true);
+    const goal = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: '[HARNESS_CHOICE_FORM]',
+      context: { surface: 'intelligence' },
+    }).then((r) => r.json());
+    const dispatched = await intakeWait(goal.requestId);
+    const waiting = await agentWait(dispatched.workItemId, 'waiting_for_user');
+    expect(waiting.interaction.question).toContain('ontology proposal');
+    expect(waiting.interaction.fields[0].type).toBe('select');
+    expect(waiting.interaction.fields[0].options.map((option: any) => option.id)).toEqual([
+      'properties',
+      'subclasses',
+      'both',
+      'other',
+    ]);
+    const values = { direction: 'both' };
+    const answer = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      kind: 'answer',
+      text: JSON.stringify(values),
+      context: { surface: 'intelligence' },
+      workItemId: waiting.id,
+      expectedVersion: waiting.editVersion,
+      response: { interactionId: waiting.interaction.id, values },
+    }).then((r) => r.json());
+    await intakeWait(answer.requestId);
+    expect((await agentWait(waiting.id, 'completed')).id).toBe(waiting.id);
+    expect(
+      (await pool.query('SELECT count(*) FROM wa_decisions WHERE work_item_id=$1', [waiting.id])).rows[0].count,
+    ).toBe('1');
+    await agentConfig(false);
+  }, 30000);
+  it('suspends prior-engine work instead of silently resuming it with the owned port', async () => {
+    await agentConfig(true);
+    const goal = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      text: '[AGENT_ASK]',
+      context: { surface: 'workspace' },
+    }).then((r) => r.json());
+    const dispatched = await intakeWait(goal.requestId);
+    const waiting = await agentWait(dispatched.workItemId, 'waiting_for_user');
+    const before = (
+      await pool.query("SELECT count(*) FROM wa_calls WHERE work_item_id=$1 AND kind='model'", [waiting.id])
+    ).rows[0].count;
+    await pool.query('UPDATE wa_work_items SET engine_provenance=$2 WHERE id=$1', [
+      waiting.id,
+      { engine: 'harness2', revision: 'historical' },
+    ]);
+    const answer = await request('/api/agent/requests', {
+      clientRequestId: crypto.randomUUID(),
+      kind: 'answer',
+      text: 'Finance',
+      context: { surface: 'workspace' },
+      workItemId: waiting.id,
+      expectedVersion: waiting.editVersion,
+    }).then((r) => r.json());
+    await intakeWait(answer.requestId);
+    const suspended = await agentWait(waiting.id, 'suspended');
+    expect(suspended.error).toContain('different agent engine revision');
+    expect(
+      (await pool.query("SELECT count(*) FROM wa_calls WHERE work_item_id=$1 AND kind='model'", [waiting.id])).rows[0]
+        .count,
+    ).toBe(before);
+    await agentConfig(false);
+  }, 30000);
+  it('executes authored tools through agent discovery and pinned DBOS steps across restart', async () => {
+    const id = crypto.randomUUID(),
+      files = starterFiles(id);
+    files['src/index.ts'] =
+      `import type { Input,Output } from '../.stackproc/types'; export function run(input:Input):Output {return {total:input.values[0]===99?Math.random():input.values.reduce((a,b)=>a+b,0)};}`;
+    let savedTool = await request('/api/tools/uploads', {
+      id,
+      files,
+      expectedVersion: 0,
+      commandKey: crypto.randomUUID(),
+    }).then((r) => r.json());
+    const test = await request(`/api/tools/${id}/tests`, { hash: savedTool.tool.hash }).then((r) => r.json());
+    expect(test.success).toBe(true);
+    const published = await request(`/api/tools/${id}/releases`, {
+      hash: savedTool.tool.hash,
+      version: '0.1.0',
+      expectedVersion: 1,
+      commandKey: crypto.randomUUID(),
+    }).then((r) => r.json());
+    expect(published.revision).toBe(1);
+    savedTool = await request(`/api/tools/${id}/bindings`, {
+      revision: 1,
+      expectedVersion: 1,
+      commandKey: crypto.randomUUID(),
+    }).then((r) => r.json());
+    await agentConfig(true);
+    const session = await request('/api/agent/sessions', {
+      clientKey: crypto.randomUUID(),
+      title: 'Authored tool discovery',
+    }).then((r) => r.json());
+    const receipt = await request(`/api/agent/sessions/${session.id}/messages`, {
+      clientMessageId: crypto.randomUUID(),
+      expectedSessionVersion: 1,
+      text: '[HARNESS_AUTHORED]',
+    }).then((r) => r.json());
+    await agentWait(receipt.workItemId, 'completed');
+    const calls = (
+      await pool.query(
+        "SELECT request,result FROM wa_calls WHERE work_item_id=$1 AND kind='tool' ORDER BY created_at",
+        [receipt.workItemId],
+      )
+    ).rows;
+    expect(calls.some((c) => c.request.name.startsWith('workspace_tools__') && c.result.output?.total === 54)).toBe(
+      true,
+    );
+    const provenance = (
+      await pool.query('SELECT engine_provenance FROM wa_work_items WHERE id=$1', [receipt.workItemId])
+    ).rows[0].engine_provenance;
+    expect(provenance.authoredTools).toContainEqual(expect.objectContaining({ id, revision: 1 }));
+    const flow = toolGraph(crypto.randomUUID(), 'Authored tool checkpoint', [
+      toolNode('calculate', 'Calculate', {
+        kind: 'step',
+        handler: `workspace_tool.${id}.r1`,
+        input: { source: 'literal', value: { values: [99] } },
+      }),
+      toolNode('pause', 'Pause', { kind: 'delay', durationMS: { source: 'literal', value: 3000 } }),
+      toolEnd({ source: 'node', nodeId: 'calculate' }),
+    ]);
+    const saved = await save(flow),
+      stream = await request('/api/flows/run', { flow: saved, input: {} }),
+      reader = stream.body!.getReader();
+    const first = await reader.read(),
+      runId = JSON.parse(new TextDecoder().decode(first.value).trim().split('\n')[0]).runId;
+    let recorded: any;
+    for (let i = 0; i < 100; i++) {
+      const before = await api(`/api/runs/${runId}`).then((r) => r.json());
+      recorded = before.events.find(
+        (r: any) => r.event.type === 'node.completed' && r.event.nodeId === 'calculate',
+      )?.event;
+      if (recorded) break;
+      await delay(50);
+    }
+    expect(recorded).toBeDefined();
+    await request(`/api/tools/${id}/bindings`, {
+      revision: null,
+      expectedVersion: savedTool.tool.editVersion,
+      commandKey: crypto.randomUUID(),
+    });
+    await crash();
+    await reader.cancel().catch(() => {});
+    await start();
+    const done = await terminal(runId);
+    expect(done.status).toBe('succeeded');
+    const completions = done.events.filter(
+      (r: any) => r.event.type === 'node.completed' && r.event.nodeId === 'calculate',
+    );
+    expect(completions).toHaveLength(1);
+    expect(completions[0].event.output).toEqual(recorded.output);
+  });
 });

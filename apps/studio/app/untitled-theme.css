@@ -798,7 +798,7 @@
   --ui-color-bg-primary_alt: #fdfcfc;
   --ui-color-bg-primary_hover: #f5f3f1;
   --ui-color-bg-secondary: #f5f3f1;
-  --ui-color-text-primary: #000;
+  --ui-color-text-primary: #303236;
   --ui-color-text-secondary: #44403b;
   --ui-color-text-tertiary: #5c5750;
   --ui-color-border-secondary: #ebe8e4;
@@ -811,9 +811,9 @@
   --ui-color-brand-300: #a59f97;
   --ui-color-brand-400: #777169;
   --ui-color-brand-500: #44403b;
-  --ui-color-brand-600: #000;
-  --ui-color-brand-700: #000;
-  --ui-color-brand-800: #000;
-  --ui-color-brand-900: #000;
-  --ui-color-brand-950: #000;
+  --ui-color-brand-600: #303236;
+  --ui-color-brand-700: #303236;
+  --ui-color-brand-800: #303236;
+  --ui-color-brand-900: #303236;
+  --ui-color-brand-950: #303236;
 }

@@ -83,3 +83,11 @@ CREATE TABLE IF NOT EXISTS cp_notification_reads (
  read_at timestamptz NOT NULL DEFAULT now(),
  PRIMARY KEY(user_id,event_id)
 );
+
+-- Immutable authored graph history survives deletion of the saved workflow head.
+CREATE TABLE IF NOT EXISTS studio_flow_revisions (
+ workspace_id text NOT NULL REFERENCES cp_workspaces(id), flow_id text NOT NULL, edit_version integer NOT NULL,
+ graph jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(workspace_id,flow_id,edit_version)
+);
+INSERT INTO studio_flow_revisions(workspace_id,flow_id,edit_version,graph)
+ SELECT workspace_id,id,edit_version,graph FROM studio_flows ON CONFLICT DO NOTHING;

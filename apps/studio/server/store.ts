@@ -1,3 +1,4 @@
+import { ControlError } from './control/service';
 import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import type { AgentFlow, FlowExecutionInput, FlowNodeData, FlowRunEvent } from '../lib/flows/types';
@@ -15,27 +16,30 @@ export class StudioStore {
   }
   async listFlows(workspaceId?: string): Promise<AgentFlow[]> {
     const result = await this.pool.query(
-      'SELECT graph,workspace_id FROM studio_flows WHERE ($1::text IS NULL OR workspace_id=$1) ORDER BY updated_at DESC',
+      'SELECT graph,workspace_id,edit_version FROM studio_flows WHERE ($1::text IS NULL OR workspace_id=$1) ORDER BY updated_at DESC',
       [workspaceId ?? null],
     );
-    return result.rows.map((row) => ({ ...row.graph, workspaceId: row.workspace_id }));
+    return result.rows.map((row) => ({ ...row.graph, workspaceId: row.workspace_id, editVersion: row.edit_version }));
   }
   async getFlow(id: string, workspaceId?: string): Promise<AgentFlow | null> {
     const row = (
       await this.pool.query(
-        'SELECT graph,workspace_id FROM studio_flows WHERE id=$1 AND ($2::text IS NULL OR workspace_id=$2)',
+        'SELECT graph,workspace_id,edit_version FROM studio_flows WHERE id=$1 AND ($2::text IS NULL OR workspace_id=$2)',
         [id, workspaceId ?? null],
       )
     ).rows[0];
-    return row ? { ...row.graph, workspaceId: row.workspace_id } : null;
+    return row ? { ...row.graph, workspaceId: row.workspace_id, editVersion: row.edit_version } : null;
   }
   async saveFlow(flow: AgentFlow, create = false, workspaceId = flow.workspaceId ?? 'local', actorId?: string) {
     const saved = {
       ...flow,
       workspaceId,
+      editVersion: create ? 1 : (flow.editVersion ?? 0) + 1,
       id: create ? crypto.randomUUID() : flow.id,
       updatedAt: new Date().toISOString(),
     };
+    if (!create && !flow.editVersion)
+      throw new ControlError(409, 'Reload the workflow before saving; this editor has no revision version.');
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -46,10 +50,18 @@ export class StudioStore {
             workspaceId,
           ])
         : await client.query(
-            'UPDATE studio_flows SET graph=$2,updated_at=now() WHERE id=$1 AND workspace_id=$3 RETURNING id',
-            [saved.id, saved, workspaceId],
+            'UPDATE studio_flows SET graph=$2,updated_at=now(),edit_version=edit_version+1 WHERE id=$1 AND workspace_id=$3 AND edit_version=$4 RETURNING id',
+            [saved.id, saved, workspaceId, flow.editVersion],
           );
-      if (!result.rowCount) throw new Error('Flow not found.');
+      if (!result.rowCount)
+        throw new ControlError(
+          409,
+          'This workflow was changed or deleted elsewhere. Reload and review before saving. Your draft is retained.',
+        );
+      await client.query(
+        'INSERT INTO studio_flow_revisions(workspace_id,flow_id,edit_version,graph) VALUES($1,$2,$3,$4)',
+        [workspaceId, saved.id, saved.editVersion, saved],
+      );
       if (actorId)
         await client.query(
           "INSERT INTO cp_audit(workspace_id,actor_id,action,entity_type,entity_id) VALUES($1,$2,'workflow.saved','workflow',$3)",
@@ -63,6 +75,16 @@ export class StudioStore {
     } finally {
       client.release();
     }
+  }
+  async deleteFlow(id: string, workspaceId: string, actorId: string): Promise<boolean> {
+    const result = await this.pool.query(
+      `WITH deleted AS (
+        DELETE FROM studio_flows WHERE id=$1 AND workspace_id=$2 RETURNING id
+      ) INSERT INTO cp_audit(workspace_id,actor_id,action,entity_type,entity_id)
+        SELECT $2,$3,'workflow.deleted','workflow',id FROM deleted RETURNING entity_id`,
+      [id, workspaceId, actorId],
+    );
+    return Boolean(result.rowCount);
   }
   async createRun(
     id: string,

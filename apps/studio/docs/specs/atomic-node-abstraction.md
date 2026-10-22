@@ -248,3 +248,7 @@ The permanent vertical navigation is Input, Process, Output, Test & results, Hel
 Editable workflows use Test setup, Result and Logs. Setup owns test data and preview/test actions. A standalone code test selects Result when complete; configuration or test-data changes mark the result stale. Recorded workflow output is not presented as the result of a standalone test.
 
 Primitive outputs and primitive arrays are compact. Structured values offer Tree and JSON; arrays of objects with at most 20 columns also offer Table. Copy value copies the actual JSON value, never a workflow expression. Logs preserve the recorded line order without invented timestamps. Empty, absent, null and uncaptured outputs remain distinguishable.
+
+## 18. Workflow variable settings and saving
+
+Workflow settings exposes Save workflow as the persistent action and Apply to draft as the explicitly unsaved alternative. Save writes settings and the current graph together through the normal workflow API; failures keep the dialog and edits open. Variables show their starting value separately from runtime updates and identify Set variables nodes that can replace that value. An explicit Set variables target must be removed before its declaration can be deleted from this dialog; renaming preserves the stable ID. Missing and read-only targets remain visible in the node editor with an explanation and a Remove update action. Applying settings recomputes node configuration diagnostics so changing writable status does not leave stale error badges.

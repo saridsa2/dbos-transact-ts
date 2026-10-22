@@ -51,3 +51,6 @@ CREATE TABLE IF NOT EXISTS studio_example_mirror (
 CREATE TABLE IF NOT EXISTS studio_example_refunds (
   order_id text PRIMARY KEY, customer text NOT NULL, item text NOT NULL, price numeric NOT NULL, status text NOT NULL
 );
+
+-- Optimistic edit versions protect saved workflows from stale canvas/agent writes.
+ALTER TABLE studio_flows ADD COLUMN IF NOT EXISTS edit_version integer NOT NULL DEFAULT 1;

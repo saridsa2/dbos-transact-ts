@@ -33,6 +33,7 @@ const config = z
   .passthrough();
 
 export const flowSchema = z.object({
+  editVersion: z.number().int().positive().optional(),
   authoringVersion: z.union([z.literal(1), z.literal(2)]).optional(),
   declarations: z.array(declarationSchema).max(100).optional(),
   captures: z
@@ -48,6 +49,7 @@ export const flowSchema = z.object({
     .object({ userInput: z.string().optional(), variables: z.record(z.string(), z.json()).optional() })
     .optional(),
   sourceReference: z.string().optional(),
+  generationManifestId: z.string().max(128).optional(),
   id: z.string().min(1).max(128),
   name: z.string().trim().min(1).max(200),
   description: text.optional(),

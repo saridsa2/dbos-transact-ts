@@ -99,6 +99,13 @@ Notifications resolve to their actual graph, execution, connection or people vie
 - Run history places search/status in its header and opens traces through a row icon.
 - Audit trail confines events to its table viewport and keeps Load earlier events in the fixed footer; search applies to loaded events. Restricted accounts see an explicit permission state.
 - Identity focuses on the signed-in identity and authentication adapter; provider credentials belong to Connections.
+- The workflow library uses the official Untitled UI table for Saved workflows, with accessible Open and Delete icon actions. Editors can confirm permanent deletion of a saved definition and its schedule; existing execution snapshots and run history are retained. The server enforces workspace membership and execution authority, audits `workflow.deleted`, and broadcasts the update through workspace SSE. Deletion failures remain visible in the confirmation dialog.
 - The workflow library has Saved workflows and Examples tabs (`/?view=examples`), without a second run-history feed. Import/New workflow are available only to users with execution/editor authority.
 
 Connection, invitation, role, confirmation, profile and onboarding dialogs separate the fixed heading and action footer from the scrolling body. Initial load, fetch failure and empty states are mutually exclusive. Shared SSE refreshes update existing content without remounting its viewport; navigation to another task resets its content position.
+
+### Process editing and unsaved navigation
+
+Process records use Overview, Inputs and Steps tabs immediately below the work-area header. Overview owns the name, purpose and pinned ontology references; Inputs owns the run schema and default values; Steps owns ordered actions and clarifications. Only the active section's bounded content scrolls; edits remain in the record draft across tabs.
+
+Process, ontology and tool editors register unsaved state with the shared navigation guard. App Back actions, ordinary links and control-plane navigation use an Untitled UI discard dialog with Keep editing and Discard and leave. Reloading or closing a browser document retains the browser-owned beforeunload warning; browsers forbid replacing that warning with application markup. Native window.confirm/alert/prompt calls are not used by application editors. Workflows, Sources and Tools use distinct diagram, database and gear navigation icons.

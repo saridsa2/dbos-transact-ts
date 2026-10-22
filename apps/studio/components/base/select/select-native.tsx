@@ -41,10 +41,11 @@ export const NativeSelect = ({
   className,
   selectClassName,
   size = 'md',
+  id: providedId,
   ...props
 }: NativeSelectProps) => {
   const id = useId();
-  const selectId = `select-native-${id}`;
+  const selectId = providedId ?? `select-native-${id}`;
   const hintId = `select-native-hint-${id}`;
 
   return (

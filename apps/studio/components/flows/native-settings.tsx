@@ -15,10 +15,12 @@ import { compileAuthoringGraph } from '@/lib/authoring/compiler';
 export function NativeSettings({
   flow,
   onApply,
+  onSave,
   onClose,
 }: {
   flow: AgentFlow;
   onApply: (patch: Partial<AgentFlow>) => void;
+  onSave?: (patch: Partial<AgentFlow>) => Promise<void>;
   onClose: () => void;
 }) {
   const [declarations, setDeclarations] = useState(flow.declarations ?? []);
@@ -29,8 +31,59 @@ export function NativeSettings({
   const [enabled, setEnabled] = useState(flow.schedule?.enabled ?? false);
   const [timezone, setTimezone] = useState(flow.schedule?.timezone ?? 'UTC');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  async function submit(persist: boolean) {
+    setError('');
+    setSaving(persist);
+    try {
+      const resource = z.array(queueSchema).parse(JSON.parse(queues));
+      let patch: Partial<AgentFlow>;
+      if (flow.authoringVersion === 2) {
+        const parsed = z.array(declarationSchema).parse(declarations);
+        if (
+          new Set(parsed.map((d) => d.id)).size !== parsed.length ||
+          new Set(parsed.map((d) => d.name)).size !== parsed.length
+        )
+          throw new Error('Variable IDs/names must be unique.');
+        patch = { declarations: parsed, queues: resource, schedule: { enabled, cron, timezone } };
+      } else {
+        parameterSchema.parse(variables);
+        let fields: Record<string, Parameter>;
+        if (variables.mode === 'object') fields = variables.fields;
+        else if (
+          variables.mode === 'fixed' &&
+          variables.value &&
+          typeof variables.value === 'object' &&
+          !Array.isArray(variables.value)
+        )
+          fields = Object.fromEntries(
+            Object.entries(variables.value).map(([key, value]) => [key, { mode: 'fixed', value }]),
+          );
+        else throw new Error('Workflow variables must be an object with named fields.');
+        const changed = JSON.stringify(fields) !== JSON.stringify(flow.variables ?? {});
+        patch = {
+          queues: resource,
+          schedule: { enabled, cron, timezone },
+          ...(changed || flow.authoringVersion ? { authoringVersion: 1, variables: fields } : {}),
+        };
+        compileAuthoringGraph({ ...flow, ...patch });
+      }
+      if (persist && onSave) await onSave(patch);
+      else onApply(patch);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save workflow settings.');
+    } finally {
+      setSaving(false);
+    }
+  }
   return (
-    <ControlModal label="Workflow settings" onClose={onClose}>
+    <ControlModal
+      label="Workflow settings"
+      onClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <section className="cp-modal nc-resources">
         <header className="sp-dialog-header">
           <h2>Workflow settings</h2>
@@ -43,10 +96,10 @@ export function NativeSettings({
             <Tabs.Item id="schedule">Schedule</Tabs.Item>
           </Tabs.List>
           <Tabs.Panel id={tab} className="sp-dialog-body">
-            {tab === 'variables' && flow.captures?.length && (
+            {tab === 'variables' && Boolean(flow.captures?.length) && (
               <section>
                 <h3>Inherited read-only values</h3>
-                {flow.captures.map((d) => (
+                {flow.captures?.map((d) => (
                   <p key={d.id}>
                     {d.name} · {String(d.schema.type ?? 'any')} · {d.id}
                   </p>
@@ -54,7 +107,7 @@ export function NativeSettings({
               </section>
             )}
             {tab === 'variables' && flow.authoringVersion === 2 && (
-              <DeclarationFields value={declarations} onChange={setDeclarations} />
+              <DeclarationFields value={declarations} onChange={setDeclarations} nodes={flow.nodes} />
             )}
             {tab === 'variables' && flow.authoringVersion !== 2 && (
               <>
@@ -81,7 +134,12 @@ export function NativeSettings({
             )}
             {tab === 'schedule' && (
               <>
-                <Checkbox label="Enable scheduled invocation when saved" isSelected={enabled} onChange={setEnabled} />
+                <Checkbox
+                  className="nc-checkbox-row"
+                  label="Enable scheduled invocation when saved"
+                  isSelected={enabled}
+                  onChange={setEnabled}
+                />
                 <label>
                   Cron expression
                   <ControlInput value={cron} onChange={(e) => setCron(e.target.value)} />
@@ -100,52 +158,28 @@ export function NativeSettings({
           </p>
         )}
         <footer>
-          <ControlButton onClick={onClose}>Cancel</ControlButton>
-          <ControlButton
-            className="cp-primary"
-            onClick={() => {
-              try {
-                const resource = z.array(queueSchema).parse(JSON.parse(queues));
-                if (flow.authoringVersion === 2) {
-                  z.array(declarationSchema).parse(declarations);
-                  if (
-                    new Set(declarations.map((d) => d.id)).size !== declarations.length ||
-                    new Set(declarations.map((d) => d.name)).size !== declarations.length
-                  )
-                    throw new Error('Variable IDs/names must be unique.');
-                  onApply({ declarations, queues: resource, schedule: { enabled, cron, timezone } });
-                  onClose();
-                  return;
-                }
-                parameterSchema.parse(variables);
-                let fields: Record<string, Parameter>;
-                if (variables.mode === 'object') fields = variables.fields;
-                else if (
-                  variables.mode === 'fixed' &&
-                  variables.value &&
-                  typeof variables.value === 'object' &&
-                  !Array.isArray(variables.value)
-                )
-                  fields = Object.fromEntries(
-                    Object.entries(variables.value).map(([k, v]) => [k, { mode: 'fixed', value: v }]),
-                  );
-                else throw new Error('Workflow variables must be an object with named fields.');
-                const changed = JSON.stringify(fields) !== JSON.stringify(flow.variables ?? {});
-                const patch: Partial<AgentFlow> = {
-                  queues: resource,
-                  schedule: { enabled, cron, timezone },
-                  ...(changed || flow.authoringVersion ? { authoringVersion: 1, variables: fields } : {}),
-                };
-                compileAuthoringGraph({ ...flow, ...patch });
-                onApply(patch);
-                onClose();
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Invalid workflow resources.');
-              }
-            }}
-          >
-            Apply to draft
-          </ControlButton>
+          <p className="nc-settings-save-note">
+            {onSave
+              ? 'Save workflow persists these settings and the current graph. Apply to draft keeps changes only in this editor.'
+              : 'Apply updates this scope in the draft. Save the parent workflow to persist it.'}
+          </p>
+          <div className="nc-settings-actions">
+            <ControlButton disabled={saving} onClick={onClose}>
+              Cancel
+            </ControlButton>
+            <ControlButton
+              disabled={saving}
+              className={!onSave ? 'cp-primary' : undefined}
+              onClick={() => void submit(false)}
+            >
+              Apply to draft
+            </ControlButton>
+            {onSave && (
+              <ControlButton disabled={saving} className="cp-primary" onClick={() => void submit(true)}>
+                {saving ? 'Saving…' : 'Save workflow'}
+              </ControlButton>
+            )}
+          </div>
         </footer>
       </section>
     </ControlModal>

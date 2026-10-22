@@ -1,13 +1,13 @@
 'use client';
 import { useWorkspaceRefresh } from '@/hooks/use-workspace-events';
-import { ControlButton, ControlInput } from '@/components/control/controls';
+import { ControlButton, ControlInput, ControlModal } from '@/components/control/controls';
 import { WorkArea, TableViewport, RecordAction, EmptyState } from '@/components/control/work-area';
 import { Table } from '@/components/application/table/table';
 import { useControl } from '@/components/control/access';
 import { nativeExamples, blankNativeGraph } from '@/lib/native/examples';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRightIcon, Plus, UploadIcon } from '@/components/fa-icons';
+import { Edit01, Plus, UploadIcon, Trash01 } from '@/components/fa-icons';
 import type { AgentFlow } from '@/lib/flows/types';
 
 export default function StudioHome() {
@@ -23,6 +23,9 @@ export default function StudioHome() {
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AgentFlow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const upload = useRef<HTMLInputElement>(null);
   const requestId = useRef(0);
   const refresh = useCallback(async () => {
@@ -64,6 +67,24 @@ export default function StudioHome() {
       setError(err instanceof Error ? err.message : 'Could not create workflow.');
     } finally {
       setBusy(false);
+    }
+  }
+  async function deleteWorkflow() {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const response = await fetch(`/api/flows/${encodeURIComponent(deleteTarget.id)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error || 'Could not delete workflow.');
+      }
+      setFlows((old) => old.filter((flow) => flow.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Could not delete workflow.');
+    } finally {
+      setDeleting(false);
     }
   }
   const filteredFlows = flows.filter((f) =>
@@ -164,7 +185,7 @@ export default function StudioHome() {
               </Table.Header>
               <Table.Body>
                 {filteredFlows.map((f) => (
-                  <Table.Row key={f.id}>
+                  <Table.Row key={f.id} id={f.id}>
                     <Table.Cell>
                       <strong>{f.name}</strong>
                       <small>{f.description || 'Workflow graph'}</small>
@@ -172,11 +193,23 @@ export default function StudioHome() {
                     <Table.Cell>{f.nodes.length}</Table.Cell>
                     <Table.Cell>{f.edges.length}</Table.Cell>
                     <Table.Cell>
-                      <RecordAction
-                        label={`Open ${f.name}`}
-                        icon={ArrowRightIcon}
-                        href={`/flows?flow=${encodeURIComponent(f.id)}`}
-                      />
+                      <div className="sp-row-actions">
+                        <RecordAction
+                          label={`Open ${f.name}`}
+                          icon={Edit01}
+                          href={`/flows?flow=${encodeURIComponent(f.id)}`}
+                        />
+                        {editable && (
+                          <RecordAction
+                            label={`Delete ${f.name}`}
+                            icon={Trash01}
+                            onPress={() => {
+                              setDeleteError('');
+                              setDeleteTarget(f);
+                            }}
+                          />
+                        )}
+                      </div>
                     </Table.Cell>
                   </Table.Row>
                 ))}
@@ -211,6 +244,37 @@ export default function StudioHome() {
         </div>
       ) : (
         <EmptyState title="No matching examples">Try another search.</EmptyState>
+      )}
+      {deleteTarget && (
+        <ControlModal
+          label="Delete workflow"
+          onClose={() => {
+            if (!deleting) setDeleteTarget(null);
+          }}
+        >
+          <section className="cp-modal">
+            <header className="sp-dialog-header">
+              <h2>Delete workflow?</h2>
+              <p>
+                Delete “{deleteTarget.name}” and its schedule? This cannot be undone. Existing runs and their history
+                are retained.
+              </p>
+            </header>
+            {deleteError && (
+              <p className="cp-error" role="alert">
+                {deleteError}
+              </p>
+            )}
+            <footer>
+              <ControlButton disabled={deleting} onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </ControlButton>
+              <ControlButton color="primary-destructive" disabled={deleting} onClick={() => void deleteWorkflow()}>
+                {deleting ? 'Deleting…' : 'Delete workflow'}
+              </ControlButton>
+            </footer>
+          </section>
+        </ControlModal>
       )}
     </WorkArea>
   );

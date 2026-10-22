@@ -111,9 +111,10 @@ export const Checkbox = ({ label, hint, size = 'sm', className, ...ariaCheckboxP
   return (
     <AriaCheckbox
       {...ariaCheckboxProps}
+      data-ui-checkbox
       className={(state) =>
         cx(
-          'relative flex items-start',
+          'sp-checkbox relative flex items-start',
           state.isDisabled && 'cursor-not-allowed',
           sizes[size].root,
           typeof className === 'function' ? className(state) : className,
@@ -131,7 +132,7 @@ export const Checkbox = ({ label, hint, size = 'sm', className, ...ariaCheckboxP
             className={label || hint ? 'mt-0.5' : ''}
           />
           {(label || hint) && (
-            <div className={cx('inline-flex flex-col', sizes[size].textWrapper)}>
+            <div data-ui-checkbox-copy className={cx('inline-flex flex-col', sizes[size].textWrapper)}>
               {label && <p className={cx('text-ui-text-color-secondary select-none', sizes[size].label)}>{label}</p>}
               {hint && (
                 <span

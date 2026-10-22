@@ -5,6 +5,7 @@ import { providers, type Connection, type Provider } from '@/lib/control/contrac
 import { controlRequest } from './access';
 const fields: Record<Provider, { key: string; label: string; required?: boolean; type?: string; default?: string }[]> =
   {
+    minimax: [{ key: 'model', label: 'Model', required: true, default: 'MiniMax-M2.7' }],
     openai: [{ key: 'project', label: 'Project ID (optional)' }],
     anthropic: [],
     'microsoft-foundry': [

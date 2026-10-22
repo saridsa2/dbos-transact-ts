@@ -269,8 +269,14 @@ export function validateNodeConfiguration(node: FlowNodeData, flow: AgentFlow): 
       for (const [id, p] of Object.entries(node.config.parameters.values.fields)) {
         if (p.mode === 'omit') continue;
         const d = flow.declarations?.find((d) => d.id === id);
-        if (!d || !d.writable)
-          errors.push(`config.parameters.values.fields.${id}: Select a declared writable variable.`);
+        if (!d)
+          errors.push(
+            `config.parameters.values.fields.${id}: Variable '${id}' is not declared in this workflow. Add it in Workflow settings → Variables, or remove this update.`,
+          );
+        else if (!d.writable)
+          errors.push(
+            `config.parameters.values.fields.${id}: ${d.name} (${id}) is read-only. Enable “Allow nodes to update this variable” in Workflow settings → Variables and apply the settings, or remove this update.`,
+          );
         else if (p.mode === 'fixed')
           try {
             assertValue(d.schema, p.value, d.name);
@@ -371,4 +377,12 @@ export function previewNodeInputs(
       ]),
     ),
   };
+}
+
+/** Workflow settings can change whether existing node updates are valid. Recompute saved UI diagnostics. */
+export function refreshNodeConfigurationIssues(flow: AgentFlow): FlowNodeData[] {
+  return flow.nodes.map((node) => ({
+    ...node,
+    config: { ...node.config, issues: validateNodeConfiguration(node, flow) },
+  }));
 }

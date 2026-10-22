@@ -1,0 +1,1253 @@
+"use client";
+
+import {
+  ArrowDown01Icon,
+  Cancel01Icon,
+  CpuIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { FileUIPart, LanguageModelUsage, UIMessage } from "ai";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent } from "react";
+
+import { cn } from "@/lib/utils";
+
+export type ContextWindowKind =
+  | "system"
+  | "tools"
+  | "files"
+  | "conversation"
+  | "memory"
+  | "other"
+  | "reserved";
+
+export interface ContextWindowItem {
+  id: string;
+  label: string;
+  tokens: number;
+}
+
+export interface ContextWindowSegment {
+  id: string;
+  label: string;
+  /** Picks the color. Defaults to `id` when it names a kind, otherwise `other`. */
+  kind?: ContextWindowKind;
+  /** Defaults to the sum of `items`. */
+  tokens?: number;
+  /** Parts of the segment, such as attached files. Each owns its share of cells. */
+  items?: readonly ContextWindowItem[];
+  /** Marks the count as an estimate. Shown with a leading `~`. */
+  approximate?: boolean;
+}
+
+export interface ContextWindowCell {
+  segment: string;
+  item?: string;
+  kind: ContextWindowKind;
+}
+
+const KINDS: readonly ContextWindowKind[] = [
+  "system",
+  "tools",
+  "files",
+  "conversation",
+  "memory",
+  "other",
+  "reserved",
+];
+
+const isKind = (value: string): value is ContextWindowKind =>
+  KINDS.some((kind) => kind === value);
+
+const cleanTokens = (tokens: number | undefined): number =>
+  tokens !== undefined && Number.isFinite(tokens) ? Math.max(0, tokens) : 0;
+
+const sumTokens = (values: readonly number[]): number => {
+  let total = 0;
+  for (const value of values) {
+    total += value;
+  }
+  return total;
+};
+
+export const contextWindowKind = (
+  segment: ContextWindowSegment
+): ContextWindowKind => {
+  if (segment.kind) {
+    return segment.kind;
+  }
+  return isKind(segment.id) ? segment.id : "other";
+};
+
+export const segmentTokens = (segment: ContextWindowSegment): number => {
+  if (segment.tokens !== undefined) {
+    return cleanTokens(segment.tokens);
+  }
+  return sumTokens(
+    (segment.items ?? []).map((item) => cleanTokens(item.tokens))
+  );
+};
+
+const trimDecimal = (value: number): string => {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
+/** `842`, `4.2K`, `200K`, `1.2M`. */
+export const formatTokens = (tokens: number): string => {
+  const value = Math.round(cleanTokens(tokens));
+  if (value < 1000) {
+    return String(value);
+  }
+  if (value < 999_950) {
+    return `${trimDecimal(value / 1000)}K`;
+  }
+  return `${trimDecimal(value / 1_000_000)}M`;
+};
+
+export const contextWindowTotals = (
+  segments: readonly ContextWindowSegment[],
+  maxTokens: number
+) => {
+  const max = cleanTokens(maxTokens);
+  const used = sumTokens(segments.map(segmentTokens));
+  return {
+    free: Math.max(0, max - used),
+    max,
+    over: Math.max(0, used - max),
+    ratio: max > 0 ? used / max : 0,
+    used,
+  };
+};
+
+/** Largest remainder: whole shares of `total` that add up to exactly `total`. */
+const apportion = (weights: readonly number[], total: number): number[] => {
+  const sum = sumTokens(weights);
+  if (sum <= 0 || total <= 0) {
+    return weights.map(() => 0);
+  }
+  const quotas = weights.map((weight) => (weight / sum) * total);
+  const shares = quotas.map((quota) => Math.floor(quota));
+  const order = quotas
+    .map((quota, index) => ({ index, rest: quota - Math.floor(quota) }))
+    .toSorted(
+      (left, right) => right.rest - left.rest || left.index - right.index
+    );
+  let left = total - sumTokens(shares);
+  for (const { index } of order) {
+    if (left <= 0) {
+      break;
+    }
+    shares[index] = (shares[index] ?? 0) + 1;
+    left -= 1;
+  }
+  return shares;
+};
+
+/** A segment that holds any tokens keeps one cell, taken from the largest share. */
+const keepVisible = (shares: number[], sizes: readonly number[]): number[] => {
+  const next = [...shares];
+  for (const [index, size] of sizes.entries()) {
+    if (size <= 0 || (next[index] ?? 0) > 0) {
+      continue;
+    }
+    const donor = next.indexOf(Math.max(...next));
+    if ((next[donor] ?? 0) > 1) {
+      next[donor] = (next[donor] ?? 0) - 1;
+      next[index] = 1;
+    }
+  }
+  return next;
+};
+
+/**
+ * Lays the segments out over `count` cells in reading order. Each cell is the
+ * segment (and item) it belongs to, or `null` for free space. When the
+ * segments overflow `maxTokens`, they share the whole field.
+ */
+export const contextWindowCells = (
+  segments: readonly ContextWindowSegment[],
+  maxTokens: number,
+  count: number
+): (ContextWindowCell | null)[] => {
+  const total = Math.max(0, Math.floor(count));
+  const { free, used } = contextWindowTotals(segments, maxTokens);
+  const sizes = segments.map(segmentTokens);
+  if (used <= 0) {
+    return Array.from({ length: total }, () => null);
+  }
+  const shares = keepVisible(apportion([...sizes, free], total), sizes);
+  const cells: (ContextWindowCell | null)[] = [];
+  for (const [index, segment] of segments.entries()) {
+    const kind = contextWindowKind(segment);
+    const items = segment.items ?? [];
+    const itemSizes = items.map((item) => cleanTokens(item.tokens));
+    const rest = Math.max(0, (sizes[index] ?? 0) - sumTokens(itemSizes));
+    const parts = apportion([...itemSizes, rest], shares[index] ?? 0);
+    for (const [partIndex, size] of parts.entries()) {
+      const item = items[partIndex]?.id;
+      for (let cell = 0; cell < size; cell += 1) {
+        cells.push({ item, kind, segment: segment.id });
+      }
+    }
+  }
+  while (cells.length < total) {
+    cells.push(null);
+  }
+  return cells.slice(0, total);
+};
+
+/** About four characters per token. Good enough to split a measured total. */
+export const estimateTokens = (text: string): number =>
+  Math.ceil(text.length / 4);
+
+export interface ContextWindowSource {
+  /** `messages` from `useChat`. */
+  messages: readonly UIMessage[];
+  /**
+   * Usage of the last step (the `finish-step` part, not `totalUsage`). Its
+   * input and output tokens are what the model now holds, so estimates are
+   * scaled until the segments add up to it.
+   */
+  usage?: Pick<LanguageModelUsage, "inputTokens" | "outputTokens">;
+  /** The system prompt, or its token count. */
+  system?: string | number;
+  /** Tool definitions, or their token count. */
+  tools?: number | Record<string, unknown>;
+  /** Memory text, or its token count. */
+  memory?: string | number;
+  /** Exact tokens for a file part. Without it, files are estimated. */
+  fileTokens?: (file: FileUIPart) => number;
+  /** Replaces the four-characters-per-token estimate. */
+  estimate?: (text: string) => number;
+}
+
+const IMAGE_TOKENS = 1600;
+
+const estimateFileTokens = (file: FileUIPart): number => {
+  if (file.mediaType.startsWith("image/")) {
+    return IMAGE_TOKENS;
+  }
+  const comma = file.url.indexOf(",");
+  if (!file.url.startsWith("data:") || comma === -1) {
+    return 0;
+  }
+  const payload = file.url.length - comma - 1;
+  const bytes = file.url.slice(0, comma).endsWith(";base64")
+    ? (payload * 3) / 4
+    : payload;
+  return Math.ceil(bytes / 4);
+};
+
+const stringify = (value: unknown): string => {
+  if (value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const measure = (
+  value: string | number | Record<string, unknown> | undefined,
+  estimate: (text: string) => number
+): { tokens: number; exact: boolean } => {
+  if (typeof value === "number") {
+    return { exact: true, tokens: cleanTokens(value) };
+  }
+  return { exact: false, tokens: estimate(stringify(value)) };
+};
+
+const readMessages = (
+  messages: readonly UIMessage[],
+  estimate: (text: string) => number,
+  fileTokens: (file: FileUIPart) => number
+) => {
+  const files: ContextWindowItem[] = [];
+  let conversation = 0;
+  for (const message of messages) {
+    for (const [index, part] of message.parts.entries()) {
+      if (part.type === "text") {
+        conversation += estimate(part.text);
+      } else if (part.type === "file") {
+        files.push({
+          id: `${message.id}-${index}`,
+          label: part.filename ?? part.mediaType,
+          tokens: cleanTokens(fileTokens(part)),
+        });
+      } else if (
+        part.type === "dynamic-tool" ||
+        part.type.startsWith("tool-")
+      ) {
+        const input = "input" in part ? part.input : undefined;
+        const output = "output" in part ? part.output : undefined;
+        conversation +=
+          estimate(stringify(input)) + estimate(stringify(output));
+      }
+    }
+  }
+  return { conversation, files };
+};
+
+const scaleSegment = (
+  segment: ContextWindowSegment,
+  factor: number
+): ContextWindowSegment => {
+  const items = segment.items?.map((item) => ({
+    ...item,
+    tokens: Math.round(item.tokens * factor),
+  }));
+  return {
+    ...segment,
+    items,
+    tokens: Math.round(segmentTokens(segment) * factor),
+  };
+};
+
+/** Scales the estimated segments so everything adds up to `target`. */
+const calibrate = (
+  segments: ContextWindowSegment[],
+  target: number
+): ContextWindowSegment[] => {
+  const exact = sumTokens(
+    segments.filter((segment) => !segment.approximate).map(segmentTokens)
+  );
+  const estimated = sumTokens(
+    segments.filter((segment) => segment.approximate).map(segmentTokens)
+  );
+  if (estimated <= 0 || target <= exact) {
+    return segments;
+  }
+  const factor = (target - exact) / estimated;
+  const scaled = segments.map((segment) =>
+    segment.approximate ? scaleSegment(segment, factor) : segment
+  );
+  const drift = target - sumTokens(scaled.map(segmentTokens));
+  const largest = scaled
+    .filter((segment) => segment.approximate && !segment.items)
+    .toSorted((left, right) => segmentTokens(right) - segmentTokens(left))
+    .at(0);
+  if (!largest || drift === 0) {
+    return scaled;
+  }
+  return scaled.map((segment) =>
+    segment === largest
+      ? { ...segment, tokens: Math.max(0, segmentTokens(segment) + drift) }
+      : segment
+  );
+};
+
+/**
+ * Builds segments from AI SDK chat state. Text and tool calls count as
+ * conversation, file parts become the files segment. Pass the last step's
+ * `usage` to pin the total to what the provider measured.
+ *
+ * @example
+ * const { messages } = useChat<MyMessage>();
+ * const usage = messages.at(-1)?.metadata?.usage;
+ * <ContextWindow
+ *   maxTokens={200_000}
+ *   segments={contextWindowSegments({ messages, system: 3100, usage })}
+ * />
+ */
+export const contextWindowSegments = ({
+  messages,
+  usage,
+  system,
+  tools,
+  memory,
+  fileTokens,
+  estimate = estimateTokens,
+}: ContextWindowSource): ContextWindowSegment[] => {
+  const read = readMessages(
+    messages,
+    estimate,
+    fileTokens ?? estimateFileTokens
+  );
+  const systemSize = measure(system, estimate);
+  const toolsSize = measure(tools, estimate);
+  const memorySize = measure(memory, estimate);
+  const segments: ContextWindowSegment[] = [
+    {
+      approximate: !systemSize.exact,
+      id: "system",
+      label: "System prompt",
+      tokens: systemSize.tokens,
+    },
+    {
+      approximate: !toolsSize.exact,
+      id: "tools",
+      label: "Tools",
+      tokens: toolsSize.tokens,
+    },
+    {
+      approximate: !fileTokens,
+      id: "files",
+      items: read.files,
+      label: "Files",
+    },
+    {
+      approximate: true,
+      id: "conversation",
+      label: "Conversation",
+      tokens: read.conversation,
+    },
+    {
+      approximate: !memorySize.exact,
+      id: "memory",
+      label: "Memory",
+      tokens: memorySize.tokens,
+    },
+  ];
+  const present = segments.filter(
+    (segment) => segment.id === "conversation" || segmentTokens(segment) > 0
+  );
+  if (usage?.inputTokens === undefined) {
+    return present;
+  }
+  return calibrate(present, usage.inputTokens + (usage.outputTokens ?? 0));
+};
+
+export interface ContextWindowClassNames {
+  root?: string;
+  header?: string;
+  summary?: string;
+  field?: string;
+  cell?: string;
+  legend?: string;
+  row?: string;
+  item?: string;
+  footer?: string;
+}
+
+export interface ContextWindowProps {
+  segments?: readonly ContextWindowSegment[];
+  /** Size of the model's context window, in tokens. */
+  maxTokens?: number;
+  /** Model id shown in the header. */
+  model?: string;
+  title?: string;
+  /** Number of cells in the field. */
+  cells?: number;
+  /** Cells per row. Defaults to 40, or 25 when the card is narrow. */
+  columns?: number;
+  /** Share of the window, 0 to 1, from which the percentage turns red. */
+  warnAt?: number;
+  /** Segments whose items start expanded. Defaults to all of them. */
+  defaultOpen?: readonly string[];
+  /** Rendered only when passed, so a transcript can stay read-only. */
+  onRemoveItem?: (segmentId: string, itemId: string) => void;
+  /** Rendered only when passed. Cells shimmer until the promise settles. */
+  onCompact?: () => void | Promise<void>;
+  /** Forces the compacting state, for compaction the server started. */
+  compacting?: boolean;
+  compactLabel?: string;
+  /** Rendered only when passed. */
+  onClear?: () => void;
+  clearLabel?: string;
+  className?: string;
+  classNames?: ContextWindowClassNames;
+  /** Handy for overriding the --context-window-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const DEFAULT_SEGMENTS: ContextWindowSegment[] = [
+  { id: "system", label: "System prompt", tokens: 3100 },
+  { id: "tools", label: "Tools", tokens: 9600 },
+  {
+    id: "files",
+    items: [
+      { id: "agent", label: "agent.ts", tokens: 6200 },
+      { id: "tools", label: "tools.ts", tokens: 14_800 },
+      { id: "trace", label: "trace.jsonl", tokens: 27_500 },
+    ],
+    label: "Files",
+  },
+  { id: "conversation", label: "Conversation", tokens: 96_400 },
+  { id: "memory", label: "Memory", tokens: 2700 },
+];
+
+const DEFAULT_MAX_TOKENS = 200_000;
+const DEFAULT_CELLS = 200;
+const AUTO_COLUMNS =
+  "grid-cols-[repeat(25,minmax(0,1fr))] @xs/context-window:grid-cols-[repeat(40,minmax(0,1fr))]";
+const DEFAULT_WARN_AT = 0.9;
+const SWEEP_MS = 400;
+const FREED_MS = 4000;
+
+const ENTER_CLASS =
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
+
+const THEME_VARS = [
+  "[--context-window-system:#e87ba4] dark:[--context-window-system:#d55181]",
+  "[--context-window-tools:#4a3aa7] dark:[--context-window-tools:#9085e9]",
+  "[--context-window-files:#1baf7a] dark:[--context-window-files:#199e70]",
+  "[--context-window-conversation:#2a78d6] dark:[--context-window-conversation:#3987e5]",
+  "[--context-window-memory:#eda100] dark:[--context-window-memory:#c98500]",
+  "[--context-window-other:#008300]",
+  "[--context-window-reserved:color-mix(in_oklab,var(--foreground)_32%,transparent)]",
+  "[--context-window-free:color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:[--context-window-free:color-mix(in_oklab,var(--foreground)_14%,transparent)]",
+  "[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_14%,var(--card))] dark:[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_22%,var(--card))]",
+  "[--context-window-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--context-window-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--context-window-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--context-window-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
+
+const KIND_COLOR: Record<ContextWindowKind, string> = {
+  conversation: "var(--context-window-conversation)",
+  files: "var(--context-window-files)",
+  memory: "var(--context-window-memory)",
+  other: "var(--context-window-other)",
+  reserved: "var(--context-window-reserved)",
+  system: "var(--context-window-system)",
+  tools: "var(--context-window-tools)",
+};
+
+const HATCH =
+  "bg-[repeating-linear-gradient(45deg,var(--context-window-reserved)_0,var(--context-window-reserved)_1.5px,transparent_1.5px,transparent_3px)]";
+
+interface ActiveTarget {
+  segment: string;
+  item?: string;
+}
+
+const isLit = (
+  cell: ContextWindowCell | null,
+  active: ActiveTarget | null
+): boolean => {
+  if (!active || !cell) {
+    return true;
+  }
+  if (cell.segment !== active.segment) {
+    return false;
+  }
+  return active.item === undefined || cell.item === active.item;
+};
+
+const percentLabel = (ratio: number): string => {
+  const percent = Math.round(ratio * 100);
+  if (percent === 0 && ratio > 0) {
+    return "<1%";
+  }
+  return `${percent}%`;
+};
+
+const tokensLabel = (tokens: number, approximate: boolean | undefined) =>
+  `${approximate && tokens > 0 ? "~" : ""}${formatTokens(tokens)}`;
+
+const statusLabel = ({
+  compacting,
+  free,
+  freed,
+  over,
+}: {
+  compacting: boolean;
+  free: number;
+  freed: number;
+  over: number;
+}): string => {
+  if (compacting) {
+    return "Compacting conversation…";
+  }
+  if (freed > 0) {
+    return `Freed ${formatTokens(freed)}`;
+  }
+  if (over > 0) {
+    return `Over by ${formatTokens(over)}`;
+  }
+  return `${formatTokens(free)} left`;
+};
+
+const DigitColumn = ({
+  char,
+  dir,
+  reduce,
+}: {
+  char: string;
+  dir: "up" | "down";
+  reduce: boolean;
+}) => (
+  <span className="relative inline-block h-[1em] overflow-hidden align-[-0.05em] leading-none">
+    <AnimatePresence initial={false} mode="popLayout">
+      <motion.span
+        animate={{ y: 0 }}
+        className="inline-block h-[1em] leading-none"
+        exit={{ y: dir === "up" ? "-1em" : "1em" }}
+        initial={{ y: dir === "up" ? "1em" : "-1em" }}
+        key={char}
+        transition={{
+          duration: reduce ? 0 : 0.35,
+          ease: [0.4, 0, 0.2, 1],
+        }}
+      >
+        {char}
+      </motion.span>
+    </AnimatePresence>
+  </span>
+);
+
+const RollingTokens = ({ tokens }: { tokens: number }) => {
+  const reduce = useReducedMotion();
+  const prevRef = useRef(tokens);
+  const [dir, setDir] = useState<"up" | "down">("up");
+
+  useEffect(() => {
+    if (prevRef.current === tokens) {
+      return;
+    }
+    setDir(tokens < prevRef.current ? "down" : "up");
+    prevRef.current = tokens;
+  }, [tokens]);
+
+  const slots = [...formatTokens(tokens)].map((char, position) => ({
+    char,
+    id: `col-${position}`,
+  }));
+
+  return (
+    <span className="inline-flex items-baseline">
+      {slots.map((slot) => (
+        <DigitColumn
+          char={slot.char}
+          dir={dir}
+          key={slot.id}
+          reduce={Boolean(reduce)}
+        />
+      ))}
+    </span>
+  );
+};
+
+const ActionButton = ({
+  slot,
+  variant,
+  disabled,
+  onClick,
+  children,
+}: {
+  slot: string;
+  variant: "ghost" | "primary";
+  disabled?: boolean;
+  onClick: () => void;
+  children: string;
+}) => (
+  <button
+    className={cn(
+      "relative z-0 inline-flex h-6 cursor-pointer items-center rounded-full border-0 px-2.5 text-xs leading-none font-medium transition-transform duration-150 ease-out after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none active:enabled:scale-[0.96] disabled:cursor-default disabled:opacity-50 motion-reduce:transition-none dark:focus-visible:ring-ring/80",
+      "before:absolute before:inset-0 before:-z-1 before:rounded-full before:transition-colors before:duration-150 before:ease-out before:content-['']",
+      variant === "ghost" &&
+        "text-card-foreground before:bg-foreground/6 hover:enabled:before:bg-foreground/10",
+      variant === "primary" &&
+        "text-primary-foreground before:bg-primary hover:enabled:before:bg-primary/90"
+    )}
+    data-slot={slot}
+    disabled={disabled}
+    onClick={onClick}
+    type="button"
+  >
+    {children}
+  </button>
+);
+
+const ContextWindowField = ({
+  active,
+  cells,
+  className,
+  cellClassName,
+  columns,
+  compactingSegment,
+  label,
+  onActiveChange,
+}: {
+  active: ActiveTarget | null;
+  cells: readonly (ContextWindowCell | null)[];
+  className?: string;
+  cellClassName?: string;
+  columns: number | undefined;
+  compactingSegment: string | null;
+  label: string;
+  onActiveChange: (target: ActiveTarget | null) => void;
+}) => {
+  const step = cells.length > 0 ? SWEEP_MS / cells.length : 0;
+  const onPointerOver = (event: PointerEvent<HTMLDivElement>) => {
+    const { target } = event;
+    // The gaps between cells belong to the field itself. Crossing one keeps
+    // the current highlight, so moving along a segment does not flicker.
+    if (!(target instanceof HTMLElement) || target === event.currentTarget) {
+      return;
+    }
+    const { item, segment } = target.dataset;
+    onActiveChange(segment ? { item, segment } : null);
+  };
+  return (
+    <div
+      aria-label={label}
+      className={cn(
+        "grid gap-0.5 rounded-lg bg-muted p-2 dark:bg-background",
+        columns === undefined && AUTO_COLUMNS,
+        className
+      )}
+      data-slot="context-window-field"
+      onPointerLeave={() => {
+        onActiveChange(null);
+      }}
+      onPointerOver={onPointerOver}
+      role="img"
+      style={
+        columns === undefined
+          ? undefined
+          : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+      }
+    >
+      {cells.map((cell, index) => {
+        const delay = `${Math.round(index * step)}ms`;
+        const pulsing = cell !== null && cell.segment === compactingSegment;
+        return (
+          <span
+            className={cn(
+              "aspect-square rounded-[2px] transition-[background-color,opacity] delay-[var(--context-window-delay),0ms] duration-[300ms,150ms] ease-out motion-reduce:transition-none",
+              cell?.kind === "reserved" ? HATCH : "bg-(--context-window-cell)",
+              !isLit(cell, active) && "opacity-25",
+              pulsing && "animate-pulse motion-reduce:animate-none",
+              cellClassName
+            )}
+            data-item={cell?.item}
+            data-kind={cell?.kind ?? "free"}
+            data-segment={cell?.segment}
+            data-slot="context-window-cell"
+            // oxlint-disable-next-line react/no-array-index-key -- cells are positions in a fixed grid
+            key={index}
+            style={
+              // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
+              {
+                "--context-window-cell": cell
+                  ? KIND_COLOR[cell.kind]
+                  : "var(--context-window-free)",
+                "--context-window-delay": delay,
+                animationDelay: pulsing ? delay : undefined,
+              } as CSSProperties
+            }
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+const Swatch = ({ kind }: { kind: ContextWindowKind }) => (
+  <span
+    aria-hidden="true"
+    className={cn(
+      "size-2 flex-none rounded-[2px]",
+      kind === "reserved" ? HATCH : "bg-(--context-window-cell)"
+    )}
+    style={
+      // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
+      { "--context-window-cell": KIND_COLOR[kind] } as CSSProperties
+    }
+  />
+);
+
+const ROW_CLASS =
+  "flex h-7 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none";
+
+const ContextWindowItemRow = ({
+  active,
+  className,
+  item,
+  kind,
+  onActiveChange,
+  onRemove,
+  segment,
+}: {
+  active: boolean;
+  className?: string;
+  item: ContextWindowItem;
+  kind: ContextWindowKind;
+  onActiveChange: (target: ActiveTarget | null) => void;
+  onRemove?: (itemId: string, row: HTMLLIElement | null) => void;
+  segment: ContextWindowSegment;
+}) => {
+  const reduce = useReducedMotion();
+  const rowRef = useRef<HTMLLIElement>(null);
+  const target = { item: item.id, segment: segment.id };
+  return (
+    <motion.li
+      animate={{ height: "auto", opacity: 1 }}
+      className="overflow-hidden"
+      data-slot="context-window-item"
+      exit={{ height: 0, opacity: 0 }}
+      initial={{ height: 0, opacity: 0 }}
+      ref={rowRef}
+      transition={{ duration: reduce ? 0 : 0.2, ease: [0.4, 0, 0.2, 1] }}
+    >
+      <div
+        className={cn(
+          "group/item flex h-6 min-w-0 items-center gap-0.5 rounded-md pr-1.5 text-xs leading-4 transition-colors duration-150 ease-out motion-reduce:transition-none",
+          active && "bg-foreground/6",
+          className
+        )}
+        onBlur={() => {
+          onActiveChange(null);
+        }}
+        onFocus={() => {
+          onActiveChange(target);
+        }}
+        onPointerEnter={() => {
+          onActiveChange(target);
+        }}
+        onPointerLeave={() => {
+          onActiveChange(null);
+        }}
+      >
+        <span className="relative flex size-5 flex-none items-center justify-center">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-1 rounded-full bg-(--context-window-cell) transition-opacity duration-150 ease-out motion-reduce:transition-none",
+              onRemove &&
+                "group-focus-within/item:opacity-0 group-hover/item:opacity-0 pointer-coarse:opacity-0"
+            )}
+            style={
+              // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
+              { "--context-window-cell": KIND_COLOR[kind] } as CSSProperties
+            }
+          />
+          {onRemove ? (
+            <button
+              aria-label={`Remove ${item.label}`}
+              className="absolute inset-0.5 flex cursor-pointer items-center justify-center rounded-[4px] border-0 bg-transparent p-0 text-muted-foreground opacity-0 transition-[opacity,background-color,color,transform] duration-150 ease-out group-hover/item:opacity-100 after:absolute after:-inset-1 after:content-[''] hover:bg-foreground/10 hover:text-card-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.96] motion-reduce:transition-none dark:focus-visible:ring-ring/80 pointer-coarse:opacity-100"
+              data-slot="context-window-remove"
+              onClick={() => {
+                onRemove(item.id, rowRef.current);
+              }}
+              type="button"
+            >
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="size-3"
+                icon={Cancel01Icon}
+                strokeWidth={2}
+              />
+            </button>
+          ) : null}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-muted-foreground group-hover/item:text-card-foreground">
+          {item.label}
+        </span>
+        <span className="flex-none text-muted-foreground tabular-nums">
+          {tokensLabel(item.tokens, segment.approximate)}
+        </span>
+      </div>
+    </motion.li>
+  );
+};
+
+const ContextWindowRow = ({
+  active,
+  classNames,
+  onActiveChange,
+  onRemoveItem,
+  onToggle,
+  open,
+  segment,
+}: {
+  active: ActiveTarget | null;
+  classNames?: ContextWindowClassNames;
+  onActiveChange: (target: ActiveTarget | null) => void;
+  onRemoveItem?: (segmentId: string, itemId: string) => void;
+  onToggle: () => void;
+  open: boolean;
+  segment: ContextWindowSegment;
+}) => {
+  const reduce = useReducedMotion();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const kind = contextWindowKind(segment);
+  const items = segment.items ?? [];
+  const lit = active?.segment === segment.id && active.item === undefined;
+  const target = { segment: segment.id };
+  const content = (
+    <>
+      <Swatch kind={kind} />
+      <span className="min-w-0 truncate">{segment.label}</span>
+      {items.length > 0 ? (
+        <HugeiconsIcon
+          aria-hidden="true"
+          className={cn(
+            "size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none",
+            open ? "rotate-0" : "-rotate-90"
+          )}
+          icon={ArrowDown01Icon}
+          strokeWidth={2}
+        />
+      ) : null}
+      <span className="ml-auto flex-none text-muted-foreground tabular-nums">
+        {tokensLabel(segmentTokens(segment), segment.approximate)}
+      </span>
+    </>
+  );
+  const removeItem = onRemoveItem
+    ? (itemId: string, row: HTMLLIElement | null) => {
+        const sibling = row?.nextElementSibling ?? row?.previousElementSibling;
+        const next = sibling?.querySelector<HTMLButtonElement>(
+          "[data-slot=context-window-remove]"
+        );
+        (next ?? toggleRef.current)?.focus();
+        onRemoveItem(segment.id, itemId);
+      }
+    : undefined;
+  return (
+    <li
+      className="flex min-w-0 flex-col"
+      data-kind={kind}
+      data-slot="context-window-segment"
+    >
+      {items.length > 0 ? (
+        <button
+          aria-expanded={open}
+          className={cn(
+            ROW_CLASS,
+            "cursor-pointer hover:bg-foreground/6 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none dark:focus-visible:ring-ring/80",
+            lit && "bg-foreground/6",
+            classNames?.row
+          )}
+          onBlur={() => {
+            onActiveChange(null);
+          }}
+          onClick={onToggle}
+          onFocus={() => {
+            onActiveChange(target);
+          }}
+          onPointerEnter={() => {
+            onActiveChange(target);
+          }}
+          onPointerLeave={() => {
+            onActiveChange(null);
+          }}
+          ref={toggleRef}
+          type="button"
+        >
+          {content}
+        </button>
+      ) : (
+        <div
+          className={cn(ROW_CLASS, lit && "bg-foreground/6", classNames?.row)}
+          onPointerEnter={() => {
+            onActiveChange(target);
+          }}
+          onPointerLeave={() => {
+            onActiveChange(null);
+          }}
+        >
+          {content}
+        </div>
+      )}
+      <AnimatePresence initial={false}>
+        {open && items.length > 0 ? (
+          <motion.ul
+            animate={{ height: "auto", opacity: 1 }}
+            className="m-0 flex list-none flex-col overflow-hidden p-0"
+            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            key="items"
+            transition={{ duration: reduce ? 0 : 0.2, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <AnimatePresence initial={false}>
+              {items.map((item) => (
+                <ContextWindowItemRow
+                  active={
+                    active?.segment === segment.id && active.item === item.id
+                  }
+                  className={classNames?.item}
+                  item={item}
+                  key={item.id}
+                  kind={kind}
+                  onActiveChange={onActiveChange}
+                  onRemove={removeItem}
+                  segment={segment}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.ul>
+        ) : null}
+      </AnimatePresence>
+    </li>
+  );
+};
+
+/** Tracks a compaction and how many tokens it gave back. */
+const useCompaction = ({
+  compacting,
+  onCompact,
+  used,
+}: {
+  compacting: boolean | undefined;
+  onCompact: (() => void | Promise<void>) | undefined;
+  used: number;
+}) => {
+  const [pending, setPending] = useState(false);
+  const [freedFrom, setFreedFrom] = useState<number | null>(null);
+  const baseline = useRef<number | null>(null);
+  const isCompacting = compacting ?? pending;
+
+  useEffect(() => {
+    if (isCompacting) {
+      baseline.current ??= used;
+      return;
+    }
+    if (baseline.current === null) {
+      return;
+    }
+    setFreedFrom(baseline.current);
+    baseline.current = null;
+  }, [isCompacting, used]);
+
+  useEffect(() => {
+    if (freedFrom === null) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setFreedFrom(null);
+    }, FREED_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [freedFrom]);
+
+  const compact = async () => {
+    if (!onCompact || isCompacting) {
+      return;
+    }
+    setPending(true);
+    try {
+      await onCompact();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return {
+    compact,
+    freed: freedFrom === null ? 0 : Math.max(0, freedFrom - used),
+    isCompacting,
+  };
+};
+
+export const ContextWindow = ({
+  segments = DEFAULT_SEGMENTS,
+  maxTokens = DEFAULT_MAX_TOKENS,
+  model,
+  title = "Context window",
+  cells: cellCount = DEFAULT_CELLS,
+  columns,
+  warnAt = DEFAULT_WARN_AT,
+  defaultOpen,
+  onRemoveItem,
+  onCompact,
+  compacting,
+  compactLabel = "Compact",
+  onClear,
+  clearLabel = "Clear",
+  className,
+  classNames,
+  style,
+}: ContextWindowProps) => {
+  const [active, setActive] = useState<ActiveTarget | null>(null);
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => {
+    if (!defaultOpen) {
+      return new Set();
+    }
+    return new Set(
+      segments
+        .filter((segment) => !defaultOpen.includes(segment.id))
+        .map((segment) => segment.id)
+    );
+  });
+  const { free, max, over, ratio, used } = contextWindowTotals(
+    segments,
+    maxTokens
+  );
+  const { compact, freed, isCompacting } = useCompaction({
+    compacting,
+    onCompact,
+    used,
+  });
+  const cells = contextWindowCells(segments, maxTokens, cellCount);
+  const conversation = segments.find(
+    (segment) => contextWindowKind(segment) === "conversation"
+  );
+  const canCompact = Boolean(conversation && segmentTokens(conversation) > 0);
+  const warn = ratio >= warnAt;
+  const summary = `${formatTokens(used)} of ${formatTokens(max)} tokens used, ${percentLabel(ratio)}`;
+
+  const toggle = (id: string) => {
+    setClosed((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <section
+      aria-label={title}
+      className={cn(
+        THEME_VARS,
+        "@container/context-window flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--context-window-shadow) transition-shadow duration-150 ease-out hover:shadow-(--context-window-shadow-hover)",
+        className,
+        classNames?.root
+      )}
+      data-slot="context-window"
+      data-state={isCompacting ? "compacting" : "idle"}
+      style={style}
+    >
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
+        data-slot="context-window-header"
+      >
+        <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--context-window-icon-bg)">
+          <HugeiconsIcon
+            aria-hidden="true"
+            className="size-3.5 text-(--context-window-conversation)"
+            icon={CpuIcon}
+            strokeWidth={2}
+          />
+        </span>
+        <div className="max-w-[60%] flex-none truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+          {title}
+        </div>
+        {model ? (
+          <span
+            className="min-w-0 flex-1 truncate text-right text-xs leading-4 text-muted-foreground"
+            data-slot="context-window-model"
+          >
+            {model}
+          </span>
+        ) : null}
+      </div>
+
+      <div className={cn(ENTER_CLASS, "flex flex-col gap-3 delay-100")}>
+        <div
+          className={cn(
+            "flex min-w-0 items-baseline gap-1.5 pl-0.5",
+            classNames?.summary
+          )}
+          data-slot="context-window-summary"
+        >
+          <span className="text-2xl leading-none font-medium tracking-tight tabular-nums">
+            <RollingTokens tokens={used} />
+          </span>
+          <span className="text-[13px] leading-none text-muted-foreground tabular-nums">
+            / {formatTokens(max)}
+          </span>
+          <span
+            className={cn(
+              "ml-auto text-[13px] leading-none font-medium tabular-nums",
+              warn ? "text-destructive" : "text-muted-foreground"
+            )}
+            data-slot="context-window-percent"
+          >
+            {percentLabel(ratio)}
+          </span>
+        </div>
+
+        <ContextWindowField
+          active={active}
+          cellClassName={classNames?.cell}
+          cells={cells}
+          className={classNames?.field}
+          columns={columns}
+          compactingSegment={isCompacting ? (conversation?.id ?? null) : null}
+          label={summary}
+          onActiveChange={setActive}
+        />
+
+        <ul
+          className={cn(
+            "m-0 flex list-none flex-col gap-px p-0",
+            classNames?.legend
+          )}
+          data-slot="context-window-legend"
+        >
+          {segments.map((segment) => (
+            <ContextWindowRow
+              active={active}
+              classNames={classNames}
+              key={segment.id}
+              onActiveChange={setActive}
+              onRemoveItem={onRemoveItem}
+              onToggle={() => {
+                toggle(segment.id);
+              }}
+              open={!closed.has(segment.id)}
+              segment={segment}
+            />
+          ))}
+        </ul>
+      </div>
+
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex min-h-6 min-w-0 items-center gap-2 delay-200",
+          classNames?.footer
+        )}
+        data-slot="context-window-footer"
+      >
+        <output
+          aria-live="polite"
+          className={cn(
+            "min-w-0 flex-1 truncate pl-0.5 text-xs leading-4 tabular-nums",
+            over > 0 && !isCompacting && freed === 0
+              ? "text-destructive"
+              : "text-muted-foreground"
+          )}
+          data-slot="context-window-status"
+        >
+          {statusLabel({ compacting: isCompacting, free, freed, over })}
+        </output>
+        {onClear || onCompact ? (
+          <div className="flex flex-none items-center gap-1.5">
+            {onClear ? (
+              <ActionButton
+                disabled={isCompacting}
+                onClick={onClear}
+                slot="context-window-clear"
+                variant="ghost"
+              >
+                {clearLabel}
+              </ActionButton>
+            ) : null}
+            {onCompact ? (
+              <ActionButton
+                disabled={isCompacting || !canCompact}
+                onClick={() => {
+                  void compact();
+                }}
+                slot="context-window-compact"
+                variant="primary"
+              >
+                {compactLabel}
+              </ActionButton>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+};

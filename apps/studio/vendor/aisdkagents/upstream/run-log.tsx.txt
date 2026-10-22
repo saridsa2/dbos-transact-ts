@@ -1,0 +1,1130 @@
+"use client";
+
+import {
+  ArrowDown01Icon,
+  ArrowDown02Icon,
+  ArrowUp01Icon,
+  Cancel01Icon,
+  LeftToRightListBulletIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import type { LanguageModelUsage } from "ai";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+export type RunLogStatus = "ok" | "error" | "running";
+
+export type RunLogTime = Date | string | number;
+
+export interface RunLogRun {
+  id: string;
+  /** What was asked, or any name for the run. */
+  name: string;
+  /** Defaults to `ok`. */
+  status?: RunLogStatus;
+  /** The model id the run used, such as `claude-sonnet-5-5`. */
+  model?: string;
+  startedAt?: RunLogTime;
+  /** A running run counts up from `startedAt` when this is left out. */
+  durationMs?: number;
+  costUsd?: number;
+  /** Why the run failed, in one line. Shown under the name. */
+  error?: string;
+}
+
+const clean = (value: number | undefined): number =>
+  value !== undefined && Number.isFinite(value) ? Math.max(0, value) : 0;
+
+const trimDecimal = (value: number): string => {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
+/** `840ms`, `4.1s`, `2m 05s`. */
+export const formatRunDuration = (ms: number): string => {
+  const value = clean(ms);
+  if (value < 1000) {
+    return `${Math.round(value)}ms`;
+  }
+  if (value < 60_000) {
+    return `${trimDecimal(value / 1000)}s`;
+  }
+  const seconds = Math.round(value / 1000);
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+};
+
+/** `$0`, `<$0.01`, `$0.21`, `$12.40`, `$1,240`. */
+export const formatRunCost = (cost: number): string => {
+  const value = clean(cost);
+  if (value === 0) {
+    return "$0";
+  }
+  if (value < 0.01) {
+    return "<$0.01";
+  }
+  if (value < 1000) {
+    return `$${value.toFixed(2)}`;
+  }
+  return `$${Math.round(value).toLocaleString("en-US")}`;
+};
+
+/** `search_logs`, `searchLogs`, and `search-logs` all read as `Search logs`. */
+const toolLabel = (name: string): string => {
+  const words = name
+    .replaceAll(/[_-]+/gu, " ")
+    .replaceAll(/([a-z\d])([A-Z])/gu, "$1 $2")
+    .trim()
+    .toLowerCase();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : name;
+};
+
+type UsageInput = Pick<LanguageModelUsage, "inputTokens" | "outputTokens">;
+
+/** The parts of an AI SDK `StepResult` a row needs. */
+export interface RunLogStepSource {
+  usage?: UsageInput;
+  model?: { modelId?: string };
+  finishReason?: string;
+  performance?: {
+    stepTimeMs?: number;
+    responseTimeMs?: number;
+    toolExecutionMs?: Readonly<Record<string, number>>;
+  };
+  toolCalls?: readonly { toolCallId: string; toolName: string }[];
+  /** Read for `tool-error` parts. */
+  content?: readonly { type: string; toolCallId?: string; error?: unknown }[];
+}
+
+/** US dollars per million tokens. */
+export interface RunLogPrice {
+  input: number;
+  output: number;
+}
+
+const PER_MILLION = 1_000_000;
+
+const firstLine = (error: unknown): string => {
+  let text = "";
+  if (typeof error === "string") {
+    text = error;
+  } else if (error instanceof Error) {
+    text = error.message;
+  }
+  return text.split("\n")[0]?.trim() ?? "";
+};
+
+const stepMs = (step: RunLogStepSource): number => {
+  const tools = Object.values(step.performance?.toolExecutionMs ?? {});
+  return Math.max(
+    clean(step.performance?.stepTimeMs),
+    clean(step.performance?.responseTimeMs) + Math.max(0, ...tools)
+  );
+};
+
+const stepFailure = (
+  step: RunLogStepSource,
+  labels: Readonly<Record<string, string>> | undefined
+): string | null => {
+  const failure = step.content?.find((part) => part.type === "tool-error");
+  if (failure) {
+    const tool = step.toolCalls?.find(
+      (call) => call.toolCallId === failure.toolCallId
+    );
+    const reason = firstLine(failure.error);
+    const subject = tool
+      ? `${labels?.[tool.toolName] ?? toolLabel(tool.toolName)} failed`
+      : "A tool failed";
+    return reason ? `${subject}: ${reason}` : `${subject}.`;
+  }
+  return step.finishReason === "error" ? "The model returned an error." : null;
+};
+
+/**
+ * One row from the steps of an AI SDK run: the model, how long the steps
+ * took, what they cost at your prices, and the first tool error if there
+ * was one. The same steps build the detail view with the Trace viewer's
+ * `traceSpansFromSteps`.
+ *
+ * @example
+ * const startedAt = Date.now();
+ * const result = await generateText({ model, tools, prompt });
+ * const run = runLogRun(result.steps, {
+ *   id: result.response.id,
+ *   name: prompt,
+ *   prices: { "claude-sonnet-5-5": { input: 3, output: 15 } },
+ *   startedAt,
+ * });
+ * // Store `run` and `result.steps`, then on the admin page:
+ * <RunLog runs={runs} onSelect={(run) => openTrace(run.id)} />
+ */
+export const runLogRun = (
+  steps: readonly RunLogStepSource[],
+  options: {
+    id: string;
+    name: string;
+    startedAt?: RunLogTime;
+    /** Display names for tools, keyed by tool name. Used in the failure reason. */
+    labels?: Readonly<Record<string, string>>;
+    /** Keyed by model id. Steps on a model without a price add no cost. */
+    prices?: Readonly<Record<string, RunLogPrice>>;
+  }
+): RunLogRun => {
+  let durationMs = 0;
+  let costUsd: number | undefined;
+  let error: string | null = null;
+  for (const step of steps) {
+    durationMs += stepMs(step);
+    error ??= stepFailure(step, options.labels);
+    const price = options.prices?.[step.model?.modelId ?? ""];
+    if (price) {
+      costUsd =
+        (costUsd ?? 0) +
+        (clean(step.usage?.inputTokens) * price.input +
+          clean(step.usage?.outputTokens) * price.output) /
+          PER_MILLION;
+    }
+  }
+  return {
+    costUsd,
+    durationMs,
+    error: error ?? undefined,
+    id: options.id,
+    model: steps.find((step) => step.model?.modelId)?.model?.modelId,
+    name: options.name,
+    startedAt: options.startedAt,
+    status: error ? "error" : "ok",
+  };
+};
+
+export type RunLogStatusFilter = "all" | "error" | "running";
+
+export interface RunLogFilter {
+  status: RunLogStatusFilter;
+  /** A model id, or `null` for every model. */
+  model: string | null;
+}
+
+export interface RunLogClassNames {
+  root?: string;
+  header?: string;
+  filters?: string;
+  columns?: string;
+  list?: string;
+  row?: string;
+  footer?: string;
+  detail?: string;
+}
+
+export interface RunLogProps {
+  runs?: readonly RunLogRun[];
+  title?: string;
+  /** Shown beside the title, such as the time range the list covers. */
+  caption?: string;
+  /** Display names, keyed by model id. Shared with the Trace viewer. */
+  labels?: Record<string, string>;
+  /** Marks for the model column, keyed by model id. Shared with the Trace viewer. */
+  icons?: Record<string, ReactNode>;
+  /** The open run. Pass `null` for none. */
+  selectedId?: string | null;
+  defaultSelectedId?: string;
+  /** Called when a run is opened. Makes rows pressable. */
+  onSelect?: (run: RunLogRun) => void;
+  /**
+   * What the open run shows in the panel beside the list, such as its trace.
+   * The panel has its own padding and scroll, so give the content no card of
+   * its own.
+   *
+   * @example
+   * renderDetail={(run) => (
+   *   <TraceViewer
+   *     className="rounded-none bg-transparent p-0 shadow-none hover:shadow-none"
+   *     spans={traceSpansFromSteps(stepsByRun[run.id])}
+   *     title={run.name}
+   *   />
+   * )}
+   */
+  renderDetail?: (run: RunLogRun) => ReactNode;
+  /** Called when the panel is closed. */
+  onClose?: () => void;
+  defaultFilter?: Partial<RunLogFilter>;
+  /** Called with the new filter, for a list that is filtered on the server. */
+  onFilterChange?: (filter: RunLogFilter) => void;
+  /** Rendered only when passed. Return a promise to show it loading. */
+  onLoadMore?: () => void | Promise<void>;
+  className?: string;
+  classNames?: RunLogClassNames;
+  /** Handy for overriding the --run-log-* theme vars inline */
+  style?: CSSProperties;
+}
+
+const SECOND_MS = 1000;
+const MINUTE_MS = 60_000;
+const HOUR_MS = 3_600_000;
+const DAY_MS = 86_400_000;
+const ALL_MODELS = "all";
+
+const DEFAULT_RUNS: RunLogRun[] = [
+  {
+    costUsd: 0.09,
+    durationMs: 5900,
+    id: "run-3",
+    model: "Model",
+    name: "How do rate limits work?",
+    startedAt: Date.now() - MINUTE_MS * 3,
+  },
+  {
+    costUsd: 0.04,
+    durationMs: 2100,
+    error: "Search docs failed: the index did not answer.",
+    id: "run-2",
+    model: "Model",
+    name: "Where do I rotate an API key?",
+    startedAt: Date.now() - MINUTE_MS * 18,
+    status: "error",
+  },
+  {
+    costUsd: 0.12,
+    durationMs: 8400,
+    id: "run-1",
+    model: "Model",
+    name: "Summarize yesterday's failed webhooks",
+    startedAt: Date.now() - HOUR_MS * 2,
+  },
+];
+
+const ENTER_CLASS =
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
+
+const THEME_VARS = [
+  "[--run-log-accent:#1d6496] dark:[--run-log-accent:#6eb5dc]",
+  "[--run-log-icon-bg:color-mix(in_oklab,var(--run-log-accent)_14%,var(--card))] dark:[--run-log-icon-bg:color-mix(in_oklab,var(--run-log-accent)_22%,var(--card))]",
+  "[--run-log-running:#2a78d6] dark:[--run-log-running:#3987e5]",
+  "[--run-log-error:var(--destructive)]",
+  "[--run-log-rule:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "[--run-log-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--run-log-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--run-log-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--run-log-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
+
+const FOCUS_CLASS =
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
+
+/** Column widths the header and every row share. Model and Started give way when the list is narrow, as it is beside an open run. */
+const MODEL_COLUMN =
+  "hidden w-32 min-w-0 flex-none items-center gap-1.5 @md/run-log-list:flex";
+const FIGURE_COLUMN = "w-14 flex-none text-right tabular-nums";
+const STARTED_COLUMN =
+  "hidden w-14 flex-none text-right tabular-nums @sm/run-log-list:block";
+
+const toMs = (time: RunLogTime | undefined): number | null => {
+  if (time === undefined) {
+    return null;
+  }
+  const ms = new Date(time).getTime();
+  return Number.isNaN(ms) ? null : ms;
+};
+
+/** `now`, `4m ago`, `3h ago`, `2d ago`, then the date. */
+const formatStarted = (startedMs: number, now: number): string => {
+  const since = now - startedMs;
+  if (since < MINUTE_MS) {
+    return "now";
+  }
+  if (since < HOUR_MS) {
+    return `${Math.floor(since / MINUTE_MS)}m ago`;
+  }
+  if (since < DAY_MS) {
+    return `${Math.floor(since / HOUR_MS)}h ago`;
+  }
+  if (since < DAY_MS * 7) {
+    return `${Math.floor(since / DAY_MS)}d ago`;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(startedMs));
+};
+
+const statusOf = (run: RunLogRun): RunLogStatus => run.status ?? "ok";
+
+/** A running run without a duration counts up from when it started. */
+const durationOf = (run: RunLogRun, now: number): number | null => {
+  if (run.durationMs !== undefined) {
+    return clean(run.durationMs);
+  }
+  const started = toMs(run.startedAt);
+  return statusOf(run) === "running" && started !== null
+    ? Math.max(0, now - started)
+    : null;
+};
+
+type SortKey = "duration" | "cost" | "started";
+
+interface Sort {
+  key: SortKey;
+  /** Largest or latest first. */
+  descending: boolean;
+}
+
+const sortValue = (run: RunLogRun, key: SortKey, now: number): number => {
+  if (key === "duration") {
+    return durationOf(run, now) ?? -1;
+  }
+  if (key === "cost") {
+    return run.costUsd ?? -1;
+  }
+  return toMs(run.startedAt) ?? -1;
+};
+
+/** Largest first, then smallest first, then back to the order it came in. */
+const nextSort = (current: Sort | null, key: SortKey): Sort | null => {
+  if (current?.key !== key) {
+    return { descending: true, key };
+  }
+  return current.descending ? { descending: false, key } : null;
+};
+
+const countText = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+const STATUS_WORD: Record<RunLogStatus, string> = {
+  error: "failed",
+  ok: "finished",
+  running: "running",
+};
+
+const EMPTY_TEXT: Record<RunLogStatusFilter, string> = {
+  all: "No runs yet.",
+  error: "No failed runs.",
+  running: "Nothing is running.",
+};
+
+const ROW_KEYS: Record<string, (index: number, last: number) => number> = {
+  ArrowDown: (index, last) => Math.min(index + 1, last),
+  ArrowUp: (index) => Math.max(index - 1, 0),
+  End: (_index, last) => last,
+  Home: () => 0,
+};
+
+/** Ticks while it has something to count: every second with a run going, every minute without. */
+const useNow = (live: boolean): number => {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => {
+        setNow(Date.now());
+      },
+      live ? SECOND_MS : MINUTE_MS
+    );
+    return () => {
+      clearInterval(timer);
+    };
+  }, [live]);
+
+  return now;
+};
+
+const Icon = ({
+  icon,
+  className,
+}: {
+  icon: IconSvgElement;
+  className?: string;
+}) => (
+  <HugeiconsIcon
+    aria-hidden="true"
+    className={cn("size-3.5 flex-none", className)}
+    icon={icon}
+    strokeWidth={2}
+  />
+);
+
+/** Nothing for a run that finished. Only a failure or a live run gets a mark. */
+const StatusDot = ({ status }: { status: RunLogStatus }) => (
+  <span
+    aria-hidden="true"
+    className="flex h-4 w-2 flex-none items-center justify-center"
+  >
+    {status === "ok" ? null : (
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          status === "error"
+            ? "bg-(--run-log-error)"
+            : "animate-pulse bg-(--run-log-running) motion-reduce:animate-none"
+        )}
+      />
+    )}
+  </span>
+);
+
+interface StatusOption {
+  id: RunLogStatusFilter;
+  label: string;
+  count: number;
+}
+
+const StatusSwitch = ({
+  options,
+  active,
+  onChange,
+}: {
+  options: readonly StatusOption[];
+  active: RunLogStatusFilter;
+  onChange: (id: RunLogStatusFilter) => void;
+}) => (
+  <div
+    aria-label="Status"
+    className="inline-flex flex-none items-center gap-0.5 rounded-full bg-foreground/6 p-0.5"
+    data-slot="run-log-status"
+    role="group"
+  >
+    {options.map((option) => (
+      <button
+        aria-pressed={active === option.id}
+        className={cn(
+          "inline-flex h-5 cursor-pointer items-center gap-1 rounded-full border-0 px-2 text-xs leading-none font-medium transition-[background-color,color,box-shadow] duration-150 ease-out motion-reduce:transition-none",
+          FOCUS_CLASS,
+          active === option.id
+            ? "bg-card text-card-foreground shadow-(--run-log-shadow)"
+            : "bg-transparent text-muted-foreground hover:text-card-foreground"
+        )}
+        key={option.id}
+        onClick={() => {
+          onChange(option.id);
+        }}
+        type="button"
+      >
+        {option.label}
+        <span className="font-normal text-muted-foreground tabular-nums">
+          {option.count}
+        </span>
+      </button>
+    ))}
+  </div>
+);
+
+const ModelSelect = ({
+  models,
+  value,
+  labelOf,
+  onChange,
+}: {
+  models: readonly string[];
+  value: string | null;
+  labelOf: (model: string) => string;
+  onChange: (model: string | null) => void;
+}) => {
+  const items = [
+    { label: "All models", value: ALL_MODELS },
+    ...models.map((model) => ({ label: labelOf(model), value: model })),
+  ];
+  return (
+    <Select
+      items={items}
+      onValueChange={(next) => {
+        onChange(typeof next === "string" && next !== ALL_MODELS ? next : null);
+      }}
+      value={value ?? ALL_MODELS}
+    >
+      <SelectTrigger
+        aria-label="Model"
+        className="ml-auto cursor-pointer gap-1 rounded-full border-0 bg-transparent py-0 pr-1.5 pl-2 text-xs leading-none text-muted-foreground shadow-none transition-colors duration-150 ease-out hover:bg-foreground/6 hover:text-card-foreground data-popup-open:bg-foreground/6 data-popup-open:text-card-foreground data-[size=sm]:h-6 motion-reduce:transition-none dark:bg-transparent dark:hover:bg-foreground/6 [&_svg]:size-3"
+        data-slot="run-log-model-filter"
+        size="sm"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end" alignItemWithTrigger={false}>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
+
+const SortHeader = ({
+  label,
+  sortKey,
+  sort,
+  className,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: Sort | null;
+  className: string;
+  onSort: (key: SortKey) => void;
+}) => {
+  const active = sort?.key === sortKey;
+  let order = "";
+  if (active) {
+    order = sort.descending ? ", largest first" : ", smallest first";
+  }
+  return (
+    <span className={className}>
+      <button
+        aria-label={`Sort by ${label.toLowerCase()}${order}`}
+        className={cn(
+          "-mr-1 inline-flex h-5 cursor-pointer items-center gap-0.5 rounded-[4px] border-0 bg-transparent px-1 text-xs leading-none transition-colors duration-150 ease-out hover:text-card-foreground motion-reduce:transition-none",
+          FOCUS_CLASS,
+          active ? "text-card-foreground" : "text-muted-foreground"
+        )}
+        onClick={() => {
+          onSort(sortKey);
+        }}
+        type="button"
+      >
+        {active ? (
+          <Icon
+            className={cn(
+              "size-3 transition-transform duration-200 ease-out motion-reduce:transition-none",
+              !sort.descending && "rotate-180"
+            )}
+            icon={ArrowDown02Icon}
+          />
+        ) : null}
+        {label}
+      </button>
+    </span>
+  );
+};
+
+/** What a screen reader hears for a row, in the order the columns read. */
+const rowLabel = (
+  run: RunLogRun,
+  parts: {
+    model: string | null;
+    duration: string;
+    cost: string;
+    started: string;
+  }
+): string =>
+  [
+    run.name,
+    STATUS_WORD[statusOf(run)],
+    parts.model,
+    parts.duration,
+    parts.cost,
+    parts.started,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+export const RunLog = ({
+  runs = DEFAULT_RUNS,
+  title = "Runs",
+  caption,
+  labels,
+  icons,
+  selectedId,
+  defaultSelectedId,
+  onSelect,
+  renderDetail,
+  onClose,
+  defaultFilter,
+  onFilterChange,
+  onLoadMore,
+  className,
+  classNames,
+  style,
+}: RunLogProps) => {
+  const [filter, setFilter] = useState<RunLogFilter>({
+    model: defaultFilter?.model ?? null,
+    status: defaultFilter?.status ?? "all",
+  });
+  const [sort, setSort] = useState<Sort | null>(null);
+  const [picked, setPicked] = useState<string | null>(
+    defaultSelectedId ?? null
+  );
+  const [loading, setLoading] = useState(false);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  const failed = runs.filter((run) => statusOf(run) === "error").length;
+  const running = runs.filter((run) => statusOf(run) === "running").length;
+  const now = useNow(running > 0);
+
+  const labelOf = (model: string): string => labels?.[model] ?? model;
+  const models = [
+    ...new Set(runs.flatMap((run) => (run.model ? [run.model] : []))),
+  ].toSorted((left, right) => labelOf(left).localeCompare(labelOf(right)));
+
+  const statusOptions: StatusOption[] = [
+    { count: runs.length, id: "all", label: "All" },
+    ...(failed > 0 || filter.status === "error"
+      ? [{ count: failed, id: "error" as const, label: "Failed" }]
+      : []),
+    ...(running > 0 || filter.status === "running"
+      ? [{ count: running, id: "running" as const, label: "Running" }]
+      : []),
+  ];
+  const showStatus = statusOptions.length > 1;
+  const showModels = models.length > 1 || filter.model !== null;
+
+  const changeFilter = (next: RunLogFilter) => {
+    setFilter(next);
+    onFilterChange?.(next);
+  };
+
+  const matching = runs.filter(
+    (run) =>
+      (filter.status === "all" || statusOf(run) === filter.status) &&
+      (filter.model === null || run.model === filter.model)
+  );
+  const visible = sort
+    ? matching.toSorted((left, right) => {
+        const difference =
+          sortValue(left, sort.key, now) - sortValue(right, sort.key, now);
+        return sort.descending ? -difference : difference;
+      })
+    : matching;
+
+  const selected = selectedId === undefined ? picked : selectedId;
+  const pressable = Boolean(onSelect ?? renderDetail);
+  const openRun =
+    (renderDetail && runs.find((run) => run.id === selected)) || null;
+  const openIndex = visible.findIndex((run) => run.id === openRun?.id);
+  const priced = visible.filter((run) => run.costUsd !== undefined);
+  const spent = priced.reduce((sum, run) => sum + clean(run.costUsd), 0);
+  const filtered = visible.length !== runs.length;
+
+  const select = (run: RunLogRun) => {
+    setPicked(run.id);
+    onSelect?.(run);
+  };
+
+  /** Puts the panel away and hands the keyboard back to the row it came from. */
+  const close = () => {
+    const row = openRun ? rowRefs.current.get(openRun.id) : undefined;
+    setPicked(null);
+    onClose?.();
+    requestAnimationFrame(() => {
+      row?.focus();
+    });
+  };
+
+  /** The run above or below the open one, in the order the list shows. */
+  const neighbor = (offset: number): RunLogRun | undefined =>
+    openIndex === -1 ? visible[0] : visible[openIndex + offset];
+
+  const step = (offset: number) => {
+    const next = neighbor(offset);
+    if (next) {
+      select(next);
+      rowRefs.current.get(next.id)?.scrollIntoView({ block: "nearest" });
+    }
+  };
+
+  const onRowKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    const next =
+      visible[ROW_KEYS[event.key]?.(index, visible.length - 1) ?? index];
+    if (!next || next === visible[index]) {
+      return;
+    }
+    event.preventDefault();
+    rowRefs.current.get(next.id)?.focus();
+    // With a run open, the arrows walk the panel through the list.
+    if (openRun) {
+      select(next);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!onLoadMore || loading) {
+      return;
+    }
+    setLoading(true);
+    try {
+      await onLoadMore();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section
+      aria-label={title}
+      className={cn(
+        THEME_VARS,
+        "@container/run-log flex w-full max-w-full min-w-0 flex-col gap-2 rounded-2xl bg-card p-3 text-card-foreground shadow-(--run-log-shadow) transition-shadow duration-150 ease-out hover:shadow-(--run-log-shadow-hover)",
+        className,
+        classNames?.root
+      )}
+      data-slot="run-log"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && openRun && !event.defaultPrevented) {
+          close();
+        }
+      }}
+      style={style}
+    >
+      <div
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
+        data-slot="run-log-header"
+      >
+        <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--run-log-icon-bg)">
+          <Icon
+            className="text-(--run-log-accent)"
+            icon={LeftToRightListBulletIcon}
+          />
+        </span>
+        <div className="min-w-0 flex-none truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+          {title}
+        </div>
+        {caption ? (
+          <span
+            className="min-w-0 flex-1 truncate text-right text-xs leading-4 text-muted-foreground"
+            data-slot="run-log-caption"
+          >
+            {caption}
+          </span>
+        ) : null}
+      </div>
+
+      <div
+        className={cn("flex min-w-0", openRun && "h-[34rem]")}
+        data-slot="run-log-body"
+      >
+        <div
+          className={cn(
+            "@container/run-log-list min-w-0 flex-1 flex-col gap-2",
+            // On a narrow card the open run takes the list's place.
+            openRun ? "hidden @2xl/run-log:flex" : "flex"
+          )}
+          data-slot="run-log-main"
+        >
+          {showStatus || showModels ? (
+            <div
+              className={cn(
+                ENTER_CLASS,
+                "flex min-h-6 min-w-0 items-center gap-2 delay-75",
+                classNames?.filters
+              )}
+              data-slot="run-log-filters"
+            >
+              {showStatus ? (
+                <StatusSwitch
+                  active={filter.status}
+                  onChange={(status) => {
+                    changeFilter({ ...filter, status });
+                  }}
+                  options={statusOptions}
+                />
+              ) : null}
+              {showModels ? (
+                <ModelSelect
+                  labelOf={labelOf}
+                  models={models}
+                  onChange={(model) => {
+                    changeFilter({ ...filter, model });
+                  }}
+                  value={filter.model}
+                />
+              ) : null}
+            </div>
+          ) : null}
+
+          <div
+            className={cn(
+              ENTER_CLASS,
+              "flex min-w-0 flex-col delay-100",
+              openRun && "min-h-0 flex-1"
+            )}
+            data-slot="run-log-table"
+          >
+            <div
+              className={cn(
+                "flex h-7 min-w-0 items-center gap-3 px-1.5 text-xs leading-4 text-muted-foreground shadow-[inset_0_-1px_0_0_var(--run-log-rule)]",
+                classNames?.columns
+              )}
+              data-slot="run-log-columns"
+            >
+              <span className="min-w-0 flex-1 pl-4">Run</span>
+              <span className={MODEL_COLUMN}>Model</span>
+              <SortHeader
+                className={FIGURE_COLUMN}
+                label="Duration"
+                onSort={(key) => {
+                  setSort(nextSort(sort, key));
+                }}
+                sort={sort}
+                sortKey="duration"
+              />
+              <SortHeader
+                className={FIGURE_COLUMN}
+                label="Cost"
+                onSort={(key) => {
+                  setSort(nextSort(sort, key));
+                }}
+                sort={sort}
+                sortKey="cost"
+              />
+              <SortHeader
+                className={STARTED_COLUMN}
+                label="Started"
+                onSort={(key) => {
+                  setSort(nextSort(sort, key));
+                }}
+                sort={sort}
+                sortKey="started"
+              />
+            </div>
+
+            {visible.length === 0 ? (
+              <p
+                className="m-0 px-2 py-8 text-center text-[13px] leading-[1.45] text-pretty text-muted-foreground"
+                data-slot="run-log-empty"
+              >
+                {filter.model === null
+                  ? EMPTY_TEXT[filter.status]
+                  : "No runs match these filters."}
+              </p>
+            ) : (
+              <ul
+                className={cn(
+                  // The scrollbar sits in the gutter past the rows, so it never
+                  // covers the Started column and the header stays lined up.
+                  "m-0 -mr-2.5 flex list-none flex-col gap-px overflow-y-auto p-0 pt-1 pr-2.5 [scrollbar-width:thin]",
+                  openRun ? "min-h-0 flex-1" : "max-h-[26rem]",
+                  classNames?.list
+                )}
+                data-slot="run-log-list"
+              >
+                {visible.map((run, index) => {
+                  const status = statusOf(run);
+                  const durationMs = durationOf(run, now);
+                  const startedMs = toMs(run.startedAt);
+                  const duration =
+                    durationMs === null ? "" : formatRunDuration(durationMs);
+                  const cost =
+                    run.costUsd === undefined ? "" : formatRunCost(run.costUsd);
+                  const started =
+                    startedMs === null ? "" : formatStarted(startedMs, now);
+                  const model = run.model ? labelOf(run.model) : null;
+                  const isSelected = run.id === selected;
+                  const cells = (
+                    <>
+                      <span className="flex min-w-0 flex-1 items-start gap-2">
+                        <StatusDot status={status} />
+                        <span className="flex min-w-0 flex-1 flex-col gap-px">
+                          <span className="min-w-0 truncate">{run.name}</span>
+                          {status === "error" && run.error ? (
+                            <span
+                              className="min-w-0 truncate text-xs leading-4 text-muted-foreground"
+                              data-slot="run-log-error"
+                              title={run.error}
+                            >
+                              {run.error}
+                            </span>
+                          ) : null}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(MODEL_COLUMN, "text-muted-foreground")}
+                      >
+                        {run.model && icons?.[run.model] ? (
+                          <span
+                            aria-hidden="true"
+                            className="inline-flex size-3.5 flex-none items-center justify-center [&>svg]:size-3.5"
+                          >
+                            {icons[run.model]}
+                          </span>
+                        ) : null}
+                        <span className="min-w-0 truncate">{model}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          FIGURE_COLUMN,
+                          status === "running" && "text-muted-foreground"
+                        )}
+                        suppressHydrationWarning
+                      >
+                        {duration}
+                      </span>
+                      <span className={FIGURE_COLUMN}>{cost}</span>
+                      <span
+                        className={cn(STARTED_COLUMN, "text-muted-foreground")}
+                        suppressHydrationWarning
+                      >
+                        {started}
+                      </span>
+                    </>
+                  );
+                  const rowClass = cn(
+                    "flex min-h-8 w-full min-w-0 items-start gap-3 rounded-md border-0 bg-transparent px-1.5 py-2 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
+                    classNames?.row
+                  );
+                  return (
+                    <li data-slot="run-log-item" key={run.id}>
+                      {pressable ? (
+                        <button
+                          aria-label={rowLabel(run, {
+                            cost,
+                            duration,
+                            model,
+                            started,
+                          })}
+                          aria-pressed={isSelected}
+                          className={cn(
+                            rowClass,
+                            "cursor-pointer hover:bg-foreground/4",
+                            FOCUS_CLASS,
+                            isSelected &&
+                              "bg-foreground/6 hover:bg-foreground/6"
+                          )}
+                          data-slot="run-log-row"
+                          data-status={status}
+                          onClick={() => {
+                            select(run);
+                          }}
+                          onKeyDown={(event) => {
+                            onRowKeyDown(event, index);
+                          }}
+                          ref={(element) => {
+                            if (element) {
+                              rowRefs.current.set(run.id, element);
+                            } else {
+                              rowRefs.current.delete(run.id);
+                            }
+                          }}
+                          type="button"
+                        >
+                          {cells}
+                        </button>
+                      ) : (
+                        <div
+                          className={rowClass}
+                          data-slot="run-log-row"
+                          data-status={status}
+                        >
+                          {cells}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div
+            className={cn(
+              ENTER_CLASS,
+              "flex min-h-6 min-w-0 items-center gap-2 delay-200",
+              classNames?.footer
+            )}
+            data-slot="run-log-footer"
+          >
+            <output
+              aria-live="polite"
+              className="min-w-0 flex-1 truncate pl-1.5 text-xs leading-4 text-muted-foreground tabular-nums"
+              data-slot="run-log-summary"
+            >
+              {filtered
+                ? `${visible.length} of ${countText(runs.length, "run")}`
+                : countText(runs.length, "run")}
+              {priced.length > 0 ? ` · ${formatRunCost(spent)}` : null}
+            </output>
+            {onLoadMore ? (
+              <Button
+                className="rounded-full px-2.5"
+                data-slot="run-log-more"
+                disabled={loading}
+                onClick={() => {
+                  void loadMore();
+                }}
+                size="xs"
+                type="button"
+                variant="secondary"
+              >
+                {loading ? "Loading…" : "Load more"}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
+        {openRun && renderDetail ? (
+          <aside
+            aria-label={`Run: ${openRun.name}`}
+            className={cn(
+              "flex w-full min-w-0 animate-in flex-col gap-2 duration-200 ease-out fade-in-0 slide-in-from-right-2 motion-reduce:animate-none @2xl/run-log:ml-3 @2xl/run-log:w-[min(27rem,52%)] @2xl/run-log:flex-none @2xl/run-log:pl-3 @2xl/run-log:shadow-[inset_1px_0_0_0_var(--run-log-rule)]",
+              classNames?.detail
+            )}
+            data-slot="run-log-detail"
+          >
+            <div className="flex h-6 flex-none items-center gap-0.5">
+              <span className="min-w-0 flex-1 truncate pl-0.5 text-xs leading-4 text-muted-foreground tabular-nums">
+                {openIndex === -1
+                  ? "Not in this view"
+                  : `${openIndex + 1} of ${visible.length}`}
+              </span>
+              <Button
+                aria-label="Previous run"
+                disabled={openIndex <= 0}
+                onClick={() => {
+                  step(-1);
+                }}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                <Icon icon={ArrowUp01Icon} />
+              </Button>
+              <Button
+                aria-label="Next run"
+                disabled={!neighbor(1)}
+                onClick={() => {
+                  step(1);
+                }}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                <Icon icon={ArrowDown01Icon} />
+              </Button>
+              <Button
+                aria-label="Close run"
+                data-slot="run-log-close"
+                onClick={close}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                <Icon icon={Cancel01Icon} />
+              </Button>
+            </div>
+            <div
+              className="-mr-1.5 min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1.5"
+              key={openRun.id}
+            >
+              {renderDetail(openRun)}
+            </div>
+          </aside>
+        ) : null}
+      </div>
+    </section>
+  );
+};
