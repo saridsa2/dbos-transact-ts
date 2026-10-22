@@ -41,13 +41,9 @@ type Props = {
  * @param hard - If true, break words that exceed width (needed when columns
  *               are narrower than the longest word). Default false.
  */
-function wrapText(
-  text: string,
-  width: number,
-  options?: {
-    hard?: boolean;
-  },
-): string[] {
+function wrapText(text: string, width: number, options?: {
+  hard?: boolean;
+}): string[] {
   if (width <= 0) return [text];
   // Strip trailing whitespace/newlines before wrapping.
   // formatToken() adds EOL to paragraphs and other token types,
@@ -56,11 +52,11 @@ function wrapText(
   const wrapped = wrapAnsi(trimmedText, width, {
     hard: options?.hard ?? false,
     trim: false,
-    wordWrap: true,
+    wordWrap: true
   });
   // Filter out empty lines that result from trailing newlines or
   // multiple consecutive newlines in the source content.
-  const lines = wrapped.split('\n').filter((line) => line.length > 0);
+  const lines = wrapped.split('\n').filter(line => line.length > 0);
   // Ensure we always return at least one line (empty string for empty cells)
   return lines.length > 0 ? lines : [''];
 }
@@ -73,14 +69,20 @@ function wrapText(
  * 3. Wrapping text within cells (no truncation)
  * 4. Properly aligning multi-line rows with borders
  */
-export function MarkdownTable({ token, highlight, forceWidth }: Props): React.ReactNode {
+export function MarkdownTable({
+  token,
+  highlight,
+  forceWidth
+}: Props): React.ReactNode {
   const [theme] = useTheme();
-  const { columns: actualTerminalWidth } = useTerminalSize();
+  const {
+    columns: actualTerminalWidth
+  } = useTerminalSize();
   const terminalWidth = forceWidth ?? actualTerminalWidth;
 
   // Format cell content to ANSI string
   function formatCell(tokens: Token[] | undefined): string {
-    return tokens?.map((_) => formatToken(_, theme, 0, null, null, highlight)).join('') ?? '';
+    return tokens?.map(_ => formatToken(_, theme, 0, null, null, highlight)).join('') ?? '';
   }
 
   // Get plain text (stripped of ANSI codes)
@@ -91,9 +93,9 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
   // Get the longest word width in a cell (minimum width to avoid breaking words)
   function getMinWidth(tokens_1: Token[] | undefined): number {
     const text = getPlainText(tokens_1);
-    const words = text.split(/\s+/).filter((w) => w.length > 0);
+    const words = text.split(/\s+/).filter(w => w.length > 0);
     if (words.length === 0) return MIN_COLUMN_WIDTH;
-    return Math.max(...words.map((w_0) => stringWidth(w_0)), MIN_COLUMN_WIDTH);
+    return Math.max(...words.map(w_0 => stringWidth(w_0)), MIN_COLUMN_WIDTH);
   }
 
   // Get ideal width (full content without wrapping)
@@ -142,7 +144,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
     const totalOverflow = overflows.reduce((sum_1, o) => sum_1 + o, 0);
     columnWidths = minWidths.map((min, i_0) => {
       if (totalOverflow === 0) return min;
-      const extra = Math.floor((overflows[i_0]! / totalOverflow) * extraSpace);
+      const extra = Math.floor(overflows[i_0]! / totalOverflow * extraSpace);
       return min + extra;
     });
   } else {
@@ -150,7 +152,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
     // Shrink columns proportionally to fit, allowing word breaks
     needsHardWrap = true;
     const scaleFactor = availableWidth / totalMin;
-    columnWidths = minWidths.map((w_3) => Math.max(Math.floor(w_3 * scaleFactor), MIN_COLUMN_WIDTH));
+    columnWidths = minWidths.map(w_3 => Math.max(Math.floor(w_3 * scaleFactor), MIN_COLUMN_WIDTH));
   }
 
   // Step 4: Calculate max row lines to determine if vertical format is needed
@@ -160,7 +162,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
     for (let i_1 = 0; i_1 < token.header.length; i_1++) {
       const content = formatCell(token.header[i_1]!.tokens);
       const wrapped = wrapText(content, columnWidths[i_1]!, {
-        hard: needsHardWrap,
+        hard: needsHardWrap
       });
       maxLines = Math.max(maxLines, wrapped.length);
     }
@@ -169,7 +171,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
       for (let i_2 = 0; i_2 < row_1.length; i_2++) {
         const content_0 = formatCell(row_1[i_2]?.tokens);
         const wrapped_0 = wrapText(content_0, columnWidths[i_2]!, {
-          hard: needsHardWrap,
+          hard: needsHardWrap
         });
         maxLines = Math.max(maxLines, wrapped_0.length);
       }
@@ -183,26 +185,23 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
 
   // Render a single row with potential multi-line cells
   // Returns an array of strings, one per line of the row
-  function renderRowLines(
-    cells: Array<{
-      tokens?: Token[];
-    }>,
-    isHeader: boolean,
-  ): string[] {
+  function renderRowLines(cells: Array<{
+    tokens?: Token[];
+  }>, isHeader: boolean): string[] {
     // Get wrapped lines for each cell (preserving ANSI formatting)
     const cellLines = cells.map((cell, colIndex_1) => {
       const formattedText = formatCell(cell.tokens);
       const width = columnWidths[colIndex_1]!;
       return wrapText(formattedText, width, {
-        hard: needsHardWrap,
+        hard: needsHardWrap
       });
     });
 
     // Find max number of lines in this row
-    const maxLines_0 = Math.max(...cellLines.map((lines) => lines.length), 1);
+    const maxLines_0 = Math.max(...cellLines.map(lines => lines.length), 1);
 
     // Calculate vertical offset for each cell (to center vertically)
-    const verticalOffsets = cellLines.map((lines_0) => Math.floor((maxLines_0 - lines_0.length) / 2));
+    const verticalOffsets = cellLines.map(lines_0 => Math.floor((maxLines_0 - lines_0.length) / 2));
 
     // Build each line of the row as a single string
     const result: string[] = [];
@@ -215,7 +214,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
         const lineText = contentLineIdx >= 0 && contentLineIdx < lines_1.length ? lines_1[contentLineIdx]! : '';
         const width_0 = columnWidths[colIndex_2]!;
         // Headers always centered; data uses table alignment
-        const align = isHeader ? 'center' : (token.align?.[colIndex_2] ?? 'left');
+        const align = isHeader ? 'center' : token.align?.[colIndex_2] ?? 'left';
         line += ' ' + padAligned(lineText, stringWidth(lineText), width_0, align) + ' │';
       }
       result.push(line);
@@ -228,7 +227,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
     const [left, mid, cross, right] = {
       top: ['┌', '─', '┬', '┐'],
       middle: ['├', '─', '┼', '┤'],
-      bottom: ['└', '─', '┴', '┘'],
+      bottom: ['└', '─', '┴', '┘']
     }[type] as [string, string, string, string];
     let line_0 = left;
     columnWidths.forEach((width_1, colIndex_3) => {
@@ -241,7 +240,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
   // Render vertical format (key-value pairs) for extra-narrow terminals
   function renderVerticalFormat(): string {
     const lines_2: string[] = [];
-    const headers = token.header.map((h) => getPlainText(h.tokens));
+    const headers = token.header.map(h => getPlainText(h.tokens));
     const separatorWidth = Math.min(terminalWidth - 1, 40);
     const separator = '─'.repeat(separatorWidth);
     // Small indent for wrapped lines (just 2 spaces)
@@ -269,10 +268,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
           wrappedValue = firstPassLines;
         } else {
           // Re-join remaining text and re-wrap to the wider continuation width
-          const remainingText = firstPassLines
-            .slice(1)
-            .map((l) => l.trim())
-            .join(' ');
+          const remainingText = firstPassLines.slice(1).map(l => l.trim()).join(' ');
           const rewrapped = wrapText(remainingText, subsequentLineWidth);
           wrappedValue = [firstLine, ...rewrapped];
         }
@@ -312,7 +308,7 @@ export function MarkdownTable({ token, highlight, forceWidth }: Props): React.Re
   // Safety check: verify no line exceeds terminal width.
   // This catches edge cases during terminal resize where calculations
   // were based on a different width than the current render target.
-  const maxLineWidth = Math.max(...tableLines.map((line_2) => stringWidth(stripAnsi(line_2))));
+  const maxLineWidth = Math.max(...tableLines.map(line_2 => stringWidth(stripAnsi(line_2))));
 
   // If we're within SAFETY_MARGIN characters of the edge, use vertical format
   // to account for terminal resize race conditions.

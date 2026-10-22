@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import { feature } from 'bun:bundle';
 import * as React from 'react';
 import { EnterPlanModeTool } from 'src/tools/EnterPlanModeTool/EnterPlanModeTool.js';
@@ -33,34 +33,12 @@ import { SkillPermissionRequest } from './SkillPermissionRequest/SkillPermission
 import { WebFetchPermissionRequest } from './WebFetchPermissionRequest/WebFetchPermissionRequest.js';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const ReviewArtifactTool = feature('REVIEW_ARTIFACT')
-  ? (
-      require('../../tools/ReviewArtifactTool/ReviewArtifactTool.js') as typeof import('../../tools/ReviewArtifactTool/ReviewArtifactTool.js')
-    ).ReviewArtifactTool
-  : null;
-const ReviewArtifactPermissionRequest = feature('REVIEW_ARTIFACT')
-  ? (
-      require('./ReviewArtifactPermissionRequest/ReviewArtifactPermissionRequest.js') as typeof import('./ReviewArtifactPermissionRequest/ReviewArtifactPermissionRequest.js')
-    ).ReviewArtifactPermissionRequest
-  : null;
-const WorkflowTool = feature('WORKFLOW_SCRIPTS')
-  ? (require('../../tools/WorkflowTool/WorkflowTool.js') as typeof import('../../tools/WorkflowTool/WorkflowTool.js'))
-      .WorkflowTool
-  : null;
-const WorkflowPermissionRequest = feature('WORKFLOW_SCRIPTS')
-  ? (
-      require('../../tools/WorkflowTool/WorkflowPermissionRequest.js') as typeof import('../../tools/WorkflowTool/WorkflowPermissionRequest.js')
-    ).WorkflowPermissionRequest
-  : null;
-const MonitorTool = feature('MONITOR_TOOL')
-  ? (require('../../tools/MonitorTool/MonitorTool.js') as typeof import('../../tools/MonitorTool/MonitorTool.js'))
-      .MonitorTool
-  : null;
-const MonitorPermissionRequest = feature('MONITOR_TOOL')
-  ? (
-      require('./MonitorPermissionRequest/MonitorPermissionRequest.js') as typeof import('./MonitorPermissionRequest/MonitorPermissionRequest.js')
-    ).MonitorPermissionRequest
-  : null;
+const ReviewArtifactTool = feature('REVIEW_ARTIFACT') ? (require('../../tools/ReviewArtifactTool/ReviewArtifactTool.js') as typeof import('../../tools/ReviewArtifactTool/ReviewArtifactTool.js')).ReviewArtifactTool : null;
+const ReviewArtifactPermissionRequest = feature('REVIEW_ARTIFACT') ? (require('./ReviewArtifactPermissionRequest/ReviewArtifactPermissionRequest.js') as typeof import('./ReviewArtifactPermissionRequest/ReviewArtifactPermissionRequest.js')).ReviewArtifactPermissionRequest : null;
+const WorkflowTool = feature('WORKFLOW_SCRIPTS') ? (require('../../tools/WorkflowTool/WorkflowTool.js') as typeof import('../../tools/WorkflowTool/WorkflowTool.js')).WorkflowTool : null;
+const WorkflowPermissionRequest = feature('WORKFLOW_SCRIPTS') ? (require('../../tools/WorkflowTool/WorkflowPermissionRequest.js') as typeof import('../../tools/WorkflowTool/WorkflowPermissionRequest.js')).WorkflowPermissionRequest : null;
+const MonitorTool = feature('MONITOR_TOOL') ? (require('../../tools/MonitorTool/MonitorTool.js') as typeof import('../../tools/MonitorTool/MonitorTool.js')).MonitorTool : null;
+const MonitorPermissionRequest = feature('MONITOR_TOOL') ? (require('./MonitorPermissionRequest/MonitorPermissionRequest.js') as typeof import('./MonitorPermissionRequest/MonitorPermissionRequest.js')).MonitorPermissionRequest : null;
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs';
 /* eslint-enable @typescript-eslint/no-require-imports */
 import type { z } from 'zod/v4';
@@ -143,12 +121,7 @@ export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {
   onUserInteraction(): void;
   onAbort(): void;
   onDismissCheckmark?(): void;
-  onAllow(
-    updatedInput: z.infer<Input>,
-    permissionUpdates: PermissionUpdate[],
-    feedback?: string,
-    contentBlocks?: ContentBlockParam[],
-  ): void;
+  onAllow(updatedInput: z.infer<Input>, permissionUpdates: PermissionUpdate[], feedback?: string, contentBlocks?: ContentBlockParam[]): void;
   onReject(feedback?: string, contentBlocks?: ContentBlockParam[]): void;
   recheckPermission(): Promise<void>;
 };
@@ -172,7 +145,15 @@ function getNotificationMessage(toolUseConfirm: ToolUseConfirm): string {
 // TODO: Move this to Tool.renderPermissionRequest
 export function PermissionRequest(t0) {
   const $ = _c(18);
-  const { toolUseConfirm, toolUseContext, onDone, onReject, verbose, workerBadge, setStickyFooter } = t0;
+  const {
+    toolUseConfirm,
+    toolUseContext,
+    onDone,
+    onReject,
+    verbose,
+    workerBadge,
+    setStickyFooter
+  } = t0;
   let t1;
   if ($[0] !== onDone || $[1] !== onReject || $[2] !== toolUseConfirm) {
     t1 = () => {
@@ -188,15 +169,15 @@ export function PermissionRequest(t0) {
     t1 = $[3];
   }
   let t2;
-  if ($[4] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
     t2 = {
-      context: 'Confirmation',
+      context: "Confirmation"
     };
     $[4] = t2;
   } else {
     t2 = $[4];
   }
-  useKeybinding('app:interrupt', t1, t2);
+  useKeybinding("app:interrupt", t1, t2);
   let t3;
   if ($[5] !== toolUseConfirm) {
     t3 = getNotificationMessage(toolUseConfirm);
@@ -206,7 +187,7 @@ export function PermissionRequest(t0) {
     t3 = $[6];
   }
   const notificationMessage = t3;
-  useNotifyAfterTimeout(notificationMessage, 'permission_prompt');
+  useNotifyAfterTimeout(notificationMessage, "permission_prompt");
   let t4;
   if ($[7] !== toolUseConfirm.tool) {
     t4 = permissionComponentForTool(toolUseConfirm.tool);
@@ -217,27 +198,8 @@ export function PermissionRequest(t0) {
   }
   const PermissionComponent = t4;
   let t5;
-  if (
-    $[9] !== PermissionComponent ||
-    $[10] !== onDone ||
-    $[11] !== onReject ||
-    $[12] !== setStickyFooter ||
-    $[13] !== toolUseConfirm ||
-    $[14] !== toolUseContext ||
-    $[15] !== verbose ||
-    $[16] !== workerBadge
-  ) {
-    t5 = (
-      <PermissionComponent
-        toolUseContext={toolUseContext}
-        toolUseConfirm={toolUseConfirm}
-        onDone={onDone}
-        onReject={onReject}
-        verbose={verbose}
-        workerBadge={workerBadge}
-        setStickyFooter={setStickyFooter}
-      />
-    );
+  if ($[9] !== PermissionComponent || $[10] !== onDone || $[11] !== onReject || $[12] !== setStickyFooter || $[13] !== toolUseConfirm || $[14] !== toolUseContext || $[15] !== verbose || $[16] !== workerBadge) {
+    t5 = <PermissionComponent toolUseContext={toolUseContext} toolUseConfirm={toolUseConfirm} onDone={onDone} onReject={onReject} verbose={verbose} workerBadge={workerBadge} setStickyFooter={setStickyFooter} />;
     $[9] = PermissionComponent;
     $[10] = onDone;
     $[11] = onReject;

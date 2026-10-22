@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React from 'react';
 import { type ExitState, useExitOnCtrlCDWithKeybindings } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
 import { Box, Text } from '../../ink.js';
@@ -38,33 +38,26 @@ export function Dialog(t0) {
     hideInputGuide,
     hideBorder,
     inputGuide,
-    isCancelActive: t2,
+    isCancelActive: t2
   } = t0;
-  const color = t1 === undefined ? 'permission' : t1;
+  const color = t1 === undefined ? "permission" : t1;
   const isCancelActive = t2 === undefined ? true : t2;
   const exitState = useExitOnCtrlCDWithKeybindings(undefined, undefined, isCancelActive);
   let t3;
   if ($[0] !== isCancelActive) {
     t3 = {
-      context: 'Confirmation',
-      isActive: isCancelActive,
+      context: "Confirmation",
+      isActive: isCancelActive
     };
     $[0] = isCancelActive;
     $[1] = t3;
   } else {
     t3 = $[1];
   }
-  useKeybinding('confirm:no', onCancel, t3);
+  useKeybinding("confirm:no", onCancel, t3);
   let t4;
   if ($[2] !== exitState.keyName || $[3] !== exitState.pending) {
-    t4 = exitState.pending ? (
-      <Text>Press {exitState.keyName} again to exit</Text>
-    ) : (
-      <Byline>
-        <KeyboardShortcutHint shortcut="Enter" action="confirm" />
-        <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />
-      </Byline>
-    );
+    t4 = exitState.pending ? <Text>Press {exitState.keyName} again to exit</Text> : <Byline><KeyboardShortcutHint shortcut="Enter" action="confirm" /><ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" /></Byline>;
     $[2] = exitState.keyName;
     $[3] = exitState.pending;
     $[4] = t4;
@@ -74,11 +67,7 @@ export function Dialog(t0) {
   const defaultInputGuide = t4;
   let t5;
   if ($[5] !== color || $[6] !== title) {
-    t5 = (
-      <Text bold={true} color={color}>
-        {title}
-      </Text>
-    );
+    t5 = <Text bold={true} color={color}>{title}</Text>;
     $[5] = color;
     $[6] = title;
     $[7] = t5;
@@ -95,12 +84,7 @@ export function Dialog(t0) {
   }
   let t7;
   if ($[10] !== t5 || $[11] !== t6) {
-    t7 = (
-      <Box flexDirection="column">
-        {t5}
-        {t6}
-      </Box>
-    );
+    t7 = <Box flexDirection="column">{t5}{t6}</Box>;
     $[10] = t5;
     $[11] = t6;
     $[12] = t7;
@@ -109,12 +93,7 @@ export function Dialog(t0) {
   }
   let t8;
   if ($[13] !== children || $[14] !== t7) {
-    t8 = (
-      <Box flexDirection="column" gap={1}>
-        {t7}
-        {children}
-      </Box>
-    );
+    t8 = <Box flexDirection="column" gap={1}>{t7}{children}</Box>;
     $[13] = children;
     $[14] = t7;
     $[15] = t8;
@@ -123,13 +102,7 @@ export function Dialog(t0) {
   }
   let t9;
   if ($[16] !== defaultInputGuide || $[17] !== exitState || $[18] !== hideInputGuide || $[19] !== inputGuide) {
-    t9 = !hideInputGuide && (
-      <Box marginTop={1}>
-        <Text dimColor={true} italic={true}>
-          {inputGuide ? inputGuide(exitState) : defaultInputGuide}
-        </Text>
-      </Box>
-    );
+    t9 = !hideInputGuide && <Box marginTop={1}><Text dimColor={true} italic={true}>{inputGuide ? inputGuide(exitState) : defaultInputGuide}</Text></Box>;
     $[16] = defaultInputGuide;
     $[17] = exitState;
     $[18] = hideInputGuide;
@@ -140,12 +113,7 @@ export function Dialog(t0) {
   }
   let t10;
   if ($[21] !== t8 || $[22] !== t9) {
-    t10 = (
-      <>
-        {t8}
-        {t9}
-      </>
-    );
+    t10 = <>{t8}{t9}</>;
     $[21] = t8;
     $[22] = t9;
     $[23] = t10;

@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useInterval } from 'usehooks-ts';
@@ -26,26 +26,29 @@ import { asSystemPrompt } from '../../utils/systemPromptType.js';
 type BtwComponentProps = {
   question: string;
   context: ProcessUserInputContext;
-  onDone: (
-    result?: string,
-    options?: {
-      display?: CommandResultDisplay;
-    },
-  ) => void;
+  onDone: (result?: string, options?: {
+    display?: CommandResultDisplay;
+  }) => void;
 };
 const CHROME_ROWS = 5;
 const OUTER_CHROME_ROWS = 6;
 const SCROLL_LINES = 3;
 function BtwSideQuestion(t0) {
   const $ = _c(25);
-  const { question, context, onDone } = t0;
+  const {
+    question,
+    context,
+    onDone
+  } = t0;
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
   const [frame, setFrame] = useState(0);
   const scrollRef = useRef(null);
-  const { rows } = useModalOrTerminalSize(useTerminalSize());
+  const {
+    rows
+  } = useModalOrTerminalSize(useTerminalSize());
   let t1;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = () => setFrame(_temp);
     $[0] = t1;
   } else {
@@ -55,18 +58,18 @@ function BtwSideQuestion(t0) {
   let t2;
   if ($[1] !== onDone) {
     t2 = function handleKeyDown(e) {
-      if (e.key === 'escape' || e.key === 'return' || e.key === ' ' || (e.ctrl && (e.key === 'c' || e.key === 'd'))) {
+      if (e.key === "escape" || e.key === "return" || e.key === " " || e.ctrl && (e.key === "c" || e.key === "d")) {
         e.preventDefault();
         onDone(undefined, {
-          display: 'skip',
+          display: "skip"
         });
         return;
       }
-      if (e.key === 'up' || (e.ctrl && e.key === 'p')) {
+      if (e.key === "up" || e.ctrl && e.key === "p") {
         e.preventDefault();
         scrollRef.current?.scrollBy(-SCROLL_LINES);
       }
-      if (e.key === 'down' || (e.ctrl && e.key === 'n')) {
+      if (e.key === "down" || e.ctrl && e.key === "n") {
         e.preventDefault();
         scrollRef.current?.scrollBy(SCROLL_LINES);
       }
@@ -83,23 +86,24 @@ function BtwSideQuestion(t0) {
     t3 = () => {
       const abortController = createAbortController();
       const fetchResponse = async function fetchResponse() {
+        ;
         try {
           const cacheSafeParams = await buildCacheSafeParams(context);
           const result = await runSideQuestion({
             question,
-            cacheSafeParams,
+            cacheSafeParams
           });
           if (!abortController.signal.aborted) {
             if (result.response) {
               setResponse(result.response);
             } else {
-              setError('No response received');
+              setError("No response received");
             }
           }
         } catch (t5) {
           const err = t5;
           if (!abortController.signal.aborted) {
-            setError(errorMessage(err) || 'Failed to get response');
+            setError(errorMessage(err) || "Failed to get response");
           }
         }
       };
@@ -120,24 +124,15 @@ function BtwSideQuestion(t0) {
   useEffect(t3, t4);
   const maxContentHeight = Math.max(5, rows - CHROME_ROWS - OUTER_CHROME_ROWS);
   let t5;
-  if ($[7] === Symbol.for('react.memo_cache_sentinel')) {
-    t5 = (
-      <Text color="warning" bold={true}>
-        /btw{' '}
-      </Text>
-    );
+  if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
+    t5 = <Text color="warning" bold={true}>/btw{" "}</Text>;
     $[7] = t5;
   } else {
     t5 = $[7];
   }
   let t6;
   if ($[8] !== question) {
-    t6 = (
-      <Box>
-        {t5}
-        <Text dimColor={true}>{question}</Text>
-      </Box>
-    );
+    t6 = <Box>{t5}<Text dimColor={true}>{question}</Text></Box>;
     $[8] = question;
     $[9] = t6;
   } else {
@@ -145,20 +140,7 @@ function BtwSideQuestion(t0) {
   }
   let t7;
   if ($[10] !== error || $[11] !== frame || $[12] !== response) {
-    t7 = (
-      <ScrollBox ref={scrollRef} flexDirection="column" flexGrow={1}>
-        {error ? (
-          <Text color="error">{error}</Text>
-        ) : response ? (
-          <Markdown>{response}</Markdown>
-        ) : (
-          <Box>
-            <SpinnerGlyph frame={frame} messageColor="warning" />
-            <Text color="warning">Answering...</Text>
-          </Box>
-        )}
-      </ScrollBox>
-    );
+    t7 = <ScrollBox ref={scrollRef} flexDirection="column" flexGrow={1}>{error ? <Text color="error">{error}</Text> : response ? <Markdown>{response}</Markdown> : <Box><SpinnerGlyph frame={frame} messageColor="warning" /><Text color="warning">Answering...</Text></Box>}</ScrollBox>;
     $[10] = error;
     $[11] = frame;
     $[12] = response;
@@ -168,11 +150,7 @@ function BtwSideQuestion(t0) {
   }
   let t8;
   if ($[14] !== maxContentHeight || $[15] !== t7) {
-    t8 = (
-      <Box marginTop={1} marginLeft={2} maxHeight={maxContentHeight}>
-        {t7}
-      </Box>
-    );
+    t8 = <Box marginTop={1} marginLeft={2} maxHeight={maxContentHeight}>{t7}</Box>;
     $[14] = maxContentHeight;
     $[15] = t7;
     $[16] = t8;
@@ -181,13 +159,7 @@ function BtwSideQuestion(t0) {
   }
   let t9;
   if ($[17] !== error || $[18] !== response) {
-    t9 = (response || error) && (
-      <Box marginTop={1}>
-        <Text dimColor={true}>
-          {UP_ARROW}/{DOWN_ARROW} to scroll · Space, Enter, or Escape to dismiss
-        </Text>
-      </Box>
-    );
+    t9 = (response || error) && <Box marginTop={1}><Text dimColor={true}>{UP_ARROW}/{DOWN_ARROW} to scroll · Space, Enter, or Escape to dismiss</Text></Box>;
     $[17] = error;
     $[18] = response;
     $[19] = t9;
@@ -196,13 +168,7 @@ function BtwSideQuestion(t0) {
   }
   let t10;
   if ($[20] !== handleKeyDown || $[21] !== t6 || $[22] !== t8 || $[23] !== t9) {
-    t10 = (
-      <Box flexDirection="column" paddingLeft={2} marginTop={1} tabIndex={0} autoFocus={true} onKeyDown={handleKeyDown}>
-        {t6}
-        {t8}
-        {t9}
-      </Box>
-    );
+    t10 = <Box flexDirection="column" paddingLeft={2} marginTop={1} tabIndex={0} autoFocus={true} onKeyDown={handleKeyDown}>{t6}{t8}{t9}</Box>;
     $[20] = handleKeyDown;
     $[21] = t6;
     $[22] = t8;
@@ -248,37 +214,29 @@ async function buildCacheSafeParams(context: ProcessUserInputContext): Promise<C
       userContext: saved.userContext,
       systemContext: saved.systemContext,
       toolUseContext: context,
-      forkContextMessages,
+      forkContextMessages
     };
   }
-  const [rawSystemPrompt, userContext, systemContext] = await Promise.all([
-    getSystemPrompt(context.options.tools, context.options.mainLoopModel, [], context.options.mcpClients),
-    getUserContext(),
-    getSystemContext(),
-  ]);
+  const [rawSystemPrompt, userContext, systemContext] = await Promise.all([getSystemPrompt(context.options.tools, context.options.mainLoopModel, [], context.options.mcpClients), getUserContext(), getSystemContext()]);
   return {
     systemPrompt: asSystemPrompt(rawSystemPrompt),
     userContext,
     systemContext,
     toolUseContext: context,
-    forkContextMessages,
+    forkContextMessages
   };
 }
-export async function call(
-  onDone: LocalJSXCommandOnDone,
-  context: ProcessUserInputContext,
-  args: string,
-): Promise<React.ReactNode> {
+export async function call(onDone: LocalJSXCommandOnDone, context: ProcessUserInputContext, args: string): Promise<React.ReactNode> {
   const question = args?.trim();
   if (!question) {
     onDone('Usage: /btw <your question>', {
-      display: 'system',
+      display: 'system'
     });
     return null;
   }
-  saveGlobalConfig((current) => ({
+  saveGlobalConfig(current => ({
     ...current,
-    btwUseCount: current.btwUseCount + 1,
+    btwUseCount: current.btwUseCount + 1
   }));
   return <BtwSideQuestion question={question} context={context} onDone={onDone} />;
 }

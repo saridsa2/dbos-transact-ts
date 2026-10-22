@@ -1,15 +1,26 @@
-'use client';
+"use client";
 
-import { ArrowDown01Icon, Cancel01Icon, CpuIcon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { FileUIPart, LanguageModelUsage, UIMessage } from 'ai';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, PointerEvent } from 'react';
+import {
+  ArrowDown01Icon,
+  Cancel01Icon,
+  CpuIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { FileUIPart, LanguageModelUsage, UIMessage } from "ai";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-export type ContextWindowKind = 'system' | 'tools' | 'files' | 'conversation' | 'memory' | 'other' | 'reserved';
+export type ContextWindowKind =
+  | "system"
+  | "tools"
+  | "files"
+  | "conversation"
+  | "memory"
+  | "other"
+  | "reserved";
 
 export interface ContextWindowItem {
   id: string;
@@ -36,9 +47,18 @@ export interface ContextWindowCell {
   kind: ContextWindowKind;
 }
 
-const KINDS: readonly ContextWindowKind[] = ['system', 'tools', 'files', 'conversation', 'memory', 'other', 'reserved'];
+const KINDS: readonly ContextWindowKind[] = [
+  "system",
+  "tools",
+  "files",
+  "conversation",
+  "memory",
+  "other",
+  "reserved",
+];
 
-const isKind = (value: string): value is ContextWindowKind => KINDS.some((kind) => kind === value);
+const isKind = (value: string): value is ContextWindowKind =>
+  KINDS.some((kind) => kind === value);
 
 const cleanTokens = (tokens: number | undefined): number =>
   tokens !== undefined && Number.isFinite(tokens) ? Math.max(0, tokens) : 0;
@@ -51,18 +71,22 @@ const sumTokens = (values: readonly number[]): number => {
   return total;
 };
 
-export const contextWindowKind = (segment: ContextWindowSegment): ContextWindowKind => {
+export const contextWindowKind = (
+  segment: ContextWindowSegment
+): ContextWindowKind => {
   if (segment.kind) {
     return segment.kind;
   }
-  return isKind(segment.id) ? segment.id : 'other';
+  return isKind(segment.id) ? segment.id : "other";
 };
 
 export const segmentTokens = (segment: ContextWindowSegment): number => {
   if (segment.tokens !== undefined) {
     return cleanTokens(segment.tokens);
   }
-  return sumTokens((segment.items ?? []).map((item) => cleanTokens(item.tokens)));
+  return sumTokens(
+    (segment.items ?? []).map((item) => cleanTokens(item.tokens))
+  );
 };
 
 const trimDecimal = (value: number): string => {
@@ -82,7 +106,10 @@ export const formatTokens = (tokens: number): string => {
   return `${trimDecimal(value / 1_000_000)}M`;
 };
 
-export const contextWindowTotals = (segments: readonly ContextWindowSegment[], maxTokens: number) => {
+export const contextWindowTotals = (
+  segments: readonly ContextWindowSegment[],
+  maxTokens: number
+) => {
   const max = cleanTokens(maxTokens);
   const used = sumTokens(segments.map(segmentTokens));
   return {
@@ -104,7 +131,9 @@ const apportion = (weights: readonly number[], total: number): number[] => {
   const shares = quotas.map((quota) => Math.floor(quota));
   const order = quotas
     .map((quota, index) => ({ index, rest: quota - Math.floor(quota) }))
-    .toSorted((left, right) => right.rest - left.rest || left.index - right.index);
+    .toSorted(
+      (left, right) => right.rest - left.rest || left.index - right.index
+    );
   let left = total - sumTokens(shares);
   for (const { index } of order) {
     if (left <= 0) {
@@ -140,7 +169,7 @@ const keepVisible = (shares: number[], sizes: readonly number[]): number[] => {
 export const contextWindowCells = (
   segments: readonly ContextWindowSegment[],
   maxTokens: number,
-  count: number,
+  count: number
 ): (ContextWindowCell | null)[] => {
   const total = Math.max(0, Math.floor(count));
   const { free, used } = contextWindowTotals(segments, maxTokens);
@@ -170,7 +199,8 @@ export const contextWindowCells = (
 };
 
 /** About four characters per token. Good enough to split a measured total. */
-export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+export const estimateTokens = (text: string): number =>
+  Math.ceil(text.length / 4);
 
 export interface ContextWindowSource {
   /** `messages` from `useChat`. */
@@ -180,7 +210,7 @@ export interface ContextWindowSource {
    * input and output tokens are what the model now holds, so estimates are
    * scaled until the segments add up to it.
    */
-  usage?: Pick<LanguageModelUsage, 'inputTokens' | 'outputTokens'>;
+  usage?: Pick<LanguageModelUsage, "inputTokens" | "outputTokens">;
   /** The system prompt, or its token count. */
   system?: string | number;
   /** Tool definitions, or their token count. */
@@ -196,37 +226,39 @@ export interface ContextWindowSource {
 const IMAGE_TOKENS = 1600;
 
 const estimateFileTokens = (file: FileUIPart): number => {
-  if (file.mediaType.startsWith('image/')) {
+  if (file.mediaType.startsWith("image/")) {
     return IMAGE_TOKENS;
   }
-  const comma = file.url.indexOf(',');
-  if (!file.url.startsWith('data:') || comma === -1) {
+  const comma = file.url.indexOf(",");
+  if (!file.url.startsWith("data:") || comma === -1) {
     return 0;
   }
   const payload = file.url.length - comma - 1;
-  const bytes = file.url.slice(0, comma).endsWith(';base64') ? (payload * 3) / 4 : payload;
+  const bytes = file.url.slice(0, comma).endsWith(";base64")
+    ? (payload * 3) / 4
+    : payload;
   return Math.ceil(bytes / 4);
 };
 
 const stringify = (value: unknown): string => {
   if (value === undefined) {
-    return '';
+    return "";
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value;
   }
   try {
-    return JSON.stringify(value) ?? '';
+    return JSON.stringify(value) ?? "";
   } catch {
-    return '';
+    return "";
   }
 };
 
 const measure = (
   value: string | number | Record<string, unknown> | undefined,
-  estimate: (text: string) => number,
+  estimate: (text: string) => number
 ): { tokens: number; exact: boolean } => {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return { exact: true, tokens: cleanTokens(value) };
   }
   return { exact: false, tokens: estimate(stringify(value)) };
@@ -235,31 +267,38 @@ const measure = (
 const readMessages = (
   messages: readonly UIMessage[],
   estimate: (text: string) => number,
-  fileTokens: (file: FileUIPart) => number,
+  fileTokens: (file: FileUIPart) => number
 ) => {
   const files: ContextWindowItem[] = [];
   let conversation = 0;
   for (const message of messages) {
     for (const [index, part] of message.parts.entries()) {
-      if (part.type === 'text') {
+      if (part.type === "text") {
         conversation += estimate(part.text);
-      } else if (part.type === 'file') {
+      } else if (part.type === "file") {
         files.push({
           id: `${message.id}-${index}`,
           label: part.filename ?? part.mediaType,
           tokens: cleanTokens(fileTokens(part)),
         });
-      } else if (part.type === 'dynamic-tool' || part.type.startsWith('tool-')) {
-        const input = 'input' in part ? part.input : undefined;
-        const output = 'output' in part ? part.output : undefined;
-        conversation += estimate(stringify(input)) + estimate(stringify(output));
+      } else if (
+        part.type === "dynamic-tool" ||
+        part.type.startsWith("tool-")
+      ) {
+        const input = "input" in part ? part.input : undefined;
+        const output = "output" in part ? part.output : undefined;
+        conversation +=
+          estimate(stringify(input)) + estimate(stringify(output));
       }
     }
   }
   return { conversation, files };
 };
 
-const scaleSegment = (segment: ContextWindowSegment, factor: number): ContextWindowSegment => {
+const scaleSegment = (
+  segment: ContextWindowSegment,
+  factor: number
+): ContextWindowSegment => {
   const items = segment.items?.map((item) => ({
     ...item,
     tokens: Math.round(item.tokens * factor),
@@ -272,14 +311,23 @@ const scaleSegment = (segment: ContextWindowSegment, factor: number): ContextWin
 };
 
 /** Scales the estimated segments so everything adds up to `target`. */
-const calibrate = (segments: ContextWindowSegment[], target: number): ContextWindowSegment[] => {
-  const exact = sumTokens(segments.filter((segment) => !segment.approximate).map(segmentTokens));
-  const estimated = sumTokens(segments.filter((segment) => segment.approximate).map(segmentTokens));
+const calibrate = (
+  segments: ContextWindowSegment[],
+  target: number
+): ContextWindowSegment[] => {
+  const exact = sumTokens(
+    segments.filter((segment) => !segment.approximate).map(segmentTokens)
+  );
+  const estimated = sumTokens(
+    segments.filter((segment) => segment.approximate).map(segmentTokens)
+  );
   if (estimated <= 0 || target <= exact) {
     return segments;
   }
   const factor = (target - exact) / estimated;
-  const scaled = segments.map((segment) => (segment.approximate ? scaleSegment(segment, factor) : segment));
+  const scaled = segments.map((segment) =>
+    segment.approximate ? scaleSegment(segment, factor) : segment
+  );
   const drift = target - sumTokens(scaled.map(segmentTokens));
   const largest = scaled
     .filter((segment) => segment.approximate && !segment.items)
@@ -289,7 +337,9 @@ const calibrate = (segments: ContextWindowSegment[], target: number): ContextWin
     return scaled;
   }
   return scaled.map((segment) =>
-    segment === largest ? { ...segment, tokens: Math.max(0, segmentTokens(segment) + drift) } : segment,
+    segment === largest
+      ? { ...segment, tokens: Math.max(0, segmentTokens(segment) + drift) }
+      : segment
   );
 };
 
@@ -315,43 +365,49 @@ export const contextWindowSegments = ({
   fileTokens,
   estimate = estimateTokens,
 }: ContextWindowSource): ContextWindowSegment[] => {
-  const read = readMessages(messages, estimate, fileTokens ?? estimateFileTokens);
+  const read = readMessages(
+    messages,
+    estimate,
+    fileTokens ?? estimateFileTokens
+  );
   const systemSize = measure(system, estimate);
   const toolsSize = measure(tools, estimate);
   const memorySize = measure(memory, estimate);
   const segments: ContextWindowSegment[] = [
     {
       approximate: !systemSize.exact,
-      id: 'system',
-      label: 'System prompt',
+      id: "system",
+      label: "System prompt",
       tokens: systemSize.tokens,
     },
     {
       approximate: !toolsSize.exact,
-      id: 'tools',
-      label: 'Tools',
+      id: "tools",
+      label: "Tools",
       tokens: toolsSize.tokens,
     },
     {
       approximate: !fileTokens,
-      id: 'files',
+      id: "files",
       items: read.files,
-      label: 'Files',
+      label: "Files",
     },
     {
       approximate: true,
-      id: 'conversation',
-      label: 'Conversation',
+      id: "conversation",
+      label: "Conversation",
       tokens: read.conversation,
     },
     {
       approximate: !memorySize.exact,
-      id: 'memory',
-      label: 'Memory',
+      id: "memory",
+      label: "Memory",
       tokens: memorySize.tokens,
     },
   ];
-  const present = segments.filter((segment) => segment.id === 'conversation' || segmentTokens(segment) > 0);
+  const present = segments.filter(
+    (segment) => segment.id === "conversation" || segmentTokens(segment) > 0
+  );
   if (usage?.inputTokens === undefined) {
     return present;
   }
@@ -402,66 +458,70 @@ export interface ContextWindowProps {
 }
 
 const DEFAULT_SEGMENTS: ContextWindowSegment[] = [
-  { id: 'system', label: 'System prompt', tokens: 3100 },
-  { id: 'tools', label: 'Tools', tokens: 9600 },
+  { id: "system", label: "System prompt", tokens: 3100 },
+  { id: "tools", label: "Tools", tokens: 9600 },
   {
-    id: 'files',
+    id: "files",
     items: [
-      { id: 'agent', label: 'agent.ts', tokens: 6200 },
-      { id: 'tools', label: 'tools.ts', tokens: 14_800 },
-      { id: 'trace', label: 'trace.jsonl', tokens: 27_500 },
+      { id: "agent", label: "agent.ts", tokens: 6200 },
+      { id: "tools", label: "tools.ts", tokens: 14_800 },
+      { id: "trace", label: "trace.jsonl", tokens: 27_500 },
     ],
-    label: 'Files',
+    label: "Files",
   },
-  { id: 'conversation', label: 'Conversation', tokens: 96_400 },
-  { id: 'memory', label: 'Memory', tokens: 2700 },
+  { id: "conversation", label: "Conversation", tokens: 96_400 },
+  { id: "memory", label: "Memory", tokens: 2700 },
 ];
 
 const DEFAULT_MAX_TOKENS = 200_000;
 const DEFAULT_CELLS = 200;
-const AUTO_COLUMNS = 'grid-cols-[repeat(25,minmax(0,1fr))] @xs/context-window:grid-cols-[repeat(40,minmax(0,1fr))]';
+const AUTO_COLUMNS =
+  "grid-cols-[repeat(25,minmax(0,1fr))] @xs/context-window:grid-cols-[repeat(40,minmax(0,1fr))]";
 const DEFAULT_WARN_AT = 0.9;
 const SWEEP_MS = 400;
 const FREED_MS = 4000;
 
 const ENTER_CLASS =
-  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
 
 const THEME_VARS = [
-  '[--context-window-system:#e87ba4] dark:[--context-window-system:#d55181]',
-  '[--context-window-tools:#4a3aa7] dark:[--context-window-tools:#9085e9]',
-  '[--context-window-files:#1baf7a] dark:[--context-window-files:#199e70]',
-  '[--context-window-conversation:#2a78d6] dark:[--context-window-conversation:#3987e5]',
-  '[--context-window-memory:#eda100] dark:[--context-window-memory:#c98500]',
-  '[--context-window-other:#008300]',
-  '[--context-window-reserved:color-mix(in_oklab,var(--foreground)_32%,transparent)]',
-  '[--context-window-free:color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:[--context-window-free:color-mix(in_oklab,var(--foreground)_14%,transparent)]',
-  '[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_14%,var(--card))] dark:[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_22%,var(--card))]',
-  '[--context-window-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  '[--context-window-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
-  'dark:[--context-window-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  'dark:[--context-window-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
-].join(' ');
+  "[--context-window-system:#e87ba4] dark:[--context-window-system:#d55181]",
+  "[--context-window-tools:#4a3aa7] dark:[--context-window-tools:#9085e9]",
+  "[--context-window-files:#1baf7a] dark:[--context-window-files:#199e70]",
+  "[--context-window-conversation:#2a78d6] dark:[--context-window-conversation:#3987e5]",
+  "[--context-window-memory:#eda100] dark:[--context-window-memory:#c98500]",
+  "[--context-window-other:#008300]",
+  "[--context-window-reserved:color-mix(in_oklab,var(--foreground)_32%,transparent)]",
+  "[--context-window-free:color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:[--context-window-free:color-mix(in_oklab,var(--foreground)_14%,transparent)]",
+  "[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_14%,var(--card))] dark:[--context-window-icon-bg:color-mix(in_oklab,var(--context-window-conversation)_22%,var(--card))]",
+  "[--context-window-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--context-window-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--context-window-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--context-window-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
 
 const KIND_COLOR: Record<ContextWindowKind, string> = {
-  conversation: 'var(--context-window-conversation)',
-  files: 'var(--context-window-files)',
-  memory: 'var(--context-window-memory)',
-  other: 'var(--context-window-other)',
-  reserved: 'var(--context-window-reserved)',
-  system: 'var(--context-window-system)',
-  tools: 'var(--context-window-tools)',
+  conversation: "var(--context-window-conversation)",
+  files: "var(--context-window-files)",
+  memory: "var(--context-window-memory)",
+  other: "var(--context-window-other)",
+  reserved: "var(--context-window-reserved)",
+  system: "var(--context-window-system)",
+  tools: "var(--context-window-tools)",
 };
 
 const HATCH =
-  'bg-[repeating-linear-gradient(45deg,var(--context-window-reserved)_0,var(--context-window-reserved)_1.5px,transparent_1.5px,transparent_3px)]';
+  "bg-[repeating-linear-gradient(45deg,var(--context-window-reserved)_0,var(--context-window-reserved)_1.5px,transparent_1.5px,transparent_3px)]";
 
 interface ActiveTarget {
   segment: string;
   item?: string;
 }
 
-const isLit = (cell: ContextWindowCell | null, active: ActiveTarget | null): boolean => {
+const isLit = (
+  cell: ContextWindowCell | null,
+  active: ActiveTarget | null
+): boolean => {
   if (!active || !cell) {
     return true;
   }
@@ -474,13 +534,13 @@ const isLit = (cell: ContextWindowCell | null, active: ActiveTarget | null): boo
 const percentLabel = (ratio: number): string => {
   const percent = Math.round(ratio * 100);
   if (percent === 0 && ratio > 0) {
-    return '<1%';
+    return "<1%";
   }
   return `${percent}%`;
 };
 
 const tokensLabel = (tokens: number, approximate: boolean | undefined) =>
-  `${approximate && tokens > 0 ? '~' : ''}${formatTokens(tokens)}`;
+  `${approximate && tokens > 0 ? "~" : ""}${formatTokens(tokens)}`;
 
 const statusLabel = ({
   compacting,
@@ -494,7 +554,7 @@ const statusLabel = ({
   over: number;
 }): string => {
   if (compacting) {
-    return 'Compacting conversation…';
+    return "Compacting conversation…";
   }
   if (freed > 0) {
     return `Freed ${formatTokens(freed)}`;
@@ -505,14 +565,22 @@ const statusLabel = ({
   return `${formatTokens(free)} left`;
 };
 
-const DigitColumn = ({ char, dir, reduce }: { char: string; dir: 'up' | 'down'; reduce: boolean }) => (
+const DigitColumn = ({
+  char,
+  dir,
+  reduce,
+}: {
+  char: string;
+  dir: "up" | "down";
+  reduce: boolean;
+}) => (
   <span className="relative inline-block h-[1em] overflow-hidden align-[-0.05em] leading-none">
     <AnimatePresence initial={false} mode="popLayout">
       <motion.span
         animate={{ y: 0 }}
         className="inline-block h-[1em] leading-none"
-        exit={{ y: dir === 'up' ? '-1em' : '1em' }}
-        initial={{ y: dir === 'up' ? '1em' : '-1em' }}
+        exit={{ y: dir === "up" ? "-1em" : "1em" }}
+        initial={{ y: dir === "up" ? "1em" : "-1em" }}
         key={char}
         transition={{
           duration: reduce ? 0 : 0.35,
@@ -528,13 +596,13 @@ const DigitColumn = ({ char, dir, reduce }: { char: string; dir: 'up' | 'down'; 
 const RollingTokens = ({ tokens }: { tokens: number }) => {
   const reduce = useReducedMotion();
   const prevRef = useRef(tokens);
-  const [dir, setDir] = useState<'up' | 'down'>('up');
+  const [dir, setDir] = useState<"up" | "down">("up");
 
   useEffect(() => {
     if (prevRef.current === tokens) {
       return;
     }
-    setDir(tokens < prevRef.current ? 'down' : 'up');
+    setDir(tokens < prevRef.current ? "down" : "up");
     prevRef.current = tokens;
   }, [tokens]);
 
@@ -546,7 +614,12 @@ const RollingTokens = ({ tokens }: { tokens: number }) => {
   return (
     <span className="inline-flex items-baseline">
       {slots.map((slot) => (
-        <DigitColumn char={slot.char} dir={dir} key={slot.id} reduce={Boolean(reduce)} />
+        <DigitColumn
+          char={slot.char}
+          dir={dir}
+          key={slot.id}
+          reduce={Boolean(reduce)}
+        />
       ))}
     </span>
   );
@@ -560,7 +633,7 @@ const ActionButton = ({
   children,
 }: {
   slot: string;
-  variant: 'ghost' | 'primary';
+  variant: "ghost" | "primary";
   disabled?: boolean;
   onClick: () => void;
   children: string;
@@ -569,8 +642,10 @@ const ActionButton = ({
     className={cn(
       "relative z-0 inline-flex h-6 cursor-pointer items-center rounded-full border-0 px-2.5 text-xs leading-none font-medium transition-transform duration-150 ease-out after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none active:enabled:scale-[0.96] disabled:cursor-default disabled:opacity-50 motion-reduce:transition-none dark:focus-visible:ring-ring/80",
       "before:absolute before:inset-0 before:-z-1 before:rounded-full before:transition-colors before:duration-150 before:ease-out before:content-['']",
-      variant === 'ghost' && 'text-card-foreground before:bg-foreground/6 hover:enabled:before:bg-foreground/10',
-      variant === 'primary' && 'text-primary-foreground before:bg-primary hover:enabled:before:bg-primary/90',
+      variant === "ghost" &&
+        "text-card-foreground before:bg-foreground/6 hover:enabled:before:bg-foreground/10",
+      variant === "primary" &&
+        "text-primary-foreground before:bg-primary hover:enabled:before:bg-primary/90"
     )}
     data-slot={slot}
     disabled={disabled}
@@ -615,9 +690,9 @@ const ContextWindowField = ({
     <div
       aria-label={label}
       className={cn(
-        'grid gap-0.5 rounded-lg bg-muted p-2 dark:bg-background',
+        "grid gap-0.5 rounded-lg bg-muted p-2 dark:bg-background",
         columns === undefined && AUTO_COLUMNS,
-        className,
+        className
       )}
       data-slot="context-window-field"
       onPointerLeave={() => {
@@ -625,7 +700,11 @@ const ContextWindowField = ({
       }}
       onPointerOver={onPointerOver}
       role="img"
-      style={columns === undefined ? undefined : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      style={
+        columns === undefined
+          ? undefined
+          : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+      }
     >
       {cells.map((cell, index) => {
         const delay = `${Math.round(index * step)}ms`;
@@ -633,14 +712,14 @@ const ContextWindowField = ({
         return (
           <span
             className={cn(
-              'aspect-square rounded-[2px] transition-[background-color,opacity] delay-[var(--context-window-delay),0ms] duration-[300ms,150ms] ease-out motion-reduce:transition-none',
-              cell?.kind === 'reserved' ? HATCH : 'bg-(--context-window-cell)',
-              !isLit(cell, active) && 'opacity-25',
-              pulsing && 'animate-pulse motion-reduce:animate-none',
-              cellClassName,
+              "aspect-square rounded-[2px] transition-[background-color,opacity] delay-[var(--context-window-delay),0ms] duration-[300ms,150ms] ease-out motion-reduce:transition-none",
+              cell?.kind === "reserved" ? HATCH : "bg-(--context-window-cell)",
+              !isLit(cell, active) && "opacity-25",
+              pulsing && "animate-pulse motion-reduce:animate-none",
+              cellClassName
             )}
             data-item={cell?.item}
-            data-kind={cell?.kind ?? 'free'}
+            data-kind={cell?.kind ?? "free"}
             data-segment={cell?.segment}
             data-slot="context-window-cell"
             // oxlint-disable-next-line react/no-array-index-key -- cells are positions in a fixed grid
@@ -648,8 +727,10 @@ const ContextWindowField = ({
             style={
               // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
               {
-                '--context-window-cell': cell ? KIND_COLOR[cell.kind] : 'var(--context-window-free)',
-                '--context-window-delay': delay,
+                "--context-window-cell": cell
+                  ? KIND_COLOR[cell.kind]
+                  : "var(--context-window-free)",
+                "--context-window-delay": delay,
                 animationDelay: pulsing ? delay : undefined,
               } as CSSProperties
             }
@@ -663,16 +744,19 @@ const ContextWindowField = ({
 const Swatch = ({ kind }: { kind: ContextWindowKind }) => (
   <span
     aria-hidden="true"
-    className={cn('size-2 flex-none rounded-[2px]', kind === 'reserved' ? HATCH : 'bg-(--context-window-cell)')}
+    className={cn(
+      "size-2 flex-none rounded-[2px]",
+      kind === "reserved" ? HATCH : "bg-(--context-window-cell)"
+    )}
     style={
       // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
-      { '--context-window-cell': KIND_COLOR[kind] } as CSSProperties
+      { "--context-window-cell": KIND_COLOR[kind] } as CSSProperties
     }
   />
 );
 
 const ROW_CLASS =
-  'flex h-7 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none';
+  "flex h-7 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none";
 
 const ContextWindowItemRow = ({
   active,
@@ -696,7 +780,7 @@ const ContextWindowItemRow = ({
   const target = { item: item.id, segment: segment.id };
   return (
     <motion.li
-      animate={{ height: 'auto', opacity: 1 }}
+      animate={{ height: "auto", opacity: 1 }}
       className="overflow-hidden"
       data-slot="context-window-item"
       exit={{ height: 0, opacity: 0 }}
@@ -706,9 +790,9 @@ const ContextWindowItemRow = ({
     >
       <div
         className={cn(
-          'group/item flex h-6 min-w-0 items-center gap-0.5 rounded-md pr-1.5 text-xs leading-4 transition-colors duration-150 ease-out motion-reduce:transition-none',
-          active && 'bg-foreground/6',
-          className,
+          "group/item flex h-6 min-w-0 items-center gap-0.5 rounded-md pr-1.5 text-xs leading-4 transition-colors duration-150 ease-out motion-reduce:transition-none",
+          active && "bg-foreground/6",
+          className
         )}
         onBlur={() => {
           onActiveChange(null);
@@ -727,12 +811,13 @@ const ContextWindowItemRow = ({
           <span
             aria-hidden="true"
             className={cn(
-              'size-1 rounded-full bg-(--context-window-cell) transition-opacity duration-150 ease-out motion-reduce:transition-none',
-              onRemove && 'group-focus-within/item:opacity-0 group-hover/item:opacity-0 pointer-coarse:opacity-0',
+              "size-1 rounded-full bg-(--context-window-cell) transition-opacity duration-150 ease-out motion-reduce:transition-none",
+              onRemove &&
+                "group-focus-within/item:opacity-0 group-hover/item:opacity-0 pointer-coarse:opacity-0"
             )}
             style={
               // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
-              { '--context-window-cell': KIND_COLOR[kind] } as CSSProperties
+              { "--context-window-cell": KIND_COLOR[kind] } as CSSProperties
             }
           />
           {onRemove ? (
@@ -745,7 +830,12 @@ const ContextWindowItemRow = ({
               }}
               type="button"
             >
-              <HugeiconsIcon aria-hidden="true" className="size-3" icon={Cancel01Icon} strokeWidth={2} />
+              <HugeiconsIcon
+                aria-hidden="true"
+                className="size-3"
+                icon={Cancel01Icon}
+                strokeWidth={2}
+              />
             </button>
           ) : null}
         </span>
@@ -791,8 +881,8 @@ const ContextWindowRow = ({
         <HugeiconsIcon
           aria-hidden="true"
           className={cn(
-            'size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none',
-            open ? 'rotate-0' : '-rotate-90',
+            "size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none",
+            open ? "rotate-0" : "-rotate-90"
           )}
           icon={ArrowDown01Icon}
           strokeWidth={2}
@@ -806,21 +896,27 @@ const ContextWindowRow = ({
   const removeItem = onRemoveItem
     ? (itemId: string, row: HTMLLIElement | null) => {
         const sibling = row?.nextElementSibling ?? row?.previousElementSibling;
-        const next = sibling?.querySelector<HTMLButtonElement>('[data-slot=context-window-remove]');
+        const next = sibling?.querySelector<HTMLButtonElement>(
+          "[data-slot=context-window-remove]"
+        );
         (next ?? toggleRef.current)?.focus();
         onRemoveItem(segment.id, itemId);
       }
     : undefined;
   return (
-    <li className="flex min-w-0 flex-col" data-kind={kind} data-slot="context-window-segment">
+    <li
+      className="flex min-w-0 flex-col"
+      data-kind={kind}
+      data-slot="context-window-segment"
+    >
       {items.length > 0 ? (
         <button
           aria-expanded={open}
           className={cn(
             ROW_CLASS,
-            'cursor-pointer hover:bg-foreground/6 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none dark:focus-visible:ring-ring/80',
-            lit && 'bg-foreground/6',
-            classNames?.row,
+            "cursor-pointer hover:bg-foreground/6 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none dark:focus-visible:ring-ring/80",
+            lit && "bg-foreground/6",
+            classNames?.row
           )}
           onBlur={() => {
             onActiveChange(null);
@@ -842,7 +938,7 @@ const ContextWindowRow = ({
         </button>
       ) : (
         <div
-          className={cn(ROW_CLASS, lit && 'bg-foreground/6', classNames?.row)}
+          className={cn(ROW_CLASS, lit && "bg-foreground/6", classNames?.row)}
           onPointerEnter={() => {
             onActiveChange(target);
           }}
@@ -856,7 +952,7 @@ const ContextWindowRow = ({
       <AnimatePresence initial={false}>
         {open && items.length > 0 ? (
           <motion.ul
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             className="m-0 flex list-none flex-col overflow-hidden p-0"
             exit={{ height: 0, opacity: 0 }}
             initial={{ height: 0, opacity: 0 }}
@@ -866,7 +962,9 @@ const ContextWindowRow = ({
             <AnimatePresence initial={false}>
               {items.map((item) => (
                 <ContextWindowItemRow
-                  active={active?.segment === segment.id && active.item === item.id}
+                  active={
+                    active?.segment === segment.id && active.item === item.id
+                  }
                   className={classNames?.item}
                   item={item}
                   key={item.id}
@@ -946,7 +1044,7 @@ export const ContextWindow = ({
   segments = DEFAULT_SEGMENTS,
   maxTokens = DEFAULT_MAX_TOKENS,
   model,
-  title = 'Context window',
+  title = "Context window",
   cells: cellCount = DEFAULT_CELLS,
   columns,
   warnAt = DEFAULT_WARN_AT,
@@ -954,9 +1052,9 @@ export const ContextWindow = ({
   onRemoveItem,
   onCompact,
   compacting,
-  compactLabel = 'Compact',
+  compactLabel = "Compact",
   onClear,
-  clearLabel = 'Clear',
+  clearLabel = "Clear",
   className,
   classNames,
   style,
@@ -966,16 +1064,25 @@ export const ContextWindow = ({
     if (!defaultOpen) {
       return new Set();
     }
-    return new Set(segments.filter((segment) => !defaultOpen.includes(segment.id)).map((segment) => segment.id));
+    return new Set(
+      segments
+        .filter((segment) => !defaultOpen.includes(segment.id))
+        .map((segment) => segment.id)
+    );
   });
-  const { free, max, over, ratio, used } = contextWindowTotals(segments, maxTokens);
+  const { free, max, over, ratio, used } = contextWindowTotals(
+    segments,
+    maxTokens
+  );
   const { compact, freed, isCompacting } = useCompaction({
     compacting,
     onCompact,
     used,
   });
   const cells = contextWindowCells(segments, maxTokens, cellCount);
-  const conversation = segments.find((segment) => contextWindowKind(segment) === 'conversation');
+  const conversation = segments.find(
+    (segment) => contextWindowKind(segment) === "conversation"
+  );
   const canCompact = Boolean(conversation && segmentTokens(conversation) > 0);
   const warn = ratio >= warnAt;
   const summary = `${formatTokens(used)} of ${formatTokens(max)} tokens used, ${percentLabel(ratio)}`;
@@ -997,16 +1104,20 @@ export const ContextWindow = ({
       aria-label={title}
       className={cn(
         THEME_VARS,
-        '@container/context-window flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--context-window-shadow) transition-shadow duration-150 ease-out hover:shadow-(--context-window-shadow-hover)',
+        "@container/context-window flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--context-window-shadow) transition-shadow duration-150 ease-out hover:shadow-(--context-window-shadow-hover)",
         className,
-        classNames?.root,
+        classNames?.root
       )}
       data-slot="context-window"
-      data-state={isCompacting ? 'compacting' : 'idle'}
+      data-state={isCompacting ? "compacting" : "idle"}
       style={style}
     >
       <div
-        className={cn(ENTER_CLASS, 'flex h-6 min-w-0 items-center gap-2', classNames?.header)}
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
         data-slot="context-window-header"
       >
         <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--context-window-icon-bg)">
@@ -1030,19 +1141,24 @@ export const ContextWindow = ({
         ) : null}
       </div>
 
-      <div className={cn(ENTER_CLASS, 'flex flex-col gap-3 delay-100')}>
+      <div className={cn(ENTER_CLASS, "flex flex-col gap-3 delay-100")}>
         <div
-          className={cn('flex min-w-0 items-baseline gap-1.5 pl-0.5', classNames?.summary)}
+          className={cn(
+            "flex min-w-0 items-baseline gap-1.5 pl-0.5",
+            classNames?.summary
+          )}
           data-slot="context-window-summary"
         >
           <span className="text-2xl leading-none font-medium tracking-tight tabular-nums">
             <RollingTokens tokens={used} />
           </span>
-          <span className="text-[13px] leading-none text-muted-foreground tabular-nums">/ {formatTokens(max)}</span>
+          <span className="text-[13px] leading-none text-muted-foreground tabular-nums">
+            / {formatTokens(max)}
+          </span>
           <span
             className={cn(
-              'ml-auto text-[13px] leading-none font-medium tabular-nums',
-              warn ? 'text-destructive' : 'text-muted-foreground',
+              "ml-auto text-[13px] leading-none font-medium tabular-nums",
+              warn ? "text-destructive" : "text-muted-foreground"
             )}
             data-slot="context-window-percent"
           >
@@ -1062,7 +1178,10 @@ export const ContextWindow = ({
         />
 
         <ul
-          className={cn('m-0 flex list-none flex-col gap-px p-0', classNames?.legend)}
+          className={cn(
+            "m-0 flex list-none flex-col gap-px p-0",
+            classNames?.legend
+          )}
           data-slot="context-window-legend"
         >
           {segments.map((segment) => (
@@ -1083,14 +1202,20 @@ export const ContextWindow = ({
       </div>
 
       <div
-        className={cn(ENTER_CLASS, 'flex min-h-6 min-w-0 items-center gap-2 delay-200', classNames?.footer)}
+        className={cn(
+          ENTER_CLASS,
+          "flex min-h-6 min-w-0 items-center gap-2 delay-200",
+          classNames?.footer
+        )}
         data-slot="context-window-footer"
       >
         <output
           aria-live="polite"
           className={cn(
-            'min-w-0 flex-1 truncate pl-0.5 text-xs leading-4 tabular-nums',
-            over > 0 && !isCompacting && freed === 0 ? 'text-destructive' : 'text-muted-foreground',
+            "min-w-0 flex-1 truncate pl-0.5 text-xs leading-4 tabular-nums",
+            over > 0 && !isCompacting && freed === 0
+              ? "text-destructive"
+              : "text-muted-foreground"
           )}
           data-slot="context-window-status"
         >
@@ -1099,7 +1224,12 @@ export const ContextWindow = ({
         {onClear || onCompact ? (
           <div className="flex flex-none items-center gap-1.5">
             {onClear ? (
-              <ActionButton disabled={isCompacting} onClick={onClear} slot="context-window-clear" variant="ghost">
+              <ActionButton
+                disabled={isCompacting}
+                onClick={onClear}
+                slot="context-window-clear"
+                variant="ghost"
+              >
                 {clearLabel}
               </ActionButton>
             ) : null}

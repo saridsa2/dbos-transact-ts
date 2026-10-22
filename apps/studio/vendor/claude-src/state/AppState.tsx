@@ -1,22 +1,21 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import { feature } from 'bun:bundle';
 import React, { useContext, useEffect, useEffectEvent, useState, useSyncExternalStore } from 'react';
 import { MailboxProvider } from '../context/mailbox.js';
 import { useSettingsChange } from '../hooks/useSettingsChange.js';
 import { logForDebugging } from '../utils/debug.js';
-import {
-  createDisabledBypassPermissionsContext,
-  isBypassPermissionsModeDisabled,
-} from '../utils/permissions/permissionSetup.js';
+import { createDisabledBypassPermissionsContext, isBypassPermissionsModeDisabled } from '../utils/permissions/permissionSetup.js';
 import { applySettingsChange } from '../utils/settings/applySettingsChange.js';
 import type { SettingSource } from '../utils/settings/constants.js';
 import { createStore } from './store.js';
 
 // DCE: voice context is ant-only. External builds get a passthrough.
 /* eslint-disable @typescript-eslint/no-require-imports */
-const VoiceProvider: (props: { children: React.ReactNode }) => React.ReactNode = feature('VOICE_MODE')
-  ? require('../context/voice.js').VoiceProvider
-  : ({ children }) => children;
+const VoiceProvider: (props: {
+  children: React.ReactNode;
+}) => React.ReactNode = feature('VOICE_MODE') ? require('../context/voice.js').VoiceProvider : ({
+  children
+}) => children;
 
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { type AppState, type AppStateStore, getDefaultAppState } from './AppStateStore.js';
@@ -24,28 +23,27 @@ import { type AppState, type AppStateStore, getDefaultAppState } from './AppStat
 // TODO: Remove these re-exports once all callers import directly from
 // ./AppStateStore.js. Kept for back-compat during migration so .ts callers
 // can incrementally move off the .tsx import and stop pulling React.
-export {
-  type AppState,
-  type AppStateStore,
-  type CompletionBoundary,
-  getDefaultAppState,
-  IDLE_SPECULATION_STATE,
-  type SpeculationResult,
-  type SpeculationState,
-} from './AppStateStore.js';
+export { type AppState, type AppStateStore, type CompletionBoundary, getDefaultAppState, IDLE_SPECULATION_STATE, type SpeculationResult, type SpeculationState } from './AppStateStore.js';
 export const AppStoreContext = React.createContext<AppStateStore | null>(null);
 type Props = {
   children: React.ReactNode;
   initialState?: AppState;
-  onChangeAppState?: (args: { newState: AppState; oldState: AppState }) => void;
+  onChangeAppState?: (args: {
+    newState: AppState;
+    oldState: AppState;
+  }) => void;
 };
 const HasAppStateContext = React.createContext<boolean>(false);
 export function AppStateProvider(t0) {
   const $ = _c(13);
-  const { children, initialState, onChangeAppState } = t0;
+  const {
+    children,
+    initialState,
+    onChangeAppState
+  } = t0;
   const hasAppStateContext = useContext(HasAppStateContext);
   if (hasAppStateContext) {
-    throw new Error('AppStateProvider can not be nested within another AppStateProvider');
+    throw new Error("AppStateProvider can not be nested within another AppStateProvider");
   }
   let t1;
   if ($[0] !== initialState || $[1] !== onChangeAppState) {
@@ -60,9 +58,11 @@ export function AppStateProvider(t0) {
   let t2;
   if ($[3] !== store) {
     t2 = () => {
-      const { toolPermissionContext } = store.getState();
+      const {
+        toolPermissionContext
+      } = store.getState();
       if (toolPermissionContext.isBypassPermissionsModeAvailable && isBypassPermissionsModeDisabled()) {
-        logForDebugging('Disabling bypass permissions mode on mount (remote settings loaded before mount)');
+        logForDebugging("Disabling bypass permissions mode on mount (remote settings loaded before mount)");
         store.setState(_temp);
       }
     };
@@ -72,7 +72,7 @@ export function AppStateProvider(t0) {
     t2 = $[4];
   }
   let t3;
-  if ($[5] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
     t3 = [];
     $[5] = t3;
   } else {
@@ -81,7 +81,7 @@ export function AppStateProvider(t0) {
   useEffect(t2, t3);
   let t4;
   if ($[6] !== store.setState) {
-    t4 = (source) => applySettingsChange(source, store.setState);
+    t4 = source => applySettingsChange(source, store.setState);
     $[6] = store.setState;
     $[7] = t4;
   } else {
@@ -91,11 +91,7 @@ export function AppStateProvider(t0) {
   useSettingsChange(onSettingsChange);
   let t5;
   if ($[8] !== children) {
-    t5 = (
-      <MailboxProvider>
-        <VoiceProvider>{children}</VoiceProvider>
-      </MailboxProvider>
-    );
+    t5 = <MailboxProvider><VoiceProvider>{children}</VoiceProvider></MailboxProvider>;
     $[8] = children;
     $[9] = t5;
   } else {
@@ -103,11 +99,7 @@ export function AppStateProvider(t0) {
   }
   let t6;
   if ($[10] !== store || $[11] !== t5) {
-    t6 = (
-      <HasAppStateContext.Provider value={true}>
-        <AppStoreContext.Provider value={store}>{t5}</AppStoreContext.Provider>
-      </HasAppStateContext.Provider>
-    );
+    t6 = <HasAppStateContext.Provider value={true}><AppStoreContext.Provider value={store}>{t5}</AppStoreContext.Provider></HasAppStateContext.Provider>;
     $[10] = store;
     $[11] = t5;
     $[12] = t6;
@@ -119,7 +111,7 @@ export function AppStateProvider(t0) {
 function _temp(prev) {
   return {
     ...prev,
-    toolPermissionContext: createDisabledBypassPermissionsContext(prev.toolPermissionContext),
+    toolPermissionContext: createDisabledBypassPermissionsContext(prev.toolPermissionContext)
   };
 }
 function useAppStore(): AppStateStore {
@@ -156,9 +148,7 @@ export function useAppState(selector) {
       const state = store.getState();
       const selected = selector(state);
       if (false && state === selected) {
-        throw new Error(
-          `Your selector in \`useAppState(${selector.toString()})\` returned the original state, which is not allowed. You must instead return a property for optimised rendering.`,
-        );
+        throw new Error(`Your selector in \`useAppState(${selector.toString()})\` returned the original state, which is not allowed. You must instead return a property for optimised rendering.`);
       }
       return selected;
     };
@@ -198,7 +188,7 @@ export function useAppStateMaybeOutsideOfProvider(selector) {
   const store = useContext(AppStoreContext);
   let t0;
   if ($[0] !== selector || $[1] !== store) {
-    t0 = () => (store ? selector(store.getState()) : undefined);
+    t0 = () => store ? selector(store.getState()) : undefined;
     $[0] = selector;
     $[1] = store;
     $[2] = t0;

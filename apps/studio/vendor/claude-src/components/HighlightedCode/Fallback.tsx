@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import { extname } from 'path';
 import React, { Suspense, use, useMemo } from 'react';
 import { Ansi, Text } from '../../ink.js';
@@ -18,11 +18,7 @@ type Props = {
 // of code+language to avoid retaining full source strings (#24180 RSS fix).
 const HL_CACHE_MAX = 500;
 const hlCache = new Map<string, string>();
-function cachedHighlight(
-  hl: NonNullable<Awaited<ReturnType<typeof getCliHighlightPromise>>>,
-  code: string,
-  language: string,
-): string {
+function cachedHighlight(hl: NonNullable<Awaited<ReturnType<typeof getCliHighlightPromise>>>, code: string, language: string): string {
   const key = hashPair(language, code);
   const hit = hlCache.get(key);
   if (hit !== undefined) {
@@ -31,7 +27,7 @@ function cachedHighlight(
     return hit;
   }
   const out = hl.highlight(code, {
-    language,
+    language
   });
   if (hlCache.size >= HL_CACHE_MAX) {
     const first = hlCache.keys().next().value;
@@ -42,7 +38,12 @@ function cachedHighlight(
 }
 export function HighlightedCodeFallback(t0) {
   const $ = _c(20);
-  const { code, filePath, dim: t1, skipColoring: t2 } = t0;
+  const {
+    code,
+    filePath,
+    dim: t1,
+    skipColoring: t2
+  } = t0;
   const dim = t1 === undefined ? false : t1;
   const skipColoring = t2 === undefined ? false : t2;
   let t3;
@@ -122,9 +123,12 @@ export function HighlightedCodeFallback(t0) {
 }
 function Highlighted(t0) {
   const $ = _c(10);
-  const { codeWithSpaces, language } = t0;
+  const {
+    codeWithSpaces,
+    language
+  } = t0;
   let t1;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = getCliHighlightPromise();
     $[0] = t1;
   } else {
@@ -138,7 +142,7 @@ function Highlighted(t0) {
         t2 = codeWithSpaces;
         break bb0;
       }
-      let highlightLang = 'markdown';
+      let highlightLang = "markdown";
       if (language) {
         if (hl.supportsLanguage(language)) {
           highlightLang = language;
@@ -146,15 +150,16 @@ function Highlighted(t0) {
           logForDebugging(`Language not supported while highlighting code, falling back to markdown: ${language}`);
         }
       }
+      ;
       try {
         t2 = cachedHighlight(hl, codeWithSpaces, highlightLang);
       } catch (t3) {
         const e = t3;
-        if (e instanceof Error && e.message.includes('Unknown language')) {
+        if (e instanceof Error && e.message.includes("Unknown language")) {
           logForDebugging(`Language not supported while highlighting code, falling back to markdown: ${e}`);
           let t4;
           if ($[5] !== codeWithSpaces || $[6] !== hl) {
-            t4 = cachedHighlight(hl, codeWithSpaces, 'markdown');
+            t4 = cachedHighlight(hl, codeWithSpaces, "markdown");
             $[5] = codeWithSpaces;
             $[6] = hl;
             $[7] = t4;

@@ -8,26 +8,13 @@ import { logError } from '../../utils/log.js';
 import { EventEmitter } from '../events/emitter.js';
 import { InputEvent } from '../events/input-event.js';
 import { TerminalFocusEvent } from '../events/terminal-focus-event.js';
-import {
-  INITIAL_STATE,
-  type ParsedInput,
-  type ParsedKey,
-  type ParsedMouse,
-  parseMultipleKeypresses,
-} from '../parse-keypress.js';
+import { INITIAL_STATE, type ParsedInput, type ParsedKey, type ParsedMouse, parseMultipleKeypresses } from '../parse-keypress.js';
 import reconciler from '../reconciler.js';
 import { finishSelection, hasSelection, type SelectionState, startSelection } from '../selection.js';
 import { isXtermJs, setXtversionName, supportsExtendedKeys } from '../terminal.js';
 import { getTerminalFocused, setTerminalFocused } from '../terminal-focus-state.js';
 import { TerminalQuerier, xtversion } from '../terminal-querier.js';
-import {
-  DISABLE_KITTY_KEYBOARD,
-  DISABLE_MODIFY_OTHER_KEYS,
-  ENABLE_KITTY_KEYBOARD,
-  ENABLE_MODIFY_OTHER_KEYS,
-  FOCUS_IN,
-  FOCUS_OUT,
-} from '../termio/csi.js';
+import { DISABLE_KITTY_KEYBOARD, DISABLE_MODIFY_OTHER_KEYS, ENABLE_KITTY_KEYBOARD, ENABLE_MODIFY_OTHER_KEYS, FOCUS_IN, FOCUS_OUT } from '../termio/csi.js';
 import { DBP, DFE, DISABLE_MOUSE_TRACKING, EBP, EFE, HIDE_CURSOR, SHOW_CURSOR } from '../termio/dec.js';
 import AppContext from './AppContext.js';
 import { ClockProvider } from './ClockContext.js';
@@ -115,11 +102,11 @@ export default class App extends PureComponent<Props, State> {
   static displayName = 'InternalApp';
   static getDerivedStateFromError(error: Error) {
     return {
-      error,
+      error
     };
   }
   override state = {
-    error: undefined,
+    error: undefined
   };
 
   // Count how many components enabled raw mode to avoid disabling
@@ -165,28 +152,21 @@ export default class App extends PureComponent<Props, State> {
     return this.props.stdin.isTTY;
   }
   override render() {
-    return (
-      <TerminalSizeContext.Provider
-        value={{
-          columns: this.props.terminalColumns,
-          rows: this.props.terminalRows,
-        }}
-      >
-        <AppContext.Provider
-          value={{
-            exit: this.handleExit,
-          }}
-        >
-          <StdinContext.Provider
-            value={{
-              stdin: this.props.stdin,
-              setRawMode: this.handleSetRawMode,
-              isRawModeSupported: this.isRawModeSupported(),
-              internal_exitOnCtrlC: this.props.exitOnCtrlC,
-              internal_eventEmitter: this.internal_eventEmitter,
-              internal_querier: this.querier,
-            }}
-          >
+    return <TerminalSizeContext.Provider value={{
+      columns: this.props.terminalColumns,
+      rows: this.props.terminalRows
+    }}>
+        <AppContext.Provider value={{
+        exit: this.handleExit
+      }}>
+          <StdinContext.Provider value={{
+          stdin: this.props.stdin,
+          setRawMode: this.handleSetRawMode,
+          isRawModeSupported: this.isRawModeSupported(),
+          internal_exitOnCtrlC: this.props.exitOnCtrlC,
+          internal_eventEmitter: this.internal_eventEmitter,
+          internal_querier: this.querier
+        }}>
             <TerminalFocusProvider>
               <ClockProvider>
                 <CursorDeclarationContext.Provider value={this.props.onCursorDeclaration ?? (() => {})}>
@@ -196,8 +176,7 @@ export default class App extends PureComponent<Props, State> {
             </TerminalFocusProvider>
           </StdinContext.Provider>
         </AppContext.Provider>
-      </TerminalSizeContext.Provider>
-    );
+      </TerminalSizeContext.Provider>;
   }
   override componentDidMount() {
     // In accessibility mode, keep the native cursor visible for screen magnifiers and other tools
@@ -228,16 +207,14 @@ export default class App extends PureComponent<Props, State> {
     this.handleExit(error);
   }
   handleSetRawMode = (isEnabled: boolean): void => {
-    const { stdin } = this.props;
+    const {
+      stdin
+    } = this.props;
     if (!this.isRawModeSupported()) {
       if (stdin === process.stdin) {
-        throw new Error(
-          'Raw mode is not supported on the current process.stdin, which Ink uses as input stream by default.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported',
-        );
+        throw new Error('Raw mode is not supported on the current process.stdin, which Ink uses as input stream by default.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported');
       } else {
-        throw new Error(
-          'Raw mode is not supported on the stdin provided to Ink.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported',
-        );
+        throw new Error('Raw mode is not supported on the stdin provided to Ink.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported');
       }
     }
     stdin.setEncoding('utf8');
@@ -349,10 +326,7 @@ export default class App extends PureComponent<Props, State> {
       if (this.incompleteEscapeTimer) {
         clearTimeout(this.incompleteEscapeTimer);
       }
-      this.incompleteEscapeTimer = setTimeout(
-        this.flushIncomplete,
-        this.keyParseState.mode === 'IN_PASTE' ? this.PASTE_TIMEOUT : this.NORMAL_TIMEOUT,
-      );
+      this.incompleteEscapeTimer = setTimeout(this.flushIncomplete, this.keyParseState.mode === 'IN_PASTE' ? this.PASTE_TIMEOUT : this.NORMAL_TIMEOUT);
     }
   };
   handleReadable = (): void => {
@@ -381,10 +355,12 @@ export default class App extends PureComponent<Props, State> {
       // Re-attach the listener in case the exception detached it.
       // Bun may remove the listener after an error; without this,
       // the session freezes permanently (stdin reader dead, event loop alive).
-      const { stdin } = this.props;
+      const {
+        stdin
+      } = this.props;
       if (this.rawModeEnabledCount > 0 && !stdin.listeners('readable').includes(this.handleReadable)) {
         logForDebugging('handleReadable: re-attaching stdin readable listener after error recovery', {
-          level: 'warn',
+          level: 'warn'
         });
         stdin.addListener('readable', this.handleReadable);
       }
@@ -472,9 +448,7 @@ function processKeysInBatch(app: App, items: ParsedInput[], _unused1: undefined,
   // Terminal responses (kind: 'response') are automated, not user input.
   // Mode-1003 no-button motion is also excluded — passive cursor drift is
   // not engagement (would suppress idle notifications + defer housekeeping).
-  if (
-    items.some((i) => i.kind === 'key' || (i.kind === 'mouse' && !((i.button & 0x20) !== 0 && (i.button & 0x03) === 3)))
-  ) {
+  if (items.some(i => i.kind === 'key' || i.kind === 'mouse' && !((i.button & 0x20) !== 0 && (i.button & 0x03) === 3))) {
     updateLastInteractionTime();
   }
   for (const item of items) {
@@ -594,10 +568,7 @@ export function handleMouseEvent(app: App, m: ParsedMouse): void {
     // release, which meant (a) visible latency before the word highlights
     // and (b) double-click+drag fell through to char-mode selection.
     const now = Date.now();
-    const nearLast =
-      now - app.lastClickTime < MULTI_CLICK_TIMEOUT_MS &&
-      Math.abs(col - app.lastClickCol) <= MULTI_CLICK_DISTANCE &&
-      Math.abs(row - app.lastClickRow) <= MULTI_CLICK_DISTANCE;
+    const nearLast = now - app.lastClickTime < MULTI_CLICK_TIMEOUT_MS && Math.abs(col - app.lastClickCol) <= MULTI_CLICK_DISTANCE && Math.abs(row - app.lastClickRow) <= MULTI_CLICK_DISTANCE;
     app.clickCount = nearLast ? app.clickCount + 1 : 1;
     app.lastClickTime = now;
     app.lastClickCol = col;
@@ -675,15 +646,10 @@ export function handleMouseEvent(app: App, m: ParsedMouse): void {
         if (app.pendingHyperlinkTimer) {
           clearTimeout(app.pendingHyperlinkTimer);
         }
-        app.pendingHyperlinkTimer = setTimeout(
-          (app, url) => {
-            app.pendingHyperlinkTimer = null;
-            app.props.onOpenHyperlink(url);
-          },
-          MULTI_CLICK_TIMEOUT_MS,
-          app,
-          url,
-        );
+        app.pendingHyperlinkTimer = setTimeout((app, url) => {
+          app.pendingHyperlinkTimer = null;
+          app.props.onOpenHyperlink(url);
+        }, MULTI_CLICK_TIMEOUT_MS, app, url);
       }
     }
   }

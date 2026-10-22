@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import sample from 'lodash-es/sample.js';
 import React from 'react';
 import { gracefulShutdown } from '../utils/gracefulShutdown.js';
@@ -14,12 +14,16 @@ type Props = {
 };
 export function ExitFlow(t0) {
   const $ = _c(5);
-  const { showWorktree, onDone, onCancel } = t0;
+  const {
+    showWorktree,
+    onDone,
+    onCancel
+  } = t0;
   let t1;
   if ($[0] !== onDone) {
     t1 = async function onExit(resultMessage) {
       onDone(resultMessage ?? getRandomGoodbyeMessage());
-      await gracefulShutdown(0, 'prompt_input_exit');
+      await gracefulShutdown(0, "prompt_input_exit");
     };
     $[0] = onDone;
     $[1] = t1;

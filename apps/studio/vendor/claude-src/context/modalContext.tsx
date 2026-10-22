@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import { createContext, type RefObject, useContext } from 'react';
 import type { ScrollBoxHandle } from '../ink/components/ScrollBox.js';
 
@@ -40,12 +40,10 @@ export function useModalOrTerminalSize(fallback) {
   const ctx = useContext(ModalContext);
   let t0;
   if ($[0] !== ctx || $[1] !== fallback) {
-    t0 = ctx
-      ? {
-          rows: ctx.rows,
-          columns: ctx.columns,
-        }
-      : fallback;
+    t0 = ctx ? {
+      rows: ctx.rows,
+      columns: ctx.columns
+    } : fallback;
     $[0] = ctx;
     $[1] = fallback;
     $[2] = t0;

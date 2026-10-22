@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { Box } from '../../ink.js';
 import { Divider } from '../design-system/Divider.js';
@@ -10,7 +10,10 @@ type FeedColumnProps = {
 };
 export function FeedColumn(t0) {
   const $ = _c(10);
-  const { feeds, maxWidth } = t0;
+  const {
+    feeds,
+    maxWidth
+  } = t0;
   let t1;
   if ($[0] !== feeds) {
     const feedWidths = feeds.map(_temp);
@@ -26,12 +29,7 @@ export function FeedColumn(t0) {
   if ($[2] !== actualWidth || $[3] !== feeds) {
     let t3;
     if ($[5] !== actualWidth || $[6] !== feeds.length) {
-      t3 = (feed_0, index) => (
-        <React.Fragment key={index}>
-          <Feed config={feed_0} actualWidth={actualWidth} />
-          {index < feeds.length - 1 && <Divider color="claude" width={actualWidth} />}
-        </React.Fragment>
-      );
+      t3 = (feed_0, index) => <React.Fragment key={index}><Feed config={feed_0} actualWidth={actualWidth} />{index < feeds.length - 1 && <Divider color="claude" width={actualWidth} />}</React.Fragment>;
       $[5] = actualWidth;
       $[6] = feeds.length;
       $[7] = t3;

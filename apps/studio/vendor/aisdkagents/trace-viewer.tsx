@@ -1,18 +1,23 @@
-'use client';
+"use client";
 
-import { AiBrain01Icon, ChartGanttIcon, Layers01Icon, Wrench01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
-import type { LanguageModelUsage } from 'ai';
-import { motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import {
+  AiBrain01Icon,
+  ChartGanttIcon,
+  Layers01Icon,
+  Wrench01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import type { LanguageModelUsage } from "ai";
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-export type TraceSpanKind = 'model' | 'tool' | 'group';
+export type TraceSpanKind = "model" | "tool" | "group";
 
-export type TraceSpanStatus = 'ok' | 'error';
+export type TraceSpanStatus = "ok" | "error";
 
 export interface TraceSpanUsage {
   /** All input tokens, cached ones included. */
@@ -76,7 +81,7 @@ export const formatDuration = (ms: number): string => {
     return `${trimDecimal(value / 1000)}s`;
   }
   const seconds = Math.round(value / 1000);
-  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
 };
 
 /** `842`, `4.2K`, `1.2M`. */
@@ -94,16 +99,18 @@ export const formatTokens = (tokens: number): string => {
 /** `search_logs`, `searchLogs`, and `search-logs` all read as `Search logs`. */
 export const toolLabel = (name: string): string => {
   const words = name
-    .replaceAll(/[_-]+/gu, ' ')
-    .replaceAll(/([a-z\d])([A-Z])/gu, '$1 $2')
+    .replaceAll(/[_-]+/gu, " ")
+    .replaceAll(/([a-z\d])([A-Z])/gu, "$1 $2")
     .trim()
     .toLowerCase();
   return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : name;
 };
 
-const spanTokens = (span: TraceSpan): number => clean(span.usage?.input) + clean(span.usage?.output);
+const spanTokens = (span: TraceSpan): number =>
+  clean(span.usage?.input) + clean(span.usage?.output);
 
-const spanEnd = (span: TraceSpan): number => clean(span.startMs) + clean(span.durationMs);
+const spanEnd = (span: TraceSpan): number =>
+  clean(span.startMs) + clean(span.durationMs);
 
 export interface TraceRow {
   span: TraceSpan;
@@ -122,13 +129,19 @@ export const traceRows = (spans: readonly TraceSpan[]): TraceRow[] => {
   const children = new Map<string | undefined, TraceSpan[]>();
   for (const span of spans) {
     const parent =
-      span.parentId !== undefined && span.parentId !== span.id && ids.has(span.parentId) ? span.parentId : undefined;
+      span.parentId !== undefined &&
+      span.parentId !== span.id &&
+      ids.has(span.parentId)
+        ? span.parentId
+        : undefined;
     children.set(parent, [...(children.get(parent) ?? []), span]);
   }
   const rows: TraceRow[] = [];
   const seen = new Set<string>();
   const visit = (parent: string | undefined, depth: number) => {
-    const group = (children.get(parent) ?? []).toSorted((left, right) => left.startMs - right.startMs);
+    const group = (children.get(parent) ?? []).toSorted(
+      (left, right) => left.startMs - right.startMs
+    );
     for (const span of group) {
       if (!seen.has(span.id)) {
         seen.add(span.id);
@@ -177,26 +190,26 @@ export const traceSummary = (spans: readonly TraceSpan[]): TraceSummary => {
     endMs = Math.max(endMs, spanEnd(span));
     tokens += spanTokens(span);
     if (
-      span.kind !== 'group' &&
-      !(span.kind === 'tool' && parents.has(span.id)) &&
+      span.kind !== "group" &&
+      !(span.kind === "tool" && parents.has(span.id)) &&
       clean(span.durationMs) > clean(slowest?.durationMs)
     ) {
       slowest = span;
     }
   }
   const failed = spans
-    .filter((span) => span.status === 'error')
+    .filter((span) => span.status === "error")
     .toSorted((left, right) => left.startMs - right.startMs);
   const origin = Number.isFinite(originMs) ? originMs : 0;
   return {
     durationMs: Math.max(0, endMs - origin),
     failed,
     focus: failed[0] ?? slowest ?? spans[0] ?? null,
-    modelCalls: spans.filter((span) => span.kind === 'model').length,
+    modelCalls: spans.filter((span) => span.kind === "model").length,
     originMs: origin,
     slowest,
     tokens,
-    toolCalls: spans.filter((span) => span.kind === 'tool').length,
+    toolCalls: spans.filter((span) => span.kind === "tool").length,
   };
 };
 
@@ -210,7 +223,8 @@ export const traceTicks = (durationMs: number, target = 4): number[] => {
   }
   const rough = total / Math.max(1, target);
   const magnitude = 10 ** Math.floor(Math.log10(rough));
-  const factor = TICK_FACTORS.find((item) => item * magnitude >= rough) ?? TICK_FACTORS[0];
+  const factor =
+    TICK_FACTORS.find((item) => item * magnitude >= rough) ?? TICK_FACTORS[0];
   const step = (factor ?? 1) * magnitude;
   const ticks: number[] = [];
   for (let tick = 0; tick <= total; tick += step) {
@@ -219,7 +233,7 @@ export const traceTicks = (durationMs: number, target = 4): number[] => {
   return ticks;
 };
 
-type UsageInput = Pick<LanguageModelUsage, 'inputTokens' | 'outputTokens'>;
+type UsageInput = Pick<LanguageModelUsage, "inputTokens" | "outputTokens">;
 
 /** The parts of an AI SDK `StepResult` a trace needs. */
 export interface TraceStepSource {
@@ -244,7 +258,7 @@ export interface TraceStepSource {
 }
 
 const errorText = (error: unknown): string => {
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return error;
   }
   if (error instanceof Error) {
@@ -276,13 +290,13 @@ const errorText = (error: unknown): string => {
  */
 export const traceSpansFromSteps = (
   steps: readonly TraceStepSource[],
-  options: { under?: TraceSpan } = {},
+  options: { under?: TraceSpan } = {}
 ): TraceSpan[] => {
   const { under } = options;
   const spans: TraceSpan[] = [];
   let cursor = clean(under?.startMs);
   for (const [index, step] of steps.entries()) {
-    const id = `${under ? `${under.id}/` : ''}step-${index + 1}`;
+    const id = `${under ? `${under.id}/` : ""}step-${index + 1}`;
     const calls = step.toolCalls ?? [];
     const responseMs = clean(step.performance?.responseTimeMs);
     const toolMs = step.performance?.toolExecutionMs ?? {};
@@ -290,10 +304,13 @@ export const traceSpansFromSteps = (
       durationMs: responseMs,
       firstTokenMs: step.performance?.timeToFirstOutputMs,
       id,
-      kind: 'model',
-      name: step.model?.modelId ?? 'Model',
+      kind: "model",
+      name: step.model?.modelId ?? "Model",
       output:
-        step.text || (calls.length > 0 ? calls.map((call) => ({ input: call.input, tool: call.toolName })) : undefined),
+        step.text ||
+        (calls.length > 0
+          ? calls.map((call) => ({ input: call.input, tool: call.toolName }))
+          : undefined),
       parentId: under?.id,
       startMs: cursor,
       tokensPerSecond: step.performance?.outputTokensPerSecond,
@@ -305,22 +322,30 @@ export const traceSpansFromSteps = (
     let longestTool = 0;
     for (const call of calls) {
       const durationMs = clean(toolMs[call.toolCallId]);
-      const failure = step.content?.find((part) => part.type === 'tool-error' && part.toolCallId === call.toolCallId);
+      const failure = step.content?.find(
+        (part) =>
+          part.type === "tool-error" && part.toolCallId === call.toolCallId
+      );
       longestTool = Math.max(longestTool, durationMs);
       spans.push({
         durationMs,
         error: failure ? errorText(failure.error) : undefined,
         id: `${id}-${call.toolCallId}`,
         input: call.input,
-        kind: 'tool',
+        kind: "tool",
         name: call.toolName,
-        output: step.toolResults?.find((result) => result.toolCallId === call.toolCallId)?.output,
+        output: step.toolResults?.find(
+          (result) => result.toolCallId === call.toolCallId
+        )?.output,
         parentId: id,
         startMs: cursor + responseMs,
-        status: failure ? 'error' : 'ok',
+        status: failure ? "error" : "ok",
       });
     }
-    cursor += Math.max(clean(step.performance?.stepTimeMs), responseMs + longestTool);
+    cursor += Math.max(
+      clean(step.performance?.stepTimeMs),
+      responseMs + longestTool
+    );
   }
   return spans;
 };
@@ -334,20 +359,28 @@ export interface TraceBody {
 /** Display text for a span's input or output. */
 export const traceBody = (value: unknown): TraceBody => {
   if (value === undefined) {
-    return { json: false, text: '' };
+    return { json: false, text: "" };
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return { json: false, text: value };
   }
   try {
     const text = JSON.stringify(value, null, 2);
-    return text === undefined ? { json: false, text: String(value) } : { json: true, text };
+    return text === undefined
+      ? { json: false, text: String(value) }
+      : { json: true, text };
   } catch {
     return { json: false, text: String(value) };
   }
 };
 
-type TokenKind = 'key' | 'string' | 'number' | 'literal' | 'punctuation' | 'plain';
+type TokenKind =
+  | "key"
+  | "string"
+  | "number"
+  | "literal"
+  | "punctuation"
+  | "plain";
 
 interface Token {
   kind: TokenKind;
@@ -355,21 +388,22 @@ interface Token {
   text: string;
 }
 
-const JSON_TOKEN = /"(?:[^"\\]|\\.)*"?|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b|[{}[\],:]/gu;
+const JSON_TOKEN =
+  /"(?:[^"\\]|\\.)*"?|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b|[{}[\],:]/gu;
 const KEY_SUFFIX = /\s*:/uy;
 
 const tokenKind = (value: string, source: string, end: number): TokenKind => {
   if (value.startsWith('"')) {
     KEY_SUFFIX.lastIndex = end;
-    return KEY_SUFFIX.test(source) ? 'key' : 'string';
+    return KEY_SUFFIX.test(source) ? "key" : "string";
   }
-  if (value === 'true' || value === 'false' || value === 'null') {
-    return 'literal';
+  if (value === "true" || value === "false" || value === "null") {
+    return "literal";
   }
-  if (value.length === 1 && '{}[],:'.includes(value)) {
-    return 'punctuation';
+  if (value.length === 1 && "{}[],:".includes(value)) {
+    return "punctuation";
   }
-  return 'number';
+  return "number";
 };
 
 const tokenizeJson = (source: string): Token[] => {
@@ -380,7 +414,7 @@ const tokenizeJson = (source: string): Token[] => {
     const offset = match.index;
     if (offset > cursor) {
       tokens.push({
-        kind: 'plain',
+        kind: "plain",
         offset: cursor,
         text: source.slice(cursor, offset),
       });
@@ -393,7 +427,7 @@ const tokenizeJson = (source: string): Token[] => {
     });
   }
   if (cursor < source.length) {
-    tokens.push({ kind: 'plain', offset: cursor, text: source.slice(cursor) });
+    tokens.push({ kind: "plain", offset: cursor, text: source.slice(cursor) });
   }
   return tokens;
 };
@@ -434,53 +468,53 @@ const DEFAULT_SPANS: TraceSpan[] = [
   {
     durationMs: 900,
     firstTokenMs: 320,
-    id: 's1',
-    kind: 'model',
-    name: 'Model',
-    output: [{ input: { query: 'rate limits' }, tool: 'search_docs' }],
+    id: "s1",
+    kind: "model",
+    name: "Model",
+    output: [{ input: { query: "rate limits" }, tool: "search_docs" }],
     startMs: 0,
     tokensPerSecond: 72,
     usage: { input: 1900, output: 140 },
   },
   {
     durationMs: 1400,
-    id: 's1-search',
-    input: { query: 'rate limits' },
-    kind: 'tool',
-    name: 'search_docs',
-    output: { matches: 3, top: 'guides/rate-limits' },
-    parentId: 's1',
+    id: "s1-search",
+    input: { query: "rate limits" },
+    kind: "tool",
+    name: "search_docs",
+    output: { matches: 3, top: "guides/rate-limits" },
+    parentId: "s1",
     startMs: 900,
   },
   {
     durationMs: 800,
     firstTokenMs: 290,
-    id: 's2',
-    kind: 'model',
-    name: 'Model',
-    output: [{ input: { path: 'guides/rate-limits' }, tool: 'read_page' }],
+    id: "s2",
+    kind: "model",
+    name: "Model",
+    output: [{ input: { path: "guides/rate-limits" }, tool: "read_page" }],
     startMs: 2300,
     tokensPerSecond: 80,
     usage: { input: 4700, output: 120 },
   },
   {
     durationMs: 600,
-    id: 's2-read',
-    input: { path: 'guides/rate-limits' },
-    kind: 'tool',
-    name: 'read_page',
+    id: "s2-read",
+    input: { path: "guides/rate-limits" },
+    kind: "tool",
+    name: "read_page",
     output: { words: 1840 },
-    parentId: 's2',
+    parentId: "s2",
     startMs: 3100,
   },
   {
     durationMs: 2200,
     firstTokenMs: 410,
-    id: 's3',
-    kind: 'model',
-    name: 'Model',
+    id: "s3",
+    kind: "model",
+    name: "Model",
     output:
-      'Requests are limited per key, per minute. A 429 carries a retry-after header that says when to send the next one.',
+      "Requests are limited per key, per minute. A 429 carries a retry-after header that says when to send the next one.",
     startMs: 3700,
     tokensPerSecond: 88,
     usage: { input: 9500, output: 640 },
@@ -494,47 +528,47 @@ const HIGHLIGHT_LIMIT = 20_000;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const ENTER_CLASS =
-  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
 
 const THEME_VARS = [
-  '[--trace-viewer-model:#2a78d6] dark:[--trace-viewer-model:#3987e5]',
-  '[--trace-viewer-tool:#1baf7a] dark:[--trace-viewer-tool:#199e70]',
-  '[--trace-viewer-group:color-mix(in_oklab,var(--foreground)_30%,transparent)]',
-  '[--trace-viewer-error:var(--destructive)]',
-  '[--trace-viewer-accent:#1d6496] dark:[--trace-viewer-accent:#6eb5dc]',
-  '[--trace-viewer-icon-bg:color-mix(in_oklab,var(--trace-viewer-accent)_14%,var(--card))] dark:[--trace-viewer-icon-bg:color-mix(in_oklab,var(--trace-viewer-accent)_22%,var(--card))]',
-  '[--trace-viewer-key:#005cc5] dark:[--trace-viewer-key:#79b8ff]',
-  '[--trace-viewer-string:#032f62] dark:[--trace-viewer-string:#9ecbff]',
-  '[--trace-viewer-number:#b35900] dark:[--trace-viewer-number:#ffab70]',
-  '[--trace-viewer-literal:#d73a49] dark:[--trace-viewer-literal:#f97583]',
-  '[--trace-viewer-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  '[--trace-viewer-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
-  'dark:[--trace-viewer-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  'dark:[--trace-viewer-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
-].join(' ');
+  "[--trace-viewer-model:#2a78d6] dark:[--trace-viewer-model:#3987e5]",
+  "[--trace-viewer-tool:#1baf7a] dark:[--trace-viewer-tool:#199e70]",
+  "[--trace-viewer-group:color-mix(in_oklab,var(--foreground)_30%,transparent)]",
+  "[--trace-viewer-error:var(--destructive)]",
+  "[--trace-viewer-accent:#1d6496] dark:[--trace-viewer-accent:#6eb5dc]",
+  "[--trace-viewer-icon-bg:color-mix(in_oklab,var(--trace-viewer-accent)_14%,var(--card))] dark:[--trace-viewer-icon-bg:color-mix(in_oklab,var(--trace-viewer-accent)_22%,var(--card))]",
+  "[--trace-viewer-key:#005cc5] dark:[--trace-viewer-key:#79b8ff]",
+  "[--trace-viewer-string:#032f62] dark:[--trace-viewer-string:#9ecbff]",
+  "[--trace-viewer-number:#b35900] dark:[--trace-viewer-number:#ffab70]",
+  "[--trace-viewer-literal:#d73a49] dark:[--trace-viewer-literal:#f97583]",
+  "[--trace-viewer-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--trace-viewer-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--trace-viewer-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--trace-viewer-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
 
 /** Column widths the axis, the rows, and the overlay behind them all share. */
 const COLUMN_VARS =
-  '[--trace-viewer-label:6.5rem] [--trace-viewer-figures:2.75rem] @xs:[--trace-viewer-label:7.5rem] @md:[--trace-viewer-label:9.5rem] @md:[--trace-viewer-figures:6rem]';
+  "[--trace-viewer-label:6.5rem] [--trace-viewer-figures:2.75rem] @xs:[--trace-viewer-label:7.5rem] @md:[--trace-viewer-label:9.5rem] @md:[--trace-viewer-figures:6rem]";
 
 const TOKEN_CLASS: Record<TokenKind, string | undefined> = {
-  key: 'text-(--trace-viewer-key)',
-  literal: 'text-(--trace-viewer-literal)',
-  number: 'text-(--trace-viewer-number)',
+  key: "text-(--trace-viewer-key)",
+  literal: "text-(--trace-viewer-literal)",
+  number: "text-(--trace-viewer-number)",
   plain: undefined,
-  punctuation: 'text-muted-foreground',
-  string: 'text-(--trace-viewer-string)',
+  punctuation: "text-muted-foreground",
+  string: "text-(--trace-viewer-string)",
 };
 
 const FOCUS_CLASS =
-  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
 
 const ROW_CLASS =
-  'flex h-7 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none';
+  "flex h-7 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent px-1.5 text-left text-[13px] leading-4 text-card-foreground transition-colors duration-150 ease-out motion-reduce:transition-none";
 
 const PILL_CLASS = cn(
   "relative z-0 inline-flex h-6 cursor-pointer items-center rounded-full border-0 bg-transparent px-2.5 text-xs leading-none font-medium whitespace-nowrap text-card-foreground transition-transform duration-150 ease-out before:absolute before:inset-0 before:-z-1 before:rounded-full before:bg-foreground/6 before:transition-colors before:duration-150 before:ease-out before:content-[''] after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:before:bg-foreground/10 active:scale-[0.96] motion-reduce:transition-none",
-  FOCUS_CLASS,
+  FOCUS_CLASS
 );
 
 const KIND_ICON: Record<TraceSpanKind, IconSvgElement> = {
@@ -545,18 +579,21 @@ const KIND_ICON: Record<TraceSpanKind, IconSvgElement> = {
 
 /** A tool that ran other spans is an agent, so it takes the group mark. */
 const markKind = (span: TraceSpan, parent: boolean): TraceSpanKind =>
-  parent && span.kind === 'tool' ? 'group' : span.kind;
+  parent && span.kind === "tool" ? "group" : span.kind;
 
 const KIND_LABEL: Record<TraceSpanKind, string> = {
-  group: 'Group',
-  model: 'Model call',
-  tool: 'Tool call',
+  group: "Group",
+  model: "Model call",
+  tool: "Tool call",
 };
 
 const barColor = (span: TraceSpan): CSSProperties => {
-  const color = span.status === 'error' ? 'var(--trace-viewer-error)' : `var(--trace-viewer-${span.kind})`;
+  const color =
+    span.status === "error"
+      ? "var(--trace-viewer-error)"
+      : `var(--trace-viewer-${span.kind})`;
   // SAFETY: custom properties are valid CSS; CSSProperties omits `--*` keys.
-  return { '--trace-viewer-bar': color } as CSSProperties;
+  return { "--trace-viewer-bar": color } as CSSProperties;
 };
 
 const percent = (part: number, whole: number): number =>
@@ -564,45 +601,50 @@ const percent = (part: number, whole: number): number =>
 
 const shareText = (part: number, whole: number): string => {
   const share = Math.round(percent(part, whole));
-  return share < 1 ? 'under 1%' : `${share}%`;
+  return share < 1 ? "under 1%" : `${share}%`;
 };
 
-const countText = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? '' : 's'}`;
+const countText = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 const modelSummary = (spans: readonly TraceSpan[]): string | null => {
-  const models = [...new Set(spans.flatMap((span) => (span.kind === 'model' ? [span.name] : [])))];
+  const models = [
+    ...new Set(
+      spans.flatMap((span) => (span.kind === "model" ? [span.name] : []))
+    ),
+  ];
   if (models.length === 0) {
     return null;
   }
   return models.length === 1 ? (models[0] ?? null) : `${models.length} models`;
 };
 
-type SectionId = 'input' | 'output';
+type SectionId = "input" | "output";
 
 interface Section {
   id: SectionId;
   label: string;
   body: TraceBody;
-  tone?: 'error';
+  tone?: "error";
 }
 
 const spanSections = (span: TraceSpan): Section[] => {
   const sections: Section[] = [];
   if (span.input !== undefined) {
-    sections.push({ body: traceBody(span.input), id: 'input', label: 'Input' });
+    sections.push({ body: traceBody(span.input), id: "input", label: "Input" });
   }
-  if (span.status === 'error') {
+  if (span.status === "error") {
     sections.push({
-      body: { json: false, text: span.error ?? 'The call failed.' },
-      id: 'output',
-      label: 'Error',
-      tone: 'error',
+      body: { json: false, text: span.error ?? "The call failed." },
+      id: "output",
+      label: "Error",
+      tone: "error",
     });
   } else if (span.output !== undefined) {
     sections.push({
       body: traceBody(span.output),
-      id: 'output',
-      label: 'Output',
+      id: "output",
+      label: "Output",
     });
   }
   return sections;
@@ -611,29 +653,32 @@ const spanSections = (span: TraceSpan): Section[] => {
 /** How far into the run a span began. */
 const startText = (span: TraceSpan, summary: TraceSummary): string => {
   const offset = clean(span.startMs) - summary.originMs;
-  return offset > 0 ? formatDuration(offset) : '0s';
+  return offset > 0 ? formatDuration(offset) : "0s";
 };
 
-const spanFacts = (span: TraceSpan, summary: TraceSummary): { label: string; value: string }[] => {
+const spanFacts = (
+  span: TraceSpan,
+  summary: TraceSummary
+): { label: string; value: string }[] => {
   const facts = [
-    { label: 'Started', value: startText(span, summary) },
-    { label: 'Duration', value: formatDuration(span.durationMs) },
+    { label: "Started", value: startText(span, summary) },
+    { label: "Duration", value: formatDuration(span.durationMs) },
   ];
   if (span.firstTokenMs !== undefined) {
     facts.push({
-      label: 'First token',
+      label: "First token",
       value: formatDuration(span.firstTokenMs),
     });
   }
   if (span.usage) {
     facts.push(
-      { label: 'Input', value: formatTokens(span.usage.input) },
-      { label: 'Output', value: formatTokens(span.usage.output) },
+      { label: "Input", value: formatTokens(span.usage.input) },
+      { label: "Output", value: formatTokens(span.usage.output) }
     );
   }
   if (span.tokensPerSecond !== undefined) {
     facts.push({
-      label: 'Speed',
+      label: "Speed",
       value: `${Math.round(clean(span.tokensPerSecond))} tok/s`,
     });
   }
@@ -672,7 +717,13 @@ const useCopy = (onCopy: ((text: string) => void) | undefined) => {
   return { copied, copy };
 };
 
-const SpanMark = ({ icon, kind }: { icon?: ReactNode; kind: TraceSpanKind }) => (
+const SpanMark = ({
+  icon,
+  kind,
+}: {
+  icon?: ReactNode;
+  kind: TraceSpanKind;
+}) => (
   <span
     aria-hidden="true"
     className="inline-flex size-4 flex-none items-center justify-center text-muted-foreground [&_svg]:size-3.5"
@@ -695,20 +746,26 @@ const Bar = ({
   summary: TraceSummary;
 }) => {
   const reduce = useReducedMotion();
-  const left = percent(clean(span.startMs) - summary.originMs, summary.durationMs);
+  const left = percent(
+    clean(span.startMs) - summary.originMs,
+    summary.durationMs
+  );
   const width = percent(span.durationMs, summary.durationMs);
   // The lighter lead of a model bar is the wait for its first token.
-  const wait = span.kind === 'model' ? percent(clean(span.firstTokenMs), span.durationMs) : 0;
+  const wait =
+    span.kind === "model"
+      ? percent(clean(span.firstTokenMs), span.durationMs)
+      : 0;
   const lead = hollow ? 100 : wait;
   return (
     <motion.span
-      animate={{ clipPath: 'inset(0 0% 0 0)' }}
+      animate={{ clipPath: "inset(0 0% 0 0)" }}
       className={cn(
-        'absolute top-1/2 block h-2 -translate-y-1/2 overflow-hidden rounded-[3px] bg-[color-mix(in_oklab,var(--trace-viewer-bar)_36%,transparent)] transition-[left,width] duration-300 ease-out motion-reduce:transition-none',
-        className,
+        "absolute top-1/2 block h-2 -translate-y-1/2 overflow-hidden rounded-[3px] bg-[color-mix(in_oklab,var(--trace-viewer-bar)_36%,transparent)] transition-[left,width] duration-300 ease-out motion-reduce:transition-none",
+        className
       )}
       data-slot="trace-viewer-bar"
-      initial={reduce ? false : { clipPath: 'inset(0 100% 0 0)' }}
+      initial={reduce ? false : { clipPath: "inset(0 100% 0 0)" }}
       style={{
         ...barColor(span),
         left: `min(${left}%, calc(100% - 3px))`,
@@ -720,7 +777,10 @@ const Bar = ({
         ease: EASE,
       }}
     >
-      <span className="absolute inset-y-0 right-0 bg-(--trace-viewer-bar)" style={{ left: `${lead}%` }} />
+      <span
+        className="absolute inset-y-0 right-0 bg-(--trace-viewer-bar)"
+        style={{ left: `${lead}%` }}
+      />
     </motion.span>
   );
 };
@@ -729,10 +789,16 @@ const tickTransform = (share: number): string | undefined => {
   if (share === 0) {
     return undefined;
   }
-  return share > 90 ? 'translateX(-100%)' : 'translateX(-50%)';
+  return share > 90 ? "translateX(-100%)" : "translateX(-50%)";
 };
 
-const Axis = ({ summary, ticks }: { summary: TraceSummary; ticks: number[] }) => (
+const Axis = ({
+  summary,
+  ticks,
+}: {
+  summary: TraceSummary;
+  ticks: number[];
+}) => (
   <div aria-hidden="true" className="flex h-4 items-center gap-2 px-1.5">
     <span className="w-(--trace-viewer-label) flex-none" />
     <span className="relative h-4 min-w-0 flex-1">
@@ -743,13 +809,13 @@ const Axis = ({ summary, ticks }: { summary: TraceSummary; ticks: number[] }) =>
         return (
           <span
             className={cn(
-              'absolute top-0 text-[10px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums',
-              inner && 'hidden @xs:block',
+              "absolute top-0 text-[10px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums",
+              inner && "hidden @xs:block"
             )}
             key={tick}
             style={{ left: `${share}%`, transform: tickTransform(share) }}
           >
-            {tick === 0 ? '0' : formatDuration(tick)}
+            {tick === 0 ? "0" : formatDuration(tick)}
           </span>
         );
       })}
@@ -810,11 +876,11 @@ const SectionSwitch = ({
       <button
         aria-pressed={active === section.id}
         className={cn(
-          'h-5 cursor-pointer rounded-full border-0 px-2 text-xs leading-none font-medium transition-[background-color,color,box-shadow] duration-150 ease-out motion-reduce:transition-none',
+          "h-5 cursor-pointer rounded-full border-0 px-2 text-xs leading-none font-medium transition-[background-color,color,box-shadow] duration-150 ease-out motion-reduce:transition-none",
           FOCUS_CLASS,
           active === section.id
-            ? 'bg-card text-card-foreground shadow-(--trace-viewer-shadow)'
-            : 'bg-transparent text-muted-foreground hover:text-card-foreground',
+            ? "bg-card text-card-foreground shadow-(--trace-viewer-shadow)"
+            : "bg-transparent text-muted-foreground hover:text-card-foreground"
         )}
         key={section.id}
         onClick={() => {
@@ -865,20 +931,30 @@ const Detail = ({
 }) => {
   const { copied, copy } = useCopy(onCopy);
   const sections = spanSections(span);
-  const open = sections.find((item) => item.id === section) ?? sections.at(-1) ?? null;
-  const failed = span.status === 'error';
+  const open =
+    sections.find((item) => item.id === section) ?? sections.at(-1) ?? null;
+  const failed = span.status === "error";
   return (
     <div
-      className={cn('flex min-w-0 flex-col gap-2.5 rounded-lg bg-muted px-3 pt-2 pb-2.5 dark:bg-background', className)}
+      className={cn(
+        "flex min-w-0 flex-col gap-2.5 rounded-lg bg-muted px-3 pt-2 pb-2.5 dark:bg-background",
+        className
+      )}
       data-slot="trace-viewer-detail"
     >
       <div className="flex min-h-5.5 min-w-0 items-center gap-1.5">
         <SpanMark icon={icon} kind={kind} />
-        <span className="min-w-0 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">{label}</span>
+        <span className="min-w-0 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+          {label}
+        </span>
         <span className="ml-auto flex min-w-0 flex-none items-center gap-1.5 text-xs leading-4 text-muted-foreground">
-          {failed ? <span className="text-(--trace-viewer-error)">Failed</span> : null}
+          {failed ? (
+            <span className="text-(--trace-viewer-error)">Failed</span>
+          ) : null}
           {label === span.name ? (
-            <span className={cn(failed && 'hidden')}>{KIND_LABEL[span.kind]}</span>
+            <span className={cn(failed && "hidden")}>
+              {KIND_LABEL[span.kind]}
+            </span>
           ) : (
             <span className="max-w-48 truncate font-mono">{span.name}</span>
           )}
@@ -887,13 +963,20 @@ const Detail = ({
       <dl className="m-0 flex flex-wrap gap-x-5 gap-y-2 pl-0.5">
         {spanFacts(span, summary).map((fact) => (
           <div className="flex min-w-0 flex-col gap-1" key={fact.label}>
-            <dt className="text-[11px] leading-none text-muted-foreground">{fact.label}</dt>
-            <dd className="m-0 text-[13px] leading-none tabular-nums">{fact.value}</dd>
+            <dt className="text-[11px] leading-none text-muted-foreground">
+              {fact.label}
+            </dt>
+            <dd className="m-0 text-[13px] leading-none tabular-nums">
+              {fact.value}
+            </dd>
           </div>
         ))}
       </dl>
       {span.images && span.images.length > 0 ? (
-        <div className="flex min-w-0 gap-1.5 overflow-x-auto pl-0.5" data-slot="trace-viewer-images">
+        <div
+          className="flex min-w-0 gap-1.5 overflow-x-auto pl-0.5"
+          data-slot="trace-viewer-images"
+        >
           {span.images.map((image) => (
             // oxlint-disable-next-line next/no-img-element -- any image the caller passes, often a data URL
             // eslint-disable-next-line @next/next/no-img-element -- any image the caller passes, often a data URL
@@ -909,9 +992,17 @@ const Detail = ({
       {open ? (
         <div className="flex min-w-0 flex-col gap-1.5 border-t border-foreground/6 pt-2">
           <div className="flex h-6 items-center justify-between gap-2">
-            <SectionSwitch active={open.id} onChange={onSectionChange} sections={sections} />
+            <SectionSwitch
+              active={open.id}
+              onChange={onSectionChange}
+              sections={sections}
+            />
             <button
-              aria-label={copied ? `Copied ${open.label.toLowerCase()}` : `Copy ${open.label.toLowerCase()}`}
+              aria-label={
+                copied
+                  ? `Copied ${open.label.toLowerCase()}`
+                  : `Copy ${open.label.toLowerCase()}`
+              }
               className={PILL_CLASS}
               data-slot="trace-viewer-copy"
               onClick={() => {
@@ -919,15 +1010,19 @@ const Detail = ({
               }}
               type="button"
             >
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
           <pre
             className={cn(
-              'm-0 max-h-40 overflow-auto pl-0.5 wrap-break-word whitespace-pre-wrap',
-              open.body.json ? 'font-mono text-xs leading-[18px]' : 'font-sans text-[13px] leading-5',
-              open.tone === 'error' ? 'text-(--trace-viewer-error)' : 'text-card-foreground',
-              codeClassName,
+              "m-0 max-h-40 overflow-auto pl-0.5 wrap-break-word whitespace-pre-wrap",
+              open.body.json
+                ? "font-mono text-xs leading-[18px]"
+                : "font-sans text-[13px] leading-5",
+              open.tone === "error"
+                ? "text-(--trace-viewer-error)"
+                : "text-card-foreground",
+              codeClassName
             )}
             data-slot="trace-viewer-code"
             // A scrolling region has to be reachable from the keyboard.
@@ -937,7 +1032,7 @@ const Detail = ({
             <CodeText body={open.body} />
           </pre>
           <output aria-live="polite" className="sr-only">
-            {copied ? `Copied ${open.label.toLowerCase()}` : ''}
+            {copied ? `Copied ${open.label.toLowerCase()}` : ""}
           </output>
         </div>
       ) : null}
@@ -954,7 +1049,7 @@ const ROW_KEYS: Record<string, (index: number, last: number) => number> = {
 
 export const TraceViewer = ({
   spans = DEFAULT_SPANS,
-  title = 'Trace',
+  title = "Trace",
   model,
   labels,
   icons,
@@ -967,27 +1062,34 @@ export const TraceViewer = ({
   style,
 }: TraceViewerProps) => {
   const [picked, setPicked] = useState(defaultSelectedId);
-  const [section, setSection] = useState<SectionId>('output');
+  const [section, setSection] = useState<SectionId>("output");
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const rows = traceRows(spans);
   const summary = traceSummary(spans);
   const ticks = traceTicks(summary.durationMs);
   const wanted = selectedId ?? picked;
-  const selected = rows.find((row) => row.span.id === wanted)?.span ?? summary.focus;
+  const selected =
+    rows.find((row) => row.span.id === wanted)?.span ?? summary.focus;
   const usedModel = modelSummary(spans);
-  const header = model ?? (usedModel ? (labels?.[usedModel] ?? usedModel) : null);
+  const header =
+    model ?? (usedModel ? (labels?.[usedModel] ?? usedModel) : null);
 
   const labelOf = (span: TraceSpan): string =>
-    labels?.[span.name] ?? (span.kind === 'tool' ? toolLabel(span.name) : span.name);
-  const iconOf = (span: TraceSpan): ReactNode => span.icon ?? icons?.[span.name];
+    labels?.[span.name] ??
+    (span.kind === "tool" ? toolLabel(span.name) : span.name);
+  const iconOf = (span: TraceSpan): ReactNode =>
+    span.icon ?? icons?.[span.name];
 
   const select = (span: TraceSpan) => {
     setPicked(span.id);
     onSelect?.(span);
   };
 
-  const onRowKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+  const onRowKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
     const next = rows[ROW_KEYS[event.key]?.(index, rows.length - 1) ?? index];
     if (!next || next === rows[index]) {
       return;
@@ -1005,15 +1107,19 @@ export const TraceViewer = ({
       aria-label={title}
       className={cn(
         THEME_VARS,
-        '@container flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--trace-viewer-shadow) transition-shadow duration-150 ease-out hover:shadow-(--trace-viewer-shadow-hover)',
+        "@container flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--trace-viewer-shadow) transition-shadow duration-150 ease-out hover:shadow-(--trace-viewer-shadow-hover)",
         className,
-        classNames?.root,
+        classNames?.root
       )}
       data-slot="trace-viewer"
       style={style}
     >
       <div
-        className={cn(ENTER_CLASS, 'flex h-6 min-w-0 items-center gap-2', classNames?.header)}
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
         data-slot="trace-viewer-header"
       >
         <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--trace-viewer-icon-bg)">
@@ -1044,7 +1150,11 @@ export const TraceViewer = ({
       ) : (
         <>
           <div
-            className={cn(ENTER_CLASS, 'flex min-w-0 flex-col gap-2 pl-0.5 delay-100', classNames?.summary)}
+            className={cn(
+              ENTER_CLASS,
+              "flex min-w-0 flex-col gap-2 pl-0.5 delay-100",
+              classNames?.summary
+            )}
             data-slot="trace-viewer-summary"
           >
             <div className="flex min-w-0 items-baseline gap-1.5">
@@ -1058,54 +1168,79 @@ export const TraceViewer = ({
               ) : null}
               <span className="ml-auto hidden min-w-0 truncate text-[13px] leading-none text-muted-foreground tabular-nums @md:block">
                 {[
-                  ...(summary.modelCalls > 0 ? [countText(summary.modelCalls, 'model call')] : []),
-                  ...(summary.toolCalls > 0 ? [countText(summary.toolCalls, 'tool call')] : []),
-                ].join(' · ')}
+                  ...(summary.modelCalls > 0
+                    ? [countText(summary.modelCalls, "model call")]
+                    : []),
+                  ...(summary.toolCalls > 0
+                    ? [countText(summary.toolCalls, "tool call")]
+                    : []),
+                ].join(" · ")}
               </span>
             </div>
             <p className="m-0 text-[13px] leading-[18px] text-pretty text-muted-foreground">
               {firstFailure ? (
                 <>
-                  <span className="font-medium text-card-foreground">{labelOf(firstFailure)}</span> failed after{' '}
-                  {formatDuration(firstFailure.durationMs)}
-                  {others > 0 ? `, and ${countText(others, 'more call')} failed.` : '.'}
+                  <span className="font-medium text-card-foreground">
+                    {labelOf(firstFailure)}
+                  </span>{" "}
+                  failed after {formatDuration(firstFailure.durationMs)}
+                  {others > 0
+                    ? `, and ${countText(others, "more call")} failed.`
+                    : "."}
                 </>
               ) : (
                 <>
-                  <span className="font-medium text-card-foreground">{labelOf(summary.slowest ?? selected)}</span> took{' '}
-                  {formatDuration((summary.slowest ?? selected).durationMs)},{' '}
-                  {shareText((summary.slowest ?? selected).durationMs, summary.durationMs)} of the run.
+                  <span className="font-medium text-card-foreground">
+                    {labelOf(summary.slowest ?? selected)}
+                  </span>{" "}
+                  took{" "}
+                  {formatDuration((summary.slowest ?? selected).durationMs)},{" "}
+                  {shareText(
+                    (summary.slowest ?? selected).durationMs,
+                    summary.durationMs
+                  )}{" "}
+                  of the run.
                 </>
               )}
             </p>
           </div>
 
           <div
-            className={cn(ENTER_CLASS, COLUMN_VARS, 'flex min-w-0 flex-col gap-1 delay-150', classNames?.waterfall)}
+            className={cn(
+              ENTER_CLASS,
+              COLUMN_VARS,
+              "flex min-w-0 flex-col gap-1 delay-150",
+              classNames?.waterfall
+            )}
             data-slot="trace-viewer-waterfall"
           >
             <Axis summary={summary} ticks={ticks} />
             <div className="max-h-[22rem] overflow-y-auto">
               <div className="relative">
-                <TrackOverlay selected={selected} summary={summary} ticks={ticks} />
+                <TrackOverlay
+                  selected={selected}
+                  summary={summary}
+                  ticks={ticks}
+                />
                 <ul className="relative m-0 flex list-none flex-col gap-px p-0">
                   {rows.map(({ depth, parent, span }, index) => {
                     const isSelected = span.id === selected.id;
-                    const failed = span.status === 'error';
+                    const failed = span.status === "error";
                     return (
                       <li key={span.id}>
                         <button
                           aria-pressed={isSelected}
                           className={cn(
                             ROW_CLASS,
-                            'cursor-pointer hover:bg-foreground/4',
+                            "cursor-pointer hover:bg-foreground/4",
                             FOCUS_CLASS,
-                            isSelected && 'bg-foreground/6 hover:bg-foreground/6',
-                            classNames?.row,
+                            isSelected &&
+                              "bg-foreground/6 hover:bg-foreground/6",
+                            classNames?.row
                           )}
                           data-kind={span.kind}
                           data-slot="trace-viewer-row"
-                          data-status={span.status ?? 'ok'}
+                          data-status={span.status ?? "ok"}
                           onClick={() => {
                             select(span);
                           }}
@@ -1124,16 +1259,22 @@ export const TraceViewer = ({
                           <span
                             className="flex w-(--trace-viewer-label) min-w-0 flex-none items-center gap-1.5"
                             style={{
-                              paddingLeft: Math.min(depth, MAX_INDENT) * INDENT_PX,
+                              paddingLeft:
+                                Math.min(depth, MAX_INDENT) * INDENT_PX,
                             }}
                           >
-                            <SpanMark icon={iconOf(span)} kind={markKind(span, parent)} />
-                            <span className="min-w-0 truncate">{labelOf(span)}</span>
+                            <SpanMark
+                              icon={iconOf(span)}
+                              kind={markKind(span, parent)}
+                            />
+                            <span className="min-w-0 truncate">
+                              {labelOf(span)}
+                            </span>
                           </span>
                           <span className="relative h-full min-w-0 flex-1">
                             <Bar
                               className={classNames?.bar}
-                              hollow={parent && span.kind !== 'model'}
+                              hollow={parent && span.kind !== "model"}
                               span={span}
                               summary={summary}
                             />
@@ -1143,12 +1284,14 @@ export const TraceViewer = ({
                           </span>
                           <span
                             className={cn(
-                              'w-11 flex-none text-right tabular-nums',
-                              failed && 'text-(--trace-viewer-error)',
+                              "w-11 flex-none text-right tabular-nums",
+                              failed && "text-(--trace-viewer-error)"
                             )}
                           >
                             {formatDuration(span.durationMs)}
-                            {failed ? <span className="sr-only">, failed</span> : null}
+                            {failed ? (
+                              <span className="sr-only">, failed</span>
+                            ) : null}
                           </span>
                         </button>
                       </li>
@@ -1159,14 +1302,14 @@ export const TraceViewer = ({
             </div>
           </div>
 
-          <div className={cn(ENTER_CLASS, 'min-w-0 delay-200')}>
+          <div className={cn(ENTER_CLASS, "min-w-0 delay-200")}>
             <Detail
               className={classNames?.detail}
               codeClassName={classNames?.code}
               icon={iconOf(selected)}
               kind={markKind(
                 selected,
-                rows.some((row) => row.parent && row.span.id === selected.id),
+                rows.some((row) => row.parent && row.span.id === selected.id)
               )}
               label={labelOf(selected)}
               onCopy={onCopy}

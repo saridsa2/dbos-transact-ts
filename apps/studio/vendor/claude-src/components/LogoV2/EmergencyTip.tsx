@@ -15,11 +15,11 @@ export function EmergencyTip(): React.ReactNode {
   // Save the tip we're showing so we don't show it again
   useEffect(() => {
     if (shouldShow) {
-      saveGlobalConfig((current) => {
+      saveGlobalConfig(current => {
         if (current.lastShownEmergencyTip === tip.tip) return current;
         return {
           ...current,
-          lastShownEmergencyTip: tip.tip,
+          lastShownEmergencyTip: tip.tip
         };
       });
     }
@@ -27,25 +27,17 @@ export function EmergencyTip(): React.ReactNode {
   if (!shouldShow) {
     return null;
   }
-  return (
-    <Box paddingLeft={2} flexDirection="column">
-      <Text
-        {...(tip.color === 'warning'
-          ? {
-              color: 'warning',
-            }
-          : tip.color === 'error'
-            ? {
-                color: 'error',
-              }
-            : {
-                dimColor: true,
-              })}
-      >
+  return <Box paddingLeft={2} flexDirection="column">
+      <Text {...tip.color === 'warning' ? {
+      color: 'warning'
+    } : tip.color === 'error' ? {
+      color: 'error'
+    } : {
+      dimColor: true
+    }}>
         {tip.tip}
       </Text>
-    </Box>
-  );
+    </Box>;
 }
 type TipOfFeed = {
   tip: string;
@@ -53,7 +45,7 @@ type TipOfFeed = {
 };
 const DEFAULT_TIP: TipOfFeed = {
   tip: '',
-  color: 'dim',
+  color: 'dim'
 };
 
 /**

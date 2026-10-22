@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import figures from 'figures';
 import * as React from 'react';
 import { Box, Text, type TextProps } from '../../ink.js';
@@ -20,7 +20,14 @@ type Props = {
 };
 export function TeammateSpinnerTree(t0) {
   const $ = _c(61);
-  const { selectedIndex, isInSelectionMode, allIdle, leaderVerb, leaderTokenCount, leaderIdleText } = t0;
+  const {
+    selectedIndex,
+    isInSelectionMode,
+    allIdle,
+    leaderVerb,
+    leaderTokenCount,
+    leaderIdleText
+  } = t0;
   const tasks = useAppState(_temp);
   const viewingAgentTaskId = useAppState(_temp2);
   const showTeammateMessagePreview = useAppState(_temp3);
@@ -31,18 +38,8 @@ export function TeammateSpinnerTree(t0) {
   let t3;
   let t4;
   let t5;
-  if (
-    $[0] !== allIdle ||
-    $[1] !== isInSelectionMode ||
-    $[2] !== leaderIdleText ||
-    $[3] !== leaderTokenCount ||
-    $[4] !== leaderVerb ||
-    $[5] !== selectedIndex ||
-    $[6] !== showTeammateMessagePreview ||
-    $[7] !== tasks ||
-    $[8] !== viewingAgentTaskId
-  ) {
-    t5 = Symbol.for('react.early_return_sentinel');
+  if ($[0] !== allIdle || $[1] !== isInSelectionMode || $[2] !== leaderIdleText || $[3] !== leaderTokenCount || $[4] !== leaderVerb || $[5] !== selectedIndex || $[6] !== showTeammateMessagePreview || $[7] !== tasks || $[8] !== viewingAgentTaskId) {
+    t5 = Symbol.for("react.early_return_sentinel");
     bb0: {
       const teammateTasks = getRunningTeammatesSorted(tasks);
       if (teammateTasks.length === 0) {
@@ -54,17 +51,13 @@ export function TeammateSpinnerTree(t0) {
       const isLeaderHighlighted = isLeaderForegrounded || isLeaderSelected;
       isHideSelected = isInSelectionMode === true && selectedIndex === teammateTasks.length;
       T0 = Box;
-      t1 = 'column';
+      t1 = "column";
       t2 = 1;
-      const t6 = isLeaderSelected ? 'suggestion' : undefined;
-      const t7 = isLeaderSelected ? figures.pointer : ' ';
+      const t6 = isLeaderSelected ? "suggestion" : undefined;
+      const t7 = isLeaderSelected ? figures.pointer : " ";
       let t8;
       if ($[16] !== isLeaderHighlighted || $[17] !== t6 || $[18] !== t7) {
-        t8 = (
-          <Text color={t6} bold={isLeaderHighlighted}>
-            {t7}
-          </Text>
-        );
+        t8 = <Text color={t6} bold={isLeaderHighlighted}>{t7}</Text>;
         $[16] = isLeaderHighlighted;
         $[17] = t6;
         $[18] = t7;
@@ -73,14 +66,10 @@ export function TeammateSpinnerTree(t0) {
         t8 = $[19];
       }
       const t9 = !isLeaderHighlighted;
-      const t10 = isLeaderHighlighted ? '\u2552\u2550' : '\u250C\u2500';
+      const t10 = isLeaderHighlighted ? "\u2552\u2550" : "\u250C\u2500";
       let t11;
       if ($[20] !== isLeaderHighlighted || $[21] !== t10 || $[22] !== t9) {
-        t11 = (
-          <Text dimColor={t9} bold={isLeaderHighlighted}>
-            {t10}{' '}
-          </Text>
-        );
+        t11 = <Text dimColor={t9} bold={isLeaderHighlighted}>{t10}{" "}</Text>;
         $[20] = isLeaderHighlighted;
         $[21] = t10;
         $[22] = t9;
@@ -88,14 +77,10 @@ export function TeammateSpinnerTree(t0) {
       } else {
         t11 = $[23];
       }
-      const t12 = isLeaderSelected ? 'suggestion' : 'cyan_FOR_SUBAGENTS_ONLY';
+      const t12 = isLeaderSelected ? "suggestion" : "cyan_FOR_SUBAGENTS_ONLY";
       let t13;
       if ($[24] !== isLeaderHighlighted || $[25] !== t12) {
-        t13 = (
-          <Text bold={isLeaderHighlighted} color={t12}>
-            team-lead
-          </Text>
-        );
+        t13 = <Text bold={isLeaderHighlighted} color={t12}>team-lead</Text>;
         $[24] = isLeaderHighlighted;
         $[25] = t12;
         $[26] = t13;
@@ -123,9 +108,7 @@ export function TeammateSpinnerTree(t0) {
       }
       let t16;
       if ($[34] !== isLeaderHighlighted || $[35] !== leaderTokenCount) {
-        t16 = leaderTokenCount !== undefined && leaderTokenCount > 0 && (
-          <Text dimColor={!isLeaderHighlighted}> · {formatNumber(leaderTokenCount)} tokens</Text>
-        );
+        t16 = leaderTokenCount !== undefined && leaderTokenCount > 0 && <Text dimColor={!isLeaderHighlighted}>{" "}· {formatNumber(leaderTokenCount)} tokens</Text>;
         $[34] = isLeaderHighlighted;
         $[35] = leaderTokenCount;
         $[36] = t16;
@@ -149,28 +132,8 @@ export function TeammateSpinnerTree(t0) {
       } else {
         t18 = $[41];
       }
-      if (
-        $[42] !== t11 ||
-        $[43] !== t13 ||
-        $[44] !== t14 ||
-        $[45] !== t15 ||
-        $[46] !== t16 ||
-        $[47] !== t17 ||
-        $[48] !== t18 ||
-        $[49] !== t8
-      ) {
-        t3 = (
-          <Box paddingLeft={3}>
-            {t8}
-            {t11}
-            {t13}
-            {t14}
-            {t15}
-            {t16}
-            {t17}
-            {t18}
-          </Box>
-        );
+      if ($[42] !== t11 || $[43] !== t13 || $[44] !== t14 || $[45] !== t15 || $[46] !== t16 || $[47] !== t17 || $[48] !== t18 || $[49] !== t8) {
+        t3 = <Box paddingLeft={3}>{t8}{t11}{t13}{t14}{t15}{t16}{t17}{t18}</Box>;
         $[42] = t11;
         $[43] = t13;
         $[44] = t14;
@@ -183,17 +146,7 @@ export function TeammateSpinnerTree(t0) {
       } else {
         t3 = $[50];
       }
-      t4 = teammateTasks.map((teammate, index) => (
-        <TeammateSpinnerLine
-          key={teammate.id}
-          teammate={teammate}
-          isLast={!isInSelectionMode && index === teammateTasks.length - 1}
-          isSelected={isInSelectionMode && selectedIndex === index}
-          isForegrounded={viewingAgentTaskId === teammate.id}
-          allIdle={allIdle}
-          showPreview={showTeammateMessagePreview}
-        />
-      ));
+      t4 = teammateTasks.map((teammate, index) => <TeammateSpinnerLine key={teammate.id} teammate={teammate} isLast={!isInSelectionMode && index === teammateTasks.length - 1} isSelected={isInSelectionMode && selectedIndex === index} isForegrounded={viewingAgentTaskId === teammate.id} allIdle={allIdle} showPreview={showTeammateMessagePreview} />);
     }
     $[0] = allIdle;
     $[1] = isInSelectionMode;
@@ -220,7 +173,7 @@ export function TeammateSpinnerTree(t0) {
     t4 = $[14];
     t5 = $[15];
   }
-  if (t5 !== Symbol.for('react.early_return_sentinel')) {
+  if (t5 !== Symbol.for("react.early_return_sentinel")) {
     return t5;
   }
   let t6;
@@ -234,13 +187,7 @@ export function TeammateSpinnerTree(t0) {
   }
   let t7;
   if ($[54] !== T0 || $[55] !== t1 || $[56] !== t2 || $[57] !== t3 || $[58] !== t4 || $[59] !== t6) {
-    t7 = (
-      <T0 flexDirection={t1} marginTop={t2}>
-        {t3}
-        {t4}
-        {t6}
-      </T0>
-    );
+    t7 = <T0 flexDirection={t1} marginTop={t2}>{t3}{t4}{t6}</T0>;
     $[54] = T0;
     $[55] = t1;
     $[56] = t2;
@@ -264,16 +211,14 @@ function _temp(s) {
 }
 function HideRow(t0) {
   const $ = _c(18);
-  const { isSelected } = t0;
-  const t1 = isSelected ? 'suggestion' : undefined;
-  const t2 = isSelected ? figures.pointer : ' ';
+  const {
+    isSelected
+  } = t0;
+  const t1 = isSelected ? "suggestion" : undefined;
+  const t2 = isSelected ? figures.pointer : " ";
   let t3;
   if ($[0] !== isSelected || $[1] !== t1 || $[2] !== t2) {
-    t3 = (
-      <Text color={t1} bold={isSelected}>
-        {t2}
-      </Text>
-    );
+    t3 = <Text color={t1} bold={isSelected}>{t2}</Text>;
     $[0] = isSelected;
     $[1] = t1;
     $[2] = t2;
@@ -282,14 +227,10 @@ function HideRow(t0) {
     t3 = $[3];
   }
   const t4 = !isSelected;
-  const t5 = isSelected ? '\u2558\u2550' : '\u2514\u2500';
+  const t5 = isSelected ? "\u2558\u2550" : "\u2514\u2500";
   let t6;
   if ($[4] !== isSelected || $[5] !== t4 || $[6] !== t5) {
-    t6 = (
-      <Text dimColor={t4} bold={isSelected}>
-        {t5}{' '}
-      </Text>
-    );
+    t6 = <Text dimColor={t4} bold={isSelected}>{t5}{" "}</Text>;
     $[4] = isSelected;
     $[5] = t4;
     $[6] = t5;
@@ -300,11 +241,7 @@ function HideRow(t0) {
   const t7 = !isSelected;
   let t8;
   if ($[8] !== isSelected || $[9] !== t7) {
-    t8 = (
-      <Text dimColor={t7} bold={isSelected}>
-        hide
-      </Text>
-    );
+    t8 = <Text dimColor={t7} bold={isSelected}>hide</Text>;
     $[8] = isSelected;
     $[9] = t7;
     $[10] = t8;
@@ -321,14 +258,7 @@ function HideRow(t0) {
   }
   let t10;
   if ($[13] !== t3 || $[14] !== t6 || $[15] !== t8 || $[16] !== t9) {
-    t10 = (
-      <Box paddingLeft={3}>
-        {t3}
-        {t6}
-        {t8}
-        {t9}
-      </Box>
-    );
+    t10 = <Box paddingLeft={3}>{t3}{t6}{t8}{t9}</Box>;
     $[13] = t3;
     $[14] = t6;
     $[15] = t8;

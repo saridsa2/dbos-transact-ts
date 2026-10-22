@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Add01Icon,
@@ -7,19 +7,19 @@ import {
   File01Icon,
   Globe02Icon,
   TextIcon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
-import type { UIMessage } from 'ai';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import type { UIMessage } from "ai";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-export type KnowledgeSourceKind = 'file' | 'site' | 'text';
+export type KnowledgeSourceKind = "file" | "site" | "text";
 
-export type KnowledgeSourceStatus = 'queued' | 'indexing' | 'ready' | 'failed';
+export type KnowledgeSourceStatus = "queued" | "indexing" | "ready" | "failed";
 
 export interface KnowledgeSource {
   /** Host description when this is an attached revision rather than an index. */
@@ -43,7 +43,7 @@ export interface KnowledgeSource {
   error?: string;
 }
 
-const SAFE_PROTOCOLS = new Set(['http:', 'https:']);
+const SAFE_PROTOCOLS = new Set(["http:", "https:"]);
 
 const safeHref = (url?: string): string | undefined => {
   if (!url) {
@@ -59,14 +59,17 @@ const safeHref = (url?: string): string | undefined => {
 /** `docs.stripe.com/payments/3d-secure`, without the protocol or `www.`. */
 const shortUrl = (href: string): string => {
   const url = new URL(href);
-  const path = url.pathname === '/' ? '' : url.pathname.replace(/\/$/u, '');
-  return `${url.hostname.replace(/^www\./u, '')}${path}`;
+  const path = url.pathname === "/" ? "" : url.pathname.replace(/\/$/u, "");
+  return `${url.hostname.replace(/^www\./u, "")}${path}`;
 };
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/u;
 
 /** `Oct 6`, or `Oct 6, 2025` for another year. */
-const formatDate = (value?: Date | string | number, now: Date = new Date()): string | null => {
+const formatDate = (
+  value?: Date | string | number,
+  now: Date = new Date()
+): string | null => {
   if (value === undefined) {
     return null;
   }
@@ -75,21 +78,23 @@ const formatDate = (value?: Date | string | number, now: Date = new Date()): str
     return null;
   }
   // A bare `2026-10-06` is midnight UTC. Read it back in UTC so it stays Oct 6.
-  const utc = typeof value === 'string' && DATE_ONLY_RE.test(value);
+  const utc = typeof value === "string" && DATE_ONLY_RE.test(value);
   const year = utc ? date.getUTCFullYear() : date.getFullYear();
-  return date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: utc ? 'UTC' : undefined,
-    year: year === now.getFullYear() ? undefined : 'numeric',
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: utc ? "UTC" : undefined,
+    year: year === now.getFullYear() ? undefined : "numeric",
   });
 };
 
 const count = (value: number, one: string, many: string): string =>
-  `${Math.round(value).toLocaleString('en-US')} ${value === 1 ? one : many}`;
+  `${Math.round(value).toLocaleString("en-US")} ${value === 1 ? one : many}`;
 
 const clamp = (value: number | undefined): number =>
-  value !== undefined && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  value !== undefined && Number.isFinite(value)
+    ? Math.min(1, Math.max(0, value))
+    : 0;
 
 /**
  * How often each source was cited in a conversation, keyed by source id. A
@@ -105,17 +110,22 @@ const clamp = (value: number | undefined): number =>
  */
 export const knowledgeSourceCitations = (
   messages: readonly UIMessage[],
-  sources: readonly KnowledgeSource[],
+  sources: readonly KnowledgeSource[]
 ): Record<string, number> => {
   const counts: Record<string, number> = {};
   for (const message of messages) {
     for (const part of message.parts) {
       let match: KnowledgeSource | undefined;
-      if (part.type === 'source-url') {
-        match = sources.find((source) => source.url === part.url || source.id === part.sourceId);
-      } else if (part.type === 'source-document') {
+      if (part.type === "source-url") {
         match = sources.find(
-          (source) => source.id === part.sourceId || source.name === part.filename || source.name === part.title,
+          (source) => source.url === part.url || source.id === part.sourceId
+        );
+      } else if (part.type === "source-document") {
+        match = sources.find(
+          (source) =>
+            source.id === part.sourceId ||
+            source.name === part.filename ||
+            source.name === part.title
         );
       }
       if (match) {
@@ -158,15 +168,15 @@ export interface KnowledgeSourcesProps {
 }
 
 const DEFAULT_SOURCES: KnowledgeSource[] = [
-  { chunks: 86, id: 'k1', name: 'Refund policy.pdf', pages: 12 },
+  { chunks: 86, id: "k1", name: "Refund policy.pdf", pages: 12 },
   {
     chunks: 214,
-    id: 'k2',
-    name: 'Payments docs',
+    id: "k2",
+    name: "Payments docs",
     pages: 38,
-    url: 'https://docs.example.com/payments',
+    url: "https://docs.example.com/payments",
   },
-  { id: 'k3', name: 'Support macros.md', progress: 0.4, status: 'indexing' },
+  { id: "k3", name: "Support macros.md", progress: 0.4, status: "indexing" },
 ];
 
 const UNDO_MS = 6000;
@@ -174,29 +184,29 @@ const DONE_MS = 2200;
 const EASE = [0.4, 0, 0.2, 1] as const;
 
 const ENTER_CLASS =
-  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
 
 const THEME_VARS = [
-  '[--knowledge-sources-accent:#3d4d9c] dark:[--knowledge-sources-accent:#8b9ae0]',
-  '[--knowledge-sources-done:#15803d] dark:[--knowledge-sources-done:#4ade80]',
-  '[--knowledge-sources-icon-bg:color-mix(in_oklab,var(--knowledge-sources-accent)_14%,var(--card))] dark:[--knowledge-sources-icon-bg:color-mix(in_oklab,var(--knowledge-sources-accent)_22%,var(--card))]',
-  '[--knowledge-sources-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  '[--knowledge-sources-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
-  'dark:[--knowledge-sources-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  'dark:[--knowledge-sources-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
-].join(' ');
+  "[--knowledge-sources-accent:#3d4d9c] dark:[--knowledge-sources-accent:#8b9ae0]",
+  "[--knowledge-sources-done:#15803d] dark:[--knowledge-sources-done:#4ade80]",
+  "[--knowledge-sources-icon-bg:color-mix(in_oklab,var(--knowledge-sources-accent)_14%,var(--card))] dark:[--knowledge-sources-icon-bg:color-mix(in_oklab,var(--knowledge-sources-accent)_22%,var(--card))]",
+  "[--knowledge-sources-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--knowledge-sources-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--knowledge-sources-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--knowledge-sources-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
 
 const FOCUS_CLASS =
-  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
 
 const ICON_BUTTON_CLASS = cn(
   "relative flex size-6 flex-none cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-[background-color,color,transform] duration-150 ease-out after:absolute after:-inset-1 after:content-[''] hover:bg-foreground/6 hover:text-card-foreground active:scale-[0.96] motion-reduce:transition-none",
-  FOCUS_CLASS,
+  FOCUS_CLASS
 );
 
 const TEXT_ACTION_CLASS = cn(
-  'flex-none cursor-pointer rounded-[4px] border-0 bg-transparent p-0 text-xs leading-4 font-medium text-muted-foreground no-underline transition-colors duration-150 ease-out hover:text-card-foreground motion-reduce:transition-none',
-  FOCUS_CLASS,
+  "flex-none cursor-pointer rounded-[4px] border-0 bg-transparent p-0 text-xs leading-4 font-medium text-muted-foreground no-underline transition-colors duration-150 ease-out hover:text-card-foreground motion-reduce:transition-none",
+  FOCUS_CLASS
 );
 
 const KIND_ICON: Record<KnowledgeSourceKind, IconSvgElement> = {
@@ -205,8 +215,19 @@ const KIND_ICON: Record<KnowledgeSourceKind, IconSvgElement> = {
   text: TextIcon,
 };
 
-const Icon = ({ icon, className }: { icon: IconSvgElement; className?: string }) => (
-  <HugeiconsIcon aria-hidden="true" className={cn('size-3.5 flex-none', className)} icon={icon} strokeWidth={2} />
+const Icon = ({
+  icon,
+  className,
+}: {
+  icon: IconSvgElement;
+  className?: string;
+}) => (
+  <HugeiconsIcon
+    aria-hidden="true"
+    className={cn("size-3.5 flex-none", className)}
+    icon={icon}
+    strokeWidth={2}
+  />
 );
 
 const Shimmer = ({ children }: { children: string }) => {
@@ -216,11 +237,11 @@ const Shimmer = ({ children }: { children: string }) => {
   }
   return (
     <motion.span
-      animate={{ backgroundPosition: ['100% 0', '-100% 0'] }}
+      animate={{ backgroundPosition: ["100% 0", "-100% 0"] }}
       className="bg-[linear-gradient(90deg,var(--muted-foreground)_40%,var(--card-foreground)_50%,var(--muted-foreground)_60%)] bg-[length:200%_100%] bg-clip-text text-transparent"
       transition={{
         duration: 1.8,
-        ease: 'linear',
+        ease: "linear",
         repeat: Number.POSITIVE_INFINITY,
       }}
     >
@@ -229,9 +250,11 @@ const Shimmer = ({ children }: { children: string }) => {
   );
 };
 
-const statusOf = (source: KnowledgeSource): KnowledgeSourceStatus => source.status ?? 'ready';
+const statusOf = (source: KnowledgeSource): KnowledgeSourceStatus =>
+  source.status ?? "ready";
 
-const isBusy = (source: KnowledgeSource): boolean => statusOf(source) === 'indexing' || statusOf(source) === 'queued';
+const isBusy = (source: KnowledgeSource): boolean =>
+  statusOf(source) === "indexing" || statusOf(source) === "queued";
 
 /** True for a moment after a source finishes indexing. */
 const useJustFinished = (status: KnowledgeSourceStatus): boolean => {
@@ -241,9 +264,9 @@ const useJustFinished = (status: KnowledgeSourceStatus): boolean => {
   useEffect(() => {
     const was = previous.current;
     previous.current = status;
-    if (status === 'ready' && (was === 'indexing' || was === 'queued')) {
+    if (status === "ready" && (was === "indexing" || was === "queued")) {
       setFinished(true);
-    } else if (status !== 'ready') {
+    } else if (status !== "ready") {
       setFinished(false);
     }
   }, [status]);
@@ -275,7 +298,12 @@ const DoneMark = () => {
       initial={reduce ? false : { opacity: 0, scale: 0.6 }}
       transition={{ duration: reduce ? 0 : 0.2, ease: EASE }}
     >
-      <svg aria-hidden="true" className="size-3.5" fill="none" viewBox="0 0 16 16">
+      <svg
+        aria-hidden="true"
+        className="size-3.5"
+        fill="none"
+        viewBox="0 0 16 16"
+      >
         <motion.path
           animate={{ pathLength: 1 }}
           d="M3.5 8.5l3 3 6-7"
@@ -293,17 +321,33 @@ const DoneMark = () => {
 };
 
 /** What a row says on its right. A source that is fine says nothing. */
-const RowNote = ({ source, finished }: { source: KnowledgeSource; finished: boolean }) => {
+const RowNote = ({
+  source,
+  finished,
+}: {
+  source: KnowledgeSource;
+  finished: boolean;
+}) => {
   const status = statusOf(source);
-  if (status === 'ready') {
-    return <AnimatePresence initial={false}>{finished ? <DoneMark key="done" /> : null}</AnimatePresence>;
+  if (status === "ready") {
+    return (
+      <AnimatePresence initial={false}>
+        {finished ? <DoneMark key="done" /> : null}
+      </AnimatePresence>
+    );
   }
-  if (status === 'failed') {
-    return <span className="flex-none text-xs leading-4 text-destructive">Failed</span>;
+  if (status === "failed") {
+    return (
+      <span className="flex-none text-xs leading-4 text-destructive">
+        Failed
+      </span>
+    );
   }
   return (
     <span className="flex-none text-xs leading-4 text-muted-foreground tabular-nums">
-      {status === 'queued' ? 'Waiting' : `${Math.round(clamp(source.progress) * 100)}%`}
+      {status === "queued"
+        ? "Waiting"
+        : `${Math.round(clamp(source.progress) * 100)}%`}
     </span>
   );
 };
@@ -311,26 +355,28 @@ const RowNote = ({ source, finished }: { source: KnowledgeSource; finished: bool
 /** One line of facts about a source that is in the index. */
 const factsOf = (source: KnowledgeSource, cited: number): string =>
   [
-    source.chunks === undefined ? null : count(source.chunks, 'passage', 'passages'),
-    source.pages === undefined ? null : count(source.pages, 'page', 'pages'),
+    source.chunks === undefined
+      ? null
+      : count(source.chunks, "passage", "passages"),
+    source.pages === undefined ? null : count(source.pages, "page", "pages"),
     formatDate(source.indexedAt) && `Indexed ${formatDate(source.indexedAt)}`,
-    cited > 0 && `Cited ${count(cited, 'time', 'times')} here`,
+    cited > 0 && `Cited ${count(cited, "time", "times")} here`,
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(" · ");
 
 const detailText = (source: KnowledgeSource, cited: number): string => {
   const status = statusOf(source);
-  if (status === 'failed') {
-    return source.error ?? 'This source could not be read.';
+  if (status === "failed") {
+    return source.error ?? "This source could not be read.";
   }
-  if (status === 'queued') {
-    return 'Waiting for the sources ahead of it.';
+  if (status === "queued") {
+    return "Waiting for the sources ahead of it.";
   }
-  if (status === 'indexing') {
-    return 'Reading and indexing. You can keep working.';
+  if (status === "indexing") {
+    return "Reading and indexing. You can keep working.";
   }
-  return source.detail ?? (factsOf(source, cited) || 'In the index.');
+  return source.detail ?? (factsOf(source, cited) || "In the index.");
 };
 
 const SourceItem = ({
@@ -355,10 +401,10 @@ const SourceItem = ({
   const status = statusOf(source);
   const finished = useJustFinished(status);
   const href = safeHref(source.url);
-  const kind = source.kind ?? (source.url ? 'site' : 'file');
+  const kind = source.kind ?? (source.url ? "site" : "file");
   return (
     <motion.li
-      animate={{ height: 'auto', opacity: 1 }}
+      animate={{ height: "auto", opacity: 1 }}
       className="overflow-hidden"
       data-slot="knowledge-sources-item"
       data-status={status}
@@ -368,16 +414,16 @@ const SourceItem = ({
     >
       <div
         className={cn(
-          'rounded-lg transition-colors duration-150 ease-out motion-reduce:transition-none',
-          open ? 'bg-muted dark:bg-background' : 'hover:bg-foreground/4',
-          classNames?.item,
+          "rounded-lg transition-colors duration-150 ease-out motion-reduce:transition-none",
+          open ? "bg-muted dark:bg-background" : "hover:bg-foreground/4",
+          classNames?.item
         )}
       >
         <button
           aria-expanded={open}
           className={cn(
-            'flex w-full min-w-0 cursor-pointer flex-col rounded-lg border-0 bg-transparent px-2 py-1.5 text-left',
-            FOCUS_CLASS,
+            "flex w-full min-w-0 cursor-pointer flex-col rounded-lg border-0 bg-transparent px-2 py-1.5 text-left",
+            FOCUS_CLASS
           )}
           data-slot="knowledge-sources-source"
           onClick={onToggle}
@@ -387,8 +433,10 @@ const SourceItem = ({
             <Icon className="text-muted-foreground" icon={KIND_ICON[kind]} />
             <span
               className={cn(
-                'min-w-0 flex-1 truncate text-sm leading-5',
-                isBusy(source) ? 'text-muted-foreground' : 'text-card-foreground',
+                "min-w-0 flex-1 truncate text-sm leading-5",
+                isBusy(source)
+                  ? "text-muted-foreground"
+                  : "text-card-foreground"
               )}
             >
               {source.name}
@@ -396,9 +444,9 @@ const SourceItem = ({
             <RowNote finished={finished} source={source} />
           </span>
           <AnimatePresence initial={false}>
-            {status === 'indexing' ? (
+            {status === "indexing" ? (
               <motion.span
-                animate={{ height: 'auto', opacity: 1 }}
+                animate={{ height: "auto", opacity: 1 }}
                 className="block w-full overflow-hidden"
                 exit={{ height: 0, opacity: 0 }}
                 initial={{ height: 0, opacity: 0 }}
@@ -424,7 +472,7 @@ const SourceItem = ({
         <AnimatePresence initial={false}>
           {open ? (
             <motion.div
-              animate={{ height: 'auto', opacity: 1 }}
+              animate={{ height: "auto", opacity: 1 }}
               className="overflow-hidden"
               exit={{ height: 0, opacity: 0 }}
               initial={{ height: 0, opacity: 0 }}
@@ -433,13 +481,16 @@ const SourceItem = ({
             >
               <div
                 className={cn(
-                  'flex flex-col gap-2 pt-0.5 pr-2 pb-2 pl-7.5 text-xs leading-[1.5] text-muted-foreground',
-                  classNames?.detail,
+                  "flex flex-col gap-2 pt-0.5 pr-2 pb-2 pl-7.5 text-xs leading-[1.5] text-muted-foreground",
+                  classNames?.detail
                 )}
                 data-slot="knowledge-sources-detail"
               >
                 <span
-                  className={cn('text-pretty tabular-nums', status === 'failed' && 'text-card-foreground')}
+                  className={cn(
+                    "text-pretty tabular-nums",
+                    status === "failed" && "text-card-foreground"
+                  )}
                   suppressHydrationWarning
                 >
                   {detailText(source, cited)}
@@ -450,13 +501,15 @@ const SourceItem = ({
                       <a
                         className={cn(
                           TEXT_ACTION_CLASS,
-                          'inline-flex max-w-full min-w-0 items-center gap-1 font-normal',
+                          "inline-flex max-w-full min-w-0 items-center gap-1 font-normal"
                         )}
                         href={href}
                         rel="noopener noreferrer"
                         target="_blank"
                       >
-                        <span className="min-w-0 truncate">{shortUrl(href)}</span>
+                        <span className="min-w-0 truncate">
+                          {shortUrl(href)}
+                        </span>
                         <Icon className="size-3" icon={ArrowUpRight01Icon} />
                       </a>
                     ) : null}
@@ -468,12 +521,15 @@ const SourceItem = ({
                       onClick={onReindex}
                       type="button"
                     >
-                      {status === 'failed' ? 'Retry' : 'Re-index'}
+                      {status === "failed" ? "Retry" : "Re-index"}
                     </button>
                   ) : null}
                   {onRemove ? (
                     <button
-                      className={cn(TEXT_ACTION_CLASS, 'hover:text-destructive')}
+                      className={cn(
+                        TEXT_ACTION_CLASS,
+                        "hover:text-destructive"
+                      )}
                       data-slot="knowledge-sources-remove"
                       onClick={onRemove}
                       type="button"
@@ -513,7 +569,9 @@ const useExpiring = <T,>(ms: number) => {
 /** The one thing worth saying about the whole index right now. */
 const summaryOf = (sources: readonly KnowledgeSource[]) => {
   const busy = sources.filter(isBusy).length;
-  const failed = sources.filter((source) => statusOf(source) === 'failed').length;
+  const failed = sources.filter(
+    (source) => statusOf(source) === "failed"
+  ).length;
   if (busy > 0) {
     return { busy: true, text: `Indexing ${busy} of ${sources.length}…` };
   }
@@ -523,10 +581,13 @@ const summaryOf = (sources: readonly KnowledgeSource[]) => {
       text: `${failed} could not be indexed`,
     };
   }
-  const chunks = sources.reduce((total, source) => total + (source.chunks ?? 0), 0);
+  const chunks = sources.reduce(
+    (total, source) => total + (source.chunks ?? 0),
+    0
+  );
   return {
     busy: false,
-    text: chunks > 0 ? `${count(chunks, 'passage', 'passages')} to search` : '',
+    text: chunks > 0 ? `${count(chunks, "passage", "passages")} to search` : "",
   };
 };
 
@@ -540,8 +601,8 @@ const summaryOf = (sources: readonly KnowledgeSource[]) => {
  */
 export const KnowledgeSources = ({
   sources = DEFAULT_SOURCES,
-  title = 'Knowledge',
-  emptyMessage = 'Nothing to search yet. Add files or sites and the agent can cite them.',
+  title = "Knowledge",
+  emptyMessage = "Nothing to search yet. Add files or sites and the agent can cite them.",
   citations = {},
   onAdd,
   onReindex,
@@ -555,28 +616,38 @@ export const KnowledgeSources = ({
   const [openId, setOpenId] = useState<string | null>(null);
   const [removed, setRemoved] = useExpiring<KnowledgeSource>(UNDO_MS);
   const summary = summaryOf(sources);
-  const canReindexAll = Boolean(onReindexAll) && !summary.busy && sources.length > 0;
+  const canReindexAll =
+    Boolean(onReindexAll) && !summary.busy && sources.length > 0;
 
   return (
     <section
       aria-label={title}
       className={cn(
         THEME_VARS,
-        'flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--knowledge-sources-shadow) transition-shadow duration-150 ease-out hover:shadow-(--knowledge-sources-shadow-hover)',
+        "flex w-full max-w-full min-w-0 flex-col gap-3 rounded-2xl bg-card p-3 text-card-foreground shadow-(--knowledge-sources-shadow) transition-shadow duration-150 ease-out hover:shadow-(--knowledge-sources-shadow-hover)",
         className,
-        classNames?.root,
+        classNames?.root
       )}
       data-slot="knowledge-sources"
       style={style}
     >
       <div
-        className={cn(ENTER_CLASS, 'flex h-6 min-w-0 items-center gap-2', classNames?.header)}
+        className={cn(
+          ENTER_CLASS,
+          "flex h-6 min-w-0 items-center gap-2",
+          classNames?.header
+        )}
         data-slot="knowledge-sources-header"
       >
         <span className="inline-flex size-6 flex-none items-center justify-center rounded-md bg-(--knowledge-sources-icon-bg)">
-          <Icon className="text-(--knowledge-sources-accent)" icon={Books01Icon} />
+          <Icon
+            className="text-(--knowledge-sources-accent)"
+            icon={Books01Icon}
+          />
         </span>
-        <div className="min-w-0 flex-1 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">{title}</div>
+        <div className="min-w-0 flex-1 truncate text-[13px] leading-tight font-medium tracking-[-0.01em]">
+          {title}
+        </div>
         {onAdd ? (
           <button
             aria-label="Add a source"
@@ -594,8 +665,8 @@ export const KnowledgeSources = ({
       <div
         className={cn(
           ENTER_CLASS,
-          '-mx-0.5 -mr-1.5 flex max-h-96 min-h-0 flex-col overflow-y-auto pr-1 delay-100',
-          classNames?.list,
+          "-mx-0.5 -mr-1.5 flex max-h-96 min-h-0 flex-col overflow-y-auto pr-1 delay-100",
+          classNames?.list
         )}
         data-slot="knowledge-sources-list"
       >
@@ -643,7 +714,10 @@ export const KnowledgeSources = ({
 
       {removed || summary.text || canReindexAll ? (
         <div
-          className={cn('flex min-h-6 min-w-0 items-center gap-2 px-1.5', classNames?.footer)}
+          className={cn(
+            "flex min-h-6 min-w-0 items-center gap-2 px-1.5",
+            classNames?.footer
+          )}
           data-slot="knowledge-sources-footer"
         >
           <output
@@ -655,7 +729,7 @@ export const KnowledgeSources = ({
               <>
                 <span className="min-w-0 truncate">Removed.</span>
                 <button
-                  className={cn(TEXT_ACTION_CLASS, 'text-card-foreground')}
+                  className={cn(TEXT_ACTION_CLASS, "text-card-foreground")}
                   data-slot="knowledge-sources-undo"
                   onClick={() => {
                     onRestore?.(removed);
@@ -667,8 +741,12 @@ export const KnowledgeSources = ({
                 </button>
               </>
             ) : null}
-            {!removed && summary.busy ? <Shimmer>{summary.text}</Shimmer> : null}
-            {!removed && !summary.busy ? <span className="min-w-0 truncate">{summary.text}</span> : null}
+            {!removed && summary.busy ? (
+              <Shimmer>{summary.text}</Shimmer>
+            ) : null}
+            {!removed && !summary.busy ? (
+              <span className="min-w-0 truncate">{summary.text}</span>
+            ) : null}
           </output>
           {canReindexAll ? (
             <button

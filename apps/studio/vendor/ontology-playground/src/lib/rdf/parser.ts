@@ -19,18 +19,18 @@ export class RDFParseError extends Error {
  * Get the text content of a child element by local name within a parent element.
  * Searches across common RDF/OWL namespaces.
  */
-function getChildText(parent: Element, localName: string, namespace?: string): string | null {
+function getChildText(
+  parent: Element,
+  localName: string,
+  namespace?: string,
+): string | null {
   // Try namespace-aware lookup first
   if (namespace) {
     const els = parent.getElementsByTagNameNS(namespace, localName);
     if (els.length > 0) {
       const values = Array.from(els);
-      const preferred =
-        values.find((el) =>
-          /^en(?:-|$)/i.test(el.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang') ?? ''),
-        ) ??
-        values.find((el) => !el.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang')) ??
-        values[0];
+      const preferred = values.find(el => /^en(?:-|$)/i.test(el.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang') ?? ''))
+        ?? values.find(el => !el.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang')) ?? values[0];
       return preferred.textContent;
     }
   }
@@ -49,21 +49,38 @@ function getChildText(parent: Element, localName: string, namespace?: string): s
 /**
  * Get the rdf:resource attribute from a child element.
  */
-function getChildResource(parent: Element, localName: string, namespace?: string): string | null {
+function getChildResource(
+  parent: Element,
+  localName: string,
+  namespace?: string,
+): string | null {
   for (let i = 0; i < parent.children.length; i++) {
     const child = parent.children[i];
     const childLocal = child.localName || child.tagName.split(':').pop();
-    if (childLocal === localName && (namespace === undefined || child.namespaceURI === namespace)) {
-      return child.getAttributeNS('http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'resource');
+    if (
+      childLocal === localName
+      && (namespace === undefined || child.namespaceURI === namespace)
+    ) {
+      return child.getAttributeNS(
+        'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'resource',
+      );
     }
   }
   return null;
 }
 
-function getDirectChildText(parent: Element, localName: string, namespace: string): string | null {
+function getDirectChildText(
+  parent: Element,
+  localName: string,
+  namespace: string,
+): string | null {
   for (let i = 0; i < parent.children.length; i++) {
     const child = parent.children[i];
-    if (child.localName === localName && child.namespaceURI === namespace) {
+    if (
+      child.localName === localName
+      && child.namespaceURI === namespace
+    ) {
       return child.textContent;
     }
   }
@@ -75,7 +92,11 @@ function getDirectChildText(parent: Element, localName: string, namespace: strin
  * Children without an rdf:resource attribute (e.g. nested owl:Restriction
  * nodes) are ignored.
  */
-function getChildResources(parent: Element, localName: string, namespace?: string): string[] {
+function getChildResources(
+  parent: Element,
+  localName: string,
+  namespace?: string,
+): string[] {
   const results: string[] = [];
   for (let i = 0; i < parent.children.length; i++) {
     const child = parent.children[i];
@@ -165,7 +186,8 @@ const RDFS_NS = 'http://www.w3.org/2000/01/rdf-schema#';
 const OWL_NS = 'http://www.w3.org/2002/07/owl#';
 const SHACL_NS = 'http://www.w3.org/ns/shacl#';
 const DCTERMS_NS = 'http://purl.org/dc/terms/';
-const PLAYGROUND_METADATA_NS = 'https://microsoft.github.io/Ontology-Playground/ns/metadata#';
+const PLAYGROUND_METADATA_NS =
+  'https://microsoft.github.io/Ontology-Playground/ns/metadata#';
 
 /**
  * Collect all elements declaring a resource of the given type, supporting both
@@ -240,7 +262,11 @@ function getDirectChild(parent: Element, localName: string): Element | null {
   return null;
 }
 
-function getCollectionResources(parent: Element, localName: string, nodesById: ReadonlyMap<string, Element>): string[] {
+function getCollectionResources(
+  parent: Element,
+  localName: string,
+  nodesById: ReadonlyMap<string, Element>,
+): string[] {
   const collection = getDirectChild(parent, localName);
   if (!collection) return [];
 
@@ -253,8 +279,10 @@ function getCollectionResources(parent: Element, localName: string, nodesById: R
 
   const resources: string[] = [];
   for (let i = 0; i < collection.children.length; i++) {
-    const resource =
-      getRdfAttribute(collection.children[i], 'about') || getRdfAttribute(collection.children[i], 'resource');
+    const resource = (
+      getRdfAttribute(collection.children[i], 'about')
+      || getRdfAttribute(collection.children[i], 'resource')
+    );
     if (resource) resources.push(resource);
   }
   return resources;
@@ -274,7 +302,10 @@ interface RdfListItem {
   resource: string | null;
 }
 
-function parseRdfList(startNodeId: string, nodesById: ReadonlyMap<string, Element>): RdfListItem[] | null {
+function parseRdfList(
+  startNodeId: string,
+  nodesById: ReadonlyMap<string, Element>,
+): RdfListItem[] | null {
   const values: RdfListItem[] = [];
   const visited = new Set<string>();
   let nodeId: string | null = startNodeId;
@@ -310,21 +341,35 @@ function parseShaclPathMetadata(
   nodesById: ReadonlyMap<string, Element>,
 ): Map<string, ShaclPathMetadata> {
   const metadataByPath = new Map<string, ShaclPathMetadata>();
-  const propertyShapes = getTypedElements(root, SHACL_NS, 'PropertyShape', descriptionTypeIndex);
+  const propertyShapes = getTypedElements(
+    root,
+    SHACL_NS,
+    'PropertyShape',
+    descriptionTypeIndex,
+  );
 
   for (const shape of propertyShapes) {
     const path = getDirectChild(shape, 'path');
     if (!path) continue;
 
-    const inlinePathNode = path.children.length === 1 ? path.children[0] : undefined;
-    let pathUri =
-      getRdfAttribute(path, 'resource') || (inlinePathNode ? getRdfAttribute(inlinePathNode, 'about') : null);
+    const inlinePathNode = path.children.length === 1
+      ? path.children[0]
+      : undefined;
+    let pathUri = (
+      getRdfAttribute(path, 'resource')
+      || (inlinePathNode ? getRdfAttribute(inlinePathNode, 'about') : null)
+    );
     let inverse = false;
     if (!pathUri) {
       const pathNodeId = getRdfAttribute(path, 'nodeID');
-      const pathNode = (pathNodeId ? nodesById.get(pathNodeId) : undefined) || inlinePathNode;
-      const inversePath =
-        getDirectChild(path, 'inversePath') || (pathNode ? getDirectChild(pathNode, 'inversePath') : null);
+      const pathNode = (
+        (pathNodeId ? nodesById.get(pathNodeId) : undefined)
+        || inlinePathNode
+      );
+      const inversePath = (
+        getDirectChild(path, 'inversePath')
+        || (pathNode ? getDirectChild(pathNode, 'inversePath') : null)
+      );
       pathUri = inversePath ? getRdfAttribute(inversePath, 'resource') : null;
       inverse = Boolean(pathUri);
     }
@@ -354,7 +399,9 @@ function parseShaclPathMetadata(
       const listNodeId = inList ? getRdfAttribute(inList, 'nodeID') : null;
       const list = listNodeId ? parseRdfList(listNodeId, nodesById) : null;
       if (list) {
-        const enumValues = list.map((item) => item.literal).filter((value): value is string => value !== null);
+        const enumValues = list
+          .map((item) => item.literal)
+          .filter((value): value is string => value !== null);
         if (enumValues.length === list.length) {
           metadata.enumValues = enumValues;
         }
@@ -398,16 +445,13 @@ function inferPropertyType(property: ParsedDatatypeProperty): PropertyType {
 /**
  * Parse an RDF/XML (OWL) string into an Ontology and optional DataBindings.
  */
-export function parseRDF(
-  rdfXml: string,
-  xmlDocument?: Document,
-): { ontology: Ontology; bindings: DataBinding[]; warnings: string[] } {
+export function parseRDF(rdfXml: string, xmlDocument?: Document): { ontology: Ontology; bindings: DataBinding[]; warnings: string[] } {
   // Give Turtle input a clear, actionable error instead of an XML parse error.
   const sniff = rdfXml.trimStart();
   if (!sniff.startsWith('<') && /^(@prefix|@base|PREFIX\s|BASE\s)/m.test(sniff)) {
     throw new RDFParseError(
       'This file appears to be Turtle (.ttl), which is not supported yet. ' +
-        'Please convert it to RDF/XML first (for example with Apache Jena "riot" or an online RDF converter).',
+      'Please convert it to RDF/XML first (for example with Apache Jena "riot" or an online RDF converter).'
     );
   }
 
@@ -423,46 +467,71 @@ export function parseRDF(
   const root = doc.documentElement;
   const rdfNodeIndex = indexRdfNodes(root);
   const descriptionTypeIndex = rdfNodeIndex.descriptionsByType;
-  const shaclPathMetadata = parseShaclPathMetadata(root, descriptionTypeIndex, rdfNodeIndex.nodesById);
+  const shaclPathMetadata = parseShaclPathMetadata(
+    root,
+    descriptionTypeIndex,
+    rdfNodeIndex.nodesById,
+  );
 
   // --- Extract ontology metadata ---
   let ontologyName = '';
   let ontologyDescription = '';
   let rdfMetadata: OntologyRdfMetadata | undefined;
-  const hasShaclSource = root.getElementsByTagNameNS(SHACL_NS, '*').length > 0;
+  const hasShaclSource =
+    root.getElementsByTagNameNS(SHACL_NS, '*').length > 0;
 
   const ontologyEls = getTypedElements(root, OWL_NS, 'Ontology', descriptionTypeIndex);
   if (ontologyEls.length > 0) {
     const ontEl = ontologyEls[0];
     ontologyName = getChildText(ontEl, 'label', RDFS_NS) || '';
     ontologyDescription = getChildText(ontEl, 'comment', RDFS_NS) || '';
-    const generatedSubset = getDirectChildText(ontEl, 'generatedSubset', PLAYGROUND_METADATA_NS)?.trim() === 'true';
-    const imports = Array.from(
-      new Set([
-        ...getChildResources(ontEl, 'imports', OWL_NS),
-        ...getChildResources(ontEl, 'sourceImport', PLAYGROUND_METADATA_NS),
-      ]),
-    );
+    const generatedSubset = getDirectChildText(
+      ontEl,
+      'generatedSubset',
+      PLAYGROUND_METADATA_NS,
+    )?.trim() === 'true';
+    const imports = Array.from(new Set([
+      ...getChildResources(ontEl, 'imports', OWL_NS),
+      ...getChildResources(
+        ontEl,
+        'sourceImport',
+        PLAYGROUND_METADATA_NS,
+      ),
+    ]));
     const preservedSourceFeatures: OntologyRdfMetadata['preservedSourceFeatures'] = [];
     if (imports.length > 0) preservedSourceFeatures.push('owlImports');
     if (hasShaclSource) {
       preservedSourceFeatures.push('shacl');
     }
     rdfMetadata = {
-      ontologyIri:
-        (generatedSubset ? getChildResource(ontEl, 'source', DCTERMS_NS) : null) ||
-        getRdfAttribute(ontEl, 'about') ||
-        undefined,
-      versionIri:
-        getChildResource(ontEl, 'sourceVersionIri', PLAYGROUND_METADATA_NS) ||
-        getChildResource(ontEl, 'versionIRI', OWL_NS) ||
-        undefined,
-      versionInfo:
-        getDirectChildText(ontEl, 'sourceVersionInfo', PLAYGROUND_METADATA_NS) ||
-        getDirectChildText(ontEl, 'versionInfo', OWL_NS) ||
-        undefined,
-      license:
-        getChildResource(ontEl, 'license', DCTERMS_NS) || getDirectChildText(ontEl, 'license', DCTERMS_NS) || undefined,
+      ontologyIri: (
+        generatedSubset
+          ? getChildResource(ontEl, 'source', DCTERMS_NS)
+          : null
+      ) || getRdfAttribute(ontEl, 'about') || undefined,
+      versionIri: (
+        getChildResource(
+          ontEl,
+          'sourceVersionIri',
+          PLAYGROUND_METADATA_NS,
+        )
+        || getChildResource(ontEl, 'versionIRI', OWL_NS)
+        || undefined
+      ),
+      versionInfo: (
+        getDirectChildText(
+          ontEl,
+          'sourceVersionInfo',
+          PLAYGROUND_METADATA_NS,
+        )
+        || getDirectChildText(ontEl, 'versionInfo', OWL_NS)
+        || undefined
+      ),
+      license: (
+        getChildResource(ontEl, 'license', DCTERMS_NS)
+        || getDirectChildText(ontEl, 'license', DCTERMS_NS)
+        || undefined
+      ),
       imports,
       preservedSourceFeatures,
     };
@@ -474,15 +543,20 @@ export function parseRDF(
   }
 
   // --- Extract OWL Classes → EntityTypes ---
-  const classEls = [
-    ...new Set([
-      ...getTypedElements(root, OWL_NS, 'Class', descriptionTypeIndex),
-      ...getTypedElements(root, RDFS_NS, 'Class', descriptionTypeIndex),
-    ]),
-  ];
-  const objPropEls = getTypedElements(root, OWL_NS, 'ObjectProperty', descriptionTypeIndex);
+  const classEls = [...new Set([
+    ...getTypedElements(root, OWL_NS, 'Class', descriptionTypeIndex),
+    ...getTypedElements(root, RDFS_NS, 'Class', descriptionTypeIndex),
+  ])];
+  const objPropEls = getTypedElements(
+    root,
+    OWL_NS,
+    'ObjectProperty',
+    descriptionTypeIndex,
+  );
   const objectPropertyUris = new Set(
-    objPropEls.map((element) => getRdfAttribute(element, 'about')).filter((uri): uri is string => Boolean(uri)),
+    objPropEls
+      .map((element) => getRdfAttribute(element, 'about'))
+      .filter((uri): uri is string => Boolean(uri)),
   );
   const entityMap = new Map<string, EntityType>();
   const usedEntityIds = new Set<string>();
@@ -493,13 +567,25 @@ export function parseRDF(
     const about = getRdfAttribute(el, 'about') || '';
     if (!about) continue;
 
-    const isStatementAssociation = getChildResources(el, 'subClassOf').includes(`${RDF_NS}Statement`);
+    const isStatementAssociation = getChildResources(el, 'subClassOf')
+      .includes(`${RDF_NS}Statement`);
     const relatedRelationship = getChildResource(el, 'relation');
-    if (isStatementAssociation && relatedRelationship && objectPropertyUris.has(relatedRelationship)) {
-      associationRelationshipByClass.set(about, localNameFromUri(relatedRelationship));
+    if (
+      isStatementAssociation
+      && relatedRelationship
+      && objectPropertyUris.has(relatedRelationship)
+    ) {
+      associationRelationshipByClass.set(
+        about,
+        localNameFromUri(relatedRelationship),
+      );
     }
 
-    const identifierProperties = getCollectionResources(el, 'hasKey', rdfNodeIndex.nodesById);
+    const identifierProperties = getCollectionResources(
+      el,
+      'hasKey',
+      rdfNodeIndex.nodesById,
+    );
     if (identifierProperties.length > 0) {
       identifierPropertiesByClass.set(about, new Set(identifierProperties));
     }
@@ -512,7 +598,8 @@ export function parseRDF(
 
     const className = localNameFromUri(about);
     const existingEntity = entityMap.get(about);
-    const entityId = existingEntity?.id ?? createUniqueId(uncapitalize(className) || 'entity', usedEntityIds);
+    const entityId = existingEntity?.id
+      ?? createUniqueId(uncapitalize(className) || 'entity', usedEntityIds);
     const label = getChildText(el, 'label', RDFS_NS) || className;
     const description = getChildText(el, 'comment', RDFS_NS) || '';
     const icon = getChildText(el, 'icon') || '📦';
@@ -529,7 +616,12 @@ export function parseRDF(
   }
 
   // --- Extract DatatypeProperties → Properties + Relationship Attributes ---
-  const dtPropEls = getTypedElements(root, OWL_NS, 'DatatypeProperty', descriptionTypeIndex);
+  const dtPropEls = getTypedElements(
+    root,
+    OWL_NS,
+    'DatatypeProperty',
+    descriptionTypeIndex,
+  );
   const parsedDtProps: ParsedDatatypeProperty[] = [];
 
   for (let i = 0; i < dtPropEls.length; i++) {
@@ -538,8 +630,8 @@ export function parseRDF(
     if (!about) continue;
 
     const comments = getChildTexts(el, 'comment');
-    const hasIdentifierComment = comments.some((c) => /^identifier\s+property$/i.test(c.trim()));
-    const descriptionComment = comments.find((c) => !/^identifier\s+property$/i.test(c.trim())) ?? null;
+    const hasIdentifierComment = comments.some(c => /^identifier\s+property$/i.test(c.trim()));
+    const descriptionComment = comments.find(c => !/^identifier\s+property$/i.test(c.trim())) ?? null;
     const domainUri = getChildResource(el, 'domain', RDFS_NS);
     const legacyEnumValues = getChildText(el, 'enumValues');
     const shapeMetadata = shaclPathMetadata.get(about);
@@ -550,13 +642,20 @@ export function parseRDF(
       domainUri,
       rangeUri: getChildResource(el, 'range', RDFS_NS),
       comment: descriptionComment,
-      isIdentifier:
-        getChildText(el, 'isIdentifier') === 'true' ||
-        hasIdentifierComment ||
-        Boolean(domainUri && identifierPropertiesByClass.get(domainUri)?.has(about)),
+      isIdentifier: (
+        getChildText(el, 'isIdentifier') === 'true'
+        || hasIdentifierComment
+        || Boolean(
+          domainUri
+          && identifierPropertiesByClass.get(domainUri)?.has(about),
+        )
+      ),
       unit: getChildText(el, 'unit'),
       enumConstraint: Boolean(shapeMetadata?.enumValues),
-      enumValues: shapeMetadata?.enumValues || (legacyEnumValues ? legacyEnumValues.split(',') : null),
+      enumValues: (
+        shapeMetadata?.enumValues
+        || (legacyEnumValues ? legacyEnumValues.split(',') : null)
+      ),
       propertyType: getChildText(el, 'propertyType'),
       relationshipAttributeOf: getChildText(el, 'relationshipAttributeOf'),
       attributeType: getChildText(el, 'attributeType'),
@@ -570,8 +669,13 @@ export function parseRDF(
   const orderByRelationshipAttribute = new WeakMap<RelationshipAttribute, number>();
 
   for (const dtProp of parsedDtProps) {
-    const associationRelationship = dtProp.domainUri ? associationRelationshipByClass.get(dtProp.domainUri) : undefined;
-    const attributeRelationship = dtProp.relationshipAttributeOf || associationRelationship;
+    const associationRelationship = dtProp.domainUri
+      ? associationRelationshipByClass.get(dtProp.domainUri)
+      : undefined;
+    const attributeRelationship = (
+      dtProp.relationshipAttributeOf
+      || associationRelationship
+    );
     if (attributeRelationship) {
       const relId = attributeRelationship;
       if (!relAttrMap.has(relId)) {
@@ -613,18 +717,16 @@ export function parseRDF(
   }
 
   for (const entity of entityMap.values()) {
-    entity.properties.sort(
-      (left, right) =>
-        (orderByEntityProperty.get(left) ?? Number.MAX_SAFE_INTEGER) -
-        (orderByEntityProperty.get(right) ?? Number.MAX_SAFE_INTEGER),
-    );
+    entity.properties.sort((left, right) => (
+      (orderByEntityProperty.get(left) ?? Number.MAX_SAFE_INTEGER)
+      - (orderByEntityProperty.get(right) ?? Number.MAX_SAFE_INTEGER)
+    ));
   }
   for (const attributes of relAttrMap.values()) {
-    attributes.sort(
-      (left, right) =>
-        (orderByRelationshipAttribute.get(left) ?? Number.MAX_SAFE_INTEGER) -
-        (orderByRelationshipAttribute.get(right) ?? Number.MAX_SAFE_INTEGER),
-    );
+    attributes.sort((left, right) => (
+      (orderByRelationshipAttribute.get(left) ?? Number.MAX_SAFE_INTEGER)
+      - (orderByRelationshipAttribute.get(right) ?? Number.MAX_SAFE_INTEGER)
+    ));
   }
 
   // --- Extract ObjectProperties → Relationships ---
@@ -664,7 +766,10 @@ export function parseRDF(
     let cardinality: Cardinality = 'one-to-many';
     if (cardinalityStr && isValidCardinality(cardinalityStr)) {
       cardinality = cardinalityStr;
-    } else if (shapeMetadata?.hasForwardShape || shapeMetadata?.hasInverseShape) {
+    } else if (
+      shapeMetadata?.hasForwardShape
+      || shapeMetadata?.hasInverseShape
+    ) {
       if (shapeMetadata.forwardMaxOne && shapeMetadata.inverseMaxOne) {
         cardinality = 'one-to-one';
       } else if (shapeMetadata.forwardMaxOne) {
@@ -693,13 +798,8 @@ export function parseRDF(
     }
 
     // Skip relationships with unresolved source or target
-    if (
-      ![...entityMap.values()].some((entity) => entity.id === rel.from) ||
-      ![...entityMap.values()].some((entity) => entity.id === rel.to)
-    ) {
-      warnings.push(
-        `Relationship ${about} omitted: domain ${getChildResource(el, 'domain', RDFS_NS) || fromId || '(unspecified)'} or range ${getChildResource(el, 'range', RDFS_NS) || toId || '(unspecified)'} is not a declared class in this document.`,
-      );
+    if (![...entityMap.values()].some(entity => entity.id === rel.from) || ![...entityMap.values()].some(entity => entity.id === rel.to)) {
+      warnings.push(`Relationship ${about} omitted: domain ${getChildResource(el, 'domain', RDFS_NS) || fromId || '(unspecified)'} or range ${getChildResource(el, 'range', RDFS_NS) || toId || '(unspecified)'} is not a declared class in this document.`);
       continue;
     }
 
@@ -733,7 +833,10 @@ export function parseRDF(
       seenSubClassEdges.add(edgeKey);
 
       relationships.push({
-        id: createUniqueId(`${subEntity.id}-subClassOf-${superEntity.id}`, usedRelationshipIds),
+        id: createUniqueId(
+          `${subEntity.id}-subClassOf-${superEntity.id}`,
+          usedRelationshipIds,
+        ),
         name: 'subClassOf',
         from: subEntity.id,
         to: superEntity.id,

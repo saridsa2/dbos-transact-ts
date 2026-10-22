@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import figures from 'figures';
 import { join } from 'path';
 import React, { Suspense, use, useCallback, useEffect, useMemo, useState } from 'react';
@@ -24,23 +24,15 @@ import { type ContextWarnings, checkContextWarnings } from '../utils/doctorConte
 import { type DiagnosticInfo, getDoctorDiagnostic } from '../utils/doctorDiagnostic.js';
 import { validateBoundedIntEnvVar } from '../utils/envValidation.js';
 import { pathExists } from '../utils/file.js';
-import {
-  cleanupStaleLocks,
-  getAllLockInfo,
-  isPidBasedLockingEnabled,
-  type LockInfo,
-} from '../utils/nativeInstaller/pidLock.js';
+import { cleanupStaleLocks, getAllLockInfo, isPidBasedLockingEnabled, type LockInfo } from '../utils/nativeInstaller/pidLock.js';
 import { getInitialSettings } from '../utils/settings/settings.js';
 import { BASH_MAX_OUTPUT_DEFAULT, BASH_MAX_OUTPUT_UPPER_LIMIT } from '../utils/shell/outputLimits.js';
 import { TASK_MAX_OUTPUT_DEFAULT, TASK_MAX_OUTPUT_UPPER_LIMIT } from '../utils/task/outputFormatting.js';
 import { getXDGStateHome } from '../utils/xdg.js';
 type Props = {
-  onDone: (
-    result?: string,
-    options?: {
-      display?: CommandResultDisplay;
-    },
-  ) => void;
+  onDone: (result?: string, options?: {
+    display?: CommandResultDisplay;
+  }) => void;
 };
 type AgentInfo = {
   activeAgents: Array<{
@@ -64,11 +56,13 @@ type VersionLockInfo = {
 };
 function DistTagsDisplay(t0) {
   const $ = _c(8);
-  const { promise } = t0;
+  const {
+    promise
+  } = t0;
   const distTags = use(promise);
   if (!distTags.latest) {
     let t1;
-    if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+    if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
       t1 = <Text dimColor={true}>└ Failed to fetch versions</Text>;
       $[0] = t1;
     } else {
@@ -94,12 +88,7 @@ function DistTagsDisplay(t0) {
   }
   let t3;
   if ($[5] !== t1 || $[6] !== t2) {
-    t3 = (
-      <>
-        {t1}
-        {t2}
-      </>
-    );
+    t3 = <>{t1}{t2}</>;
     $[5] = t1;
     $[6] = t2;
     $[7] = t3;
@@ -110,7 +99,9 @@ function DistTagsDisplay(t0) {
 }
 export function Doctor(t0) {
   const $ = _c(84);
-  const { onDone } = t0;
+  const {
+    onDone
+  } = t0;
   const agentDefinitions = useAppState(_temp);
   const mcpTools = useAppState(_temp2);
   const toolPermissionContext = useAppState(_temp3);
@@ -131,14 +122,14 @@ export function Doctor(t0) {
   const [versionLockInfo, setVersionLockInfo] = useState(null);
   const validationErrors = useSettingsErrors();
   let t2;
-  if ($[2] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
     t2 = getDoctorDiagnostic().then(_temp6);
     $[2] = t2;
   } else {
     t2 = $[2];
   }
   const distTagsPromise = t2;
-  const autoUpdatesChannel = getInitialSettings()?.autoUpdatesChannel ?? 'latest';
+  const autoUpdatesChannel = getInitialSettings()?.autoUpdatesChannel ?? "latest";
   let t3;
   if ($[3] !== validationErrors) {
     t3 = validationErrors.filter(_temp7);
@@ -149,23 +140,19 @@ export function Doctor(t0) {
   }
   const errorsExcludingMcp = t3;
   let t4;
-  if ($[5] === Symbol.for('react.memo_cache_sentinel')) {
-    const envVars = [
-      {
-        name: 'BASH_MAX_OUTPUT_LENGTH',
-        default: BASH_MAX_OUTPUT_DEFAULT,
-        upperLimit: BASH_MAX_OUTPUT_UPPER_LIMIT,
-      },
-      {
-        name: 'TASK_MAX_OUTPUT_LENGTH',
-        default: TASK_MAX_OUTPUT_DEFAULT,
-        upperLimit: TASK_MAX_OUTPUT_UPPER_LIMIT,
-      },
-      {
-        name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS',
-        ...getModelMaxOutputTokens('claude-opus-4-6'),
-      },
-    ];
+  if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
+    const envVars = [{
+      name: "BASH_MAX_OUTPUT_LENGTH",
+      default: BASH_MAX_OUTPUT_DEFAULT,
+      upperLimit: BASH_MAX_OUTPUT_UPPER_LIMIT
+    }, {
+      name: "TASK_MAX_OUTPUT_LENGTH",
+      default: TASK_MAX_OUTPUT_DEFAULT,
+      upperLimit: TASK_MAX_OUTPUT_UPPER_LIMIT
+    }, {
+      name: "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+      ...getModelMaxOutputTokens("claude-opus-4-6")
+    }];
     t4 = envVars.map(_temp8).filter(_temp9);
     $[5] = t4;
   } else {
@@ -178,48 +165,45 @@ export function Doctor(t0) {
     t5 = () => {
       getDoctorDiagnostic().then(setDiagnostic);
       (async () => {
-        const userAgentsDir = join(getClaudeConfigHomeDir(), 'agents');
-        const projectAgentsDir = join(getOriginalCwd(), '.claude', 'agents');
-        const { activeAgents, allAgents, failedFiles } = agentDefinitions;
-        const [userDirExists, projectDirExists] = await Promise.all([
-          pathExists(userAgentsDir),
-          pathExists(projectAgentsDir),
-        ]);
+        const userAgentsDir = join(getClaudeConfigHomeDir(), "agents");
+        const projectAgentsDir = join(getOriginalCwd(), ".claude", "agents");
+        const {
+          activeAgents,
+          allAgents,
+          failedFiles
+        } = agentDefinitions;
+        const [userDirExists, projectDirExists] = await Promise.all([pathExists(userAgentsDir), pathExists(projectAgentsDir)]);
         const agentInfoData = {
           activeAgents: activeAgents.map(_temp0),
           userAgentsDir,
           projectAgentsDir,
           userDirExists,
           projectDirExists,
-          failedFiles,
+          failedFiles
         };
         setAgentInfo(agentInfoData);
-        const warnings = await checkContextWarnings(
-          tools,
-          {
-            activeAgents,
-            allAgents,
-            failedFiles,
-          },
-          async () => toolPermissionContext,
-        );
+        const warnings = await checkContextWarnings(tools, {
+          activeAgents,
+          allAgents,
+          failedFiles
+        }, async () => toolPermissionContext);
         setContextWarnings(warnings);
         if (isPidBasedLockingEnabled()) {
-          const locksDir = join(getXDGStateHome(), 'claude', 'locks');
+          const locksDir = join(getXDGStateHome(), "claude", "locks");
           const staleLocksCleaned = cleanupStaleLocks(locksDir);
           const locks = getAllLockInfo(locksDir);
           setVersionLockInfo({
             enabled: true,
             locks,
             locksDir,
-            staleLocksCleaned,
+            staleLocksCleaned
           });
         } else {
           setVersionLockInfo({
             enabled: false,
             locks: [],
-            locksDir: '',
-            staleLocksCleaned: 0,
+            locksDir: "",
+            staleLocksCleaned: 0
           });
         }
       })();
@@ -238,8 +222,8 @@ export function Doctor(t0) {
   let t7;
   if ($[11] !== onDone) {
     t7 = () => {
-      onDone('Claude Code diagnostics dismissed', {
-        display: 'system',
+      onDone("Claude Code diagnostics dismissed", {
+        display: "system"
       });
     };
     $[11] = onDone;
@@ -251,8 +235,8 @@ export function Doctor(t0) {
   let t8;
   if ($[13] !== handleDismiss) {
     t8 = {
-      'confirm:yes': handleDismiss,
-      'confirm:no': handleDismiss,
+      "confirm:yes": handleDismiss,
+      "confirm:no": handleDismiss
     };
     $[13] = handleDismiss;
     $[14] = t8;
@@ -260,9 +244,9 @@ export function Doctor(t0) {
     t8 = $[14];
   }
   let t9;
-  if ($[15] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
     t9 = {
-      context: 'Confirmation',
+      context: "Confirmation"
     };
     $[15] = t9;
   } else {
@@ -271,12 +255,8 @@ export function Doctor(t0) {
   useKeybindings(t8, t9);
   if (!diagnostic) {
     let t10;
-    if ($[16] === Symbol.for('react.memo_cache_sentinel')) {
-      t10 = (
-        <Pane>
-          <Text dimColor={true}>Checking installation status…</Text>
-        </Pane>
-      );
+    if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
+      t10 = <Pane><Text dimColor={true}>Checking installation status…</Text></Pane>;
       $[16] = t10;
     } else {
       t10 = $[16];
@@ -284,7 +264,7 @@ export function Doctor(t0) {
     return t10;
   }
   let t10;
-  if ($[17] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
     t10 = <Text bold={true}>Diagnostics</Text>;
     $[17] = t10;
   } else {
@@ -292,11 +272,7 @@ export function Doctor(t0) {
   }
   let t11;
   if ($[18] !== diagnostic.installationType || $[19] !== diagnostic.version) {
-    t11 = (
-      <Text>
-        └ Currently running: {diagnostic.installationType} ({diagnostic.version})
-      </Text>
-    );
+    t11 = <Text>└ Currently running: {diagnostic.installationType} ({diagnostic.version})</Text>;
     $[18] = diagnostic.installationType;
     $[19] = diagnostic.version;
     $[20] = t11;
@@ -335,20 +311,11 @@ export function Doctor(t0) {
   } else {
     t15 = $[28];
   }
-  const t16 = diagnostic.ripgrepStatus.working ? 'OK' : 'Not working';
-  const t17 =
-    diagnostic.ripgrepStatus.mode === 'embedded'
-      ? 'bundled'
-      : diagnostic.ripgrepStatus.mode === 'builtin'
-        ? 'vendor'
-        : diagnostic.ripgrepStatus.systemPath || 'system';
+  const t16 = diagnostic.ripgrepStatus.working ? "OK" : "Not working";
+  const t17 = diagnostic.ripgrepStatus.mode === "embedded" ? "bundled" : diagnostic.ripgrepStatus.mode === "builtin" ? "vendor" : diagnostic.ripgrepStatus.systemPath || "system";
   let t18;
   if ($[29] !== t16 || $[30] !== t17) {
-    t18 = (
-      <Text>
-        └ Search: {t16} ({t17})
-      </Text>
-    );
+    t18 = <Text>└ Search: {t16} ({t17})</Text>;
     $[29] = t16;
     $[30] = t17;
     $[31] = t18;
@@ -357,13 +324,7 @@ export function Doctor(t0) {
   }
   let t19;
   if ($[32] !== diagnostic.recommendation) {
-    t19 = diagnostic.recommendation && (
-      <>
-        <Text />
-        <Text color="warning">Recommendation: {diagnostic.recommendation.split('\n')[0]}</Text>
-        <Text dimColor={true}>{diagnostic.recommendation.split('\n')[1]}</Text>
-      </>
-    );
+    t19 = diagnostic.recommendation && <><Text /><Text color="warning">Recommendation: {diagnostic.recommendation.split("\n")[0]}</Text><Text dimColor={true}>{diagnostic.recommendation.split("\n")[1]}</Text></>;
     $[32] = diagnostic.recommendation;
     $[33] = t19;
   } else {
@@ -371,13 +332,7 @@ export function Doctor(t0) {
   }
   let t20;
   if ($[34] !== diagnostic.multipleInstallations) {
-    t20 = diagnostic.multipleInstallations.length > 1 && (
-      <>
-        <Text />
-        <Text color="warning">Warning: Multiple installations found</Text>
-        {diagnostic.multipleInstallations.map(_temp1)}
-      </>
-    );
+    t20 = diagnostic.multipleInstallations.length > 1 && <><Text /><Text color="warning">Warning: Multiple installations found</Text>{diagnostic.multipleInstallations.map(_temp1)}</>;
     $[34] = diagnostic.multipleInstallations;
     $[35] = t20;
   } else {
@@ -385,12 +340,7 @@ export function Doctor(t0) {
   }
   let t21;
   if ($[36] !== diagnostic.warnings) {
-    t21 = diagnostic.warnings.length > 0 && (
-      <>
-        <Text />
-        {diagnostic.warnings.map(_temp10)}
-      </>
-    );
+    t21 = diagnostic.warnings.length > 0 && <><Text />{diagnostic.warnings.map(_temp10)}</>;
     $[36] = diagnostic.warnings;
     $[37] = t21;
   } else {
@@ -398,45 +348,15 @@ export function Doctor(t0) {
   }
   let t22;
   if ($[38] !== errorsExcludingMcp) {
-    t22 = errorsExcludingMcp.length > 0 && (
-      <Box flexDirection="column" marginTop={1} marginBottom={1}>
-        <Text bold={true}>Invalid Settings</Text>
-        <ValidationErrorsList errors={errorsExcludingMcp} />
-      </Box>
-    );
+    t22 = errorsExcludingMcp.length > 0 && <Box flexDirection="column" marginTop={1} marginBottom={1}><Text bold={true}>Invalid Settings</Text><ValidationErrorsList errors={errorsExcludingMcp} /></Box>;
     $[38] = errorsExcludingMcp;
     $[39] = t22;
   } else {
     t22 = $[39];
   }
   let t23;
-  if (
-    $[40] !== t11 ||
-    $[41] !== t12 ||
-    $[42] !== t13 ||
-    $[43] !== t14 ||
-    $[44] !== t15 ||
-    $[45] !== t18 ||
-    $[46] !== t19 ||
-    $[47] !== t20 ||
-    $[48] !== t21 ||
-    $[49] !== t22
-  ) {
-    t23 = (
-      <Box flexDirection="column">
-        {t10}
-        {t11}
-        {t12}
-        {t13}
-        {t14}
-        {t15}
-        {t18}
-        {t19}
-        {t20}
-        {t21}
-        {t22}
-      </Box>
-    );
+  if ($[40] !== t11 || $[41] !== t12 || $[42] !== t13 || $[43] !== t14 || $[44] !== t15 || $[45] !== t18 || $[46] !== t19 || $[47] !== t20 || $[48] !== t21 || $[49] !== t22) {
+    t23 = <Box flexDirection="column">{t10}{t11}{t12}{t13}{t14}{t15}{t18}{t19}{t20}{t21}{t22}</Box>;
     $[40] = t11;
     $[41] = t12;
     $[42] = t13;
@@ -452,16 +372,16 @@ export function Doctor(t0) {
     t23 = $[50];
   }
   let t24;
-  if ($[51] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[51] === Symbol.for("react.memo_cache_sentinel")) {
     t24 = <Text bold={true}>Updates</Text>;
     $[51] = t24;
   } else {
     t24 = $[51];
   }
-  const t25 = diagnostic.packageManager ? 'Managed by package manager' : diagnostic.autoUpdates;
+  const t25 = diagnostic.packageManager ? "Managed by package manager" : diagnostic.autoUpdates;
   let t26;
   if ($[52] !== t25) {
-    t26 = <Text>└ Auto-updates: {t25}</Text>;
+    t26 = <Text>└ Auto-updates:{" "}{t25}</Text>;
     $[52] = t25;
     $[53] = t26;
   } else {
@@ -469,43 +389,29 @@ export function Doctor(t0) {
   }
   let t27;
   if ($[54] !== diagnostic.hasUpdatePermissions) {
-    t27 = diagnostic.hasUpdatePermissions !== null && (
-      <Text>└ Update permissions: {diagnostic.hasUpdatePermissions ? 'Yes' : 'No (requires sudo)'}</Text>
-    );
+    t27 = diagnostic.hasUpdatePermissions !== null && <Text>└ Update permissions:{" "}{diagnostic.hasUpdatePermissions ? "Yes" : "No (requires sudo)"}</Text>;
     $[54] = diagnostic.hasUpdatePermissions;
     $[55] = t27;
   } else {
     t27 = $[55];
   }
   let t28;
-  if ($[56] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[56] === Symbol.for("react.memo_cache_sentinel")) {
     t28 = <Text>└ Auto-update channel: {autoUpdatesChannel}</Text>;
     $[56] = t28;
   } else {
     t28 = $[56];
   }
   let t29;
-  if ($[57] === Symbol.for('react.memo_cache_sentinel')) {
-    t29 = (
-      <Suspense fallback={null}>
-        <DistTagsDisplay promise={distTagsPromise} />
-      </Suspense>
-    );
+  if ($[57] === Symbol.for("react.memo_cache_sentinel")) {
+    t29 = <Suspense fallback={null}><DistTagsDisplay promise={distTagsPromise} /></Suspense>;
     $[57] = t29;
   } else {
     t29 = $[57];
   }
   let t30;
   if ($[58] !== t26 || $[59] !== t27) {
-    t30 = (
-      <Box flexDirection="column">
-        {t24}
-        {t26}
-        {t27}
-        {t28}
-        {t29}
-      </Box>
-    );
+    t30 = <Box flexDirection="column">{t24}{t26}{t27}{t28}{t29}</Box>;
     $[58] = t26;
     $[59] = t27;
     $[60] = t30;
@@ -516,16 +422,11 @@ export function Doctor(t0) {
   let t32;
   let t33;
   let t34;
-  if ($[61] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[61] === Symbol.for("react.memo_cache_sentinel")) {
     t31 = <SandboxDoctorSection />;
     t32 = <McpParsingWarnings />;
     t33 = <KeybindingWarnings />;
-    t34 = envValidationErrors.length > 0 && (
-      <Box flexDirection="column">
-        <Text bold={true}>Environment Variables</Text>
-        {envValidationErrors.map(_temp11)}
-      </Box>
-    );
+    t34 = envValidationErrors.length > 0 && <Box flexDirection="column"><Text bold={true}>Environment Variables</Text>{envValidationErrors.map(_temp11)}</Box>;
     $[61] = t31;
     $[62] = t32;
     $[63] = t33;
@@ -538,19 +439,7 @@ export function Doctor(t0) {
   }
   let t35;
   if ($[65] !== versionLockInfo) {
-    t35 = versionLockInfo?.enabled && (
-      <Box flexDirection="column">
-        <Text bold={true}>Version Locks</Text>
-        {versionLockInfo.staleLocksCleaned > 0 && (
-          <Text dimColor={true}>└ Cleaned {versionLockInfo.staleLocksCleaned} stale lock(s)</Text>
-        )}
-        {versionLockInfo.locks.length === 0 ? (
-          <Text dimColor={true}>└ No active version locks</Text>
-        ) : (
-          versionLockInfo.locks.map(_temp12)
-        )}
-      </Box>
-    );
+    t35 = versionLockInfo?.enabled && <Box flexDirection="column"><Text bold={true}>Version Locks</Text>{versionLockInfo.staleLocksCleaned > 0 && <Text dimColor={true}>└ Cleaned {versionLockInfo.staleLocksCleaned} stale lock(s)</Text>}{versionLockInfo.locks.length === 0 ? <Text dimColor={true}>└ No active version locks</Text> : versionLockInfo.locks.map(_temp12)}</Box>;
     $[65] = versionLockInfo;
     $[66] = t35;
   } else {
@@ -558,15 +447,7 @@ export function Doctor(t0) {
   }
   let t36;
   if ($[67] !== agentInfo) {
-    t36 = agentInfo?.failedFiles && agentInfo.failedFiles.length > 0 && (
-      <Box flexDirection="column">
-        <Text bold={true} color="error">
-          Agent Parse Errors
-        </Text>
-        <Text color="error">└ Failed to parse {agentInfo.failedFiles.length} agent file(s):</Text>
-        {agentInfo.failedFiles.map(_temp13)}
-      </Box>
-    );
+    t36 = agentInfo?.failedFiles && agentInfo.failedFiles.length > 0 && <Box flexDirection="column"><Text bold={true} color="error">Agent Parse Errors</Text><Text color="error">└ Failed to parse {agentInfo.failedFiles.length} agent file(s):</Text>{agentInfo.failedFiles.map(_temp13)}</Box>;
     $[67] = agentInfo;
     $[68] = t36;
   } else {
@@ -574,15 +455,7 @@ export function Doctor(t0) {
   }
   let t37;
   if ($[69] !== pluginsErrors) {
-    t37 = pluginsErrors.length > 0 && (
-      <Box flexDirection="column">
-        <Text bold={true} color="error">
-          Plugin Errors
-        </Text>
-        <Text color="error">└ {pluginsErrors.length} plugin error(s) detected:</Text>
-        {pluginsErrors.map(_temp14)}
-      </Box>
-    );
+    t37 = pluginsErrors.length > 0 && <Box flexDirection="column"><Text bold={true} color="error">Plugin Errors</Text><Text color="error">└ {pluginsErrors.length} plugin error(s) detected:</Text>{pluginsErrors.map(_temp14)}</Box>;
     $[69] = pluginsErrors;
     $[70] = t37;
   } else {
@@ -590,20 +463,7 @@ export function Doctor(t0) {
   }
   let t38;
   if ($[71] !== contextWarnings) {
-    t38 = contextWarnings?.unreachableRulesWarning && (
-      <Box flexDirection="column">
-        <Text bold={true} color="warning">
-          Unreachable Permission Rules
-        </Text>
-        <Text>
-          └{' '}
-          <Text color="warning">
-            {figures.warning} {contextWarnings.unreachableRulesWarning.message}
-          </Text>
-        </Text>
-        {contextWarnings.unreachableRulesWarning.details.map(_temp15)}
-      </Box>
-    );
+    t38 = contextWarnings?.unreachableRulesWarning && <Box flexDirection="column"><Text bold={true} color="warning">Unreachable Permission Rules</Text><Text>└{" "}<Text color="warning">{figures.warning}{" "}{contextWarnings.unreachableRulesWarning.message}</Text></Text>{contextWarnings.unreachableRulesWarning.details.map(_temp15)}</Box>;
     $[71] = contextWarnings;
     $[72] = t38;
   } else {
@@ -611,90 +471,22 @@ export function Doctor(t0) {
   }
   let t39;
   if ($[73] !== contextWarnings) {
-    t39 = contextWarnings &&
-      (contextWarnings.claudeMdWarning || contextWarnings.agentWarning || contextWarnings.mcpWarning) && (
-        <Box flexDirection="column">
-          <Text bold={true}>Context Usage Warnings</Text>
-          {contextWarnings.claudeMdWarning && (
-            <>
-              <Text>
-                └{' '}
-                <Text color="warning">
-                  {figures.warning} {contextWarnings.claudeMdWarning.message}
-                </Text>
-              </Text>
-              <Text>{'  '}└ Files:</Text>
-              {contextWarnings.claudeMdWarning.details.map(_temp16)}
-            </>
-          )}
-          {contextWarnings.agentWarning && (
-            <>
-              <Text>
-                └{' '}
-                <Text color="warning">
-                  {figures.warning} {contextWarnings.agentWarning.message}
-                </Text>
-              </Text>
-              <Text>{'  '}└ Top contributors:</Text>
-              {contextWarnings.agentWarning.details.map(_temp17)}
-            </>
-          )}
-          {contextWarnings.mcpWarning && (
-            <>
-              <Text>
-                └{' '}
-                <Text color="warning">
-                  {figures.warning} {contextWarnings.mcpWarning.message}
-                </Text>
-              </Text>
-              <Text>{'  '}└ MCP servers:</Text>
-              {contextWarnings.mcpWarning.details.map(_temp18)}
-            </>
-          )}
-        </Box>
-      );
+    t39 = contextWarnings && (contextWarnings.claudeMdWarning || contextWarnings.agentWarning || contextWarnings.mcpWarning) && <Box flexDirection="column"><Text bold={true}>Context Usage Warnings</Text>{contextWarnings.claudeMdWarning && <><Text>└{" "}<Text color="warning">{figures.warning} {contextWarnings.claudeMdWarning.message}</Text></Text><Text>{"  "}└ Files:</Text>{contextWarnings.claudeMdWarning.details.map(_temp16)}</>}{contextWarnings.agentWarning && <><Text>└{" "}<Text color="warning">{figures.warning} {contextWarnings.agentWarning.message}</Text></Text><Text>{"  "}└ Top contributors:</Text>{contextWarnings.agentWarning.details.map(_temp17)}</>}{contextWarnings.mcpWarning && <><Text>└{" "}<Text color="warning">{figures.warning} {contextWarnings.mcpWarning.message}</Text></Text><Text>{"  "}└ MCP servers:</Text>{contextWarnings.mcpWarning.details.map(_temp18)}</>}</Box>;
     $[73] = contextWarnings;
     $[74] = t39;
   } else {
     t39 = $[74];
   }
   let t40;
-  if ($[75] === Symbol.for('react.memo_cache_sentinel')) {
-    t40 = (
-      <Box>
-        <PressEnterToContinue />
-      </Box>
-    );
+  if ($[75] === Symbol.for("react.memo_cache_sentinel")) {
+    t40 = <Box><PressEnterToContinue /></Box>;
     $[75] = t40;
   } else {
     t40 = $[75];
   }
   let t41;
-  if (
-    $[76] !== t23 ||
-    $[77] !== t30 ||
-    $[78] !== t35 ||
-    $[79] !== t36 ||
-    $[80] !== t37 ||
-    $[81] !== t38 ||
-    $[82] !== t39
-  ) {
-    t41 = (
-      <Pane>
-        {t23}
-        {t30}
-        {t31}
-        {t32}
-        {t33}
-        {t34}
-        {t35}
-        {t36}
-        {t37}
-        {t38}
-        {t39}
-        {t40}
-      </Pane>
-    );
+  if ($[76] !== t23 || $[77] !== t30 || $[78] !== t35 || $[79] !== t36 || $[80] !== t37 || $[81] !== t38 || $[82] !== t39) {
+    t41 = <Pane>{t23}{t30}{t31}{t32}{t33}{t34}{t35}{t36}{t37}{t38}{t39}{t40}</Pane>;
     $[76] = t23;
     $[77] = t30;
     $[78] = t35;
@@ -709,107 +501,63 @@ export function Doctor(t0) {
   return t41;
 }
 function _temp18(detail_2, i_8) {
-  return (
-    <Text key={i_8} dimColor={true}>
-      {'    '}└ {detail_2}
-    </Text>
-  );
+  return <Text key={i_8} dimColor={true}>{"    "}└ {detail_2}</Text>;
 }
 function _temp17(detail_1, i_7) {
-  return (
-    <Text key={i_7} dimColor={true}>
-      {'    '}└ {detail_1}
-    </Text>
-  );
+  return <Text key={i_7} dimColor={true}>{"    "}└ {detail_1}</Text>;
 }
 function _temp16(detail_0, i_6) {
-  return (
-    <Text key={i_6} dimColor={true}>
-      {'    '}└ {detail_0}
-    </Text>
-  );
+  return <Text key={i_6} dimColor={true}>{"    "}└ {detail_0}</Text>;
 }
 function _temp15(detail, i_5) {
-  return (
-    <Text key={i_5} dimColor={true}>
-      {'  '}└ {detail}
-    </Text>
-  );
+  return <Text key={i_5} dimColor={true}>{"  "}└ {detail}</Text>;
 }
 function _temp14(error_0, i_4) {
-  return (
-    <Text key={i_4} dimColor={true}>
-      {'  '}└ {error_0.source || 'unknown'}
-      {'plugin' in error_0 && error_0.plugin ? ` [${error_0.plugin}]` : ''}: {getPluginErrorMessage(error_0)}
-    </Text>
-  );
+  return <Text key={i_4} dimColor={true}>{"  "}└ {error_0.source || "unknown"}{"plugin" in error_0 && error_0.plugin ? ` [${error_0.plugin}]` : ""}:{" "}{getPluginErrorMessage(error_0)}</Text>;
 }
 function _temp13(file, i_3) {
-  return (
-    <Text key={i_3} dimColor={true}>
-      {'  '}└ {file.path}: {file.error}
-    </Text>
-  );
+  return <Text key={i_3} dimColor={true}>{"  "}└ {file.path}: {file.error}</Text>;
 }
 function _temp12(lock, i_2) {
-  return (
-    <Text key={i_2}>
-      └ {lock.version}: PID {lock.pid}{' '}
-      {lock.isProcessRunning ? <Text>(running)</Text> : <Text color="warning">(stale)</Text>}
-    </Text>
-  );
+  return <Text key={i_2}>└ {lock.version}: PID {lock.pid}{" "}{lock.isProcessRunning ? <Text>(running)</Text> : <Text color="warning">(stale)</Text>}</Text>;
 }
 function _temp11(validation, i_1) {
-  return (
-    <Text key={i_1}>
-      └ {validation.name}:{' '}
-      <Text color={validation.status === 'capped' ? 'warning' : 'error'}>{validation.message}</Text>
-    </Text>
-  );
+  return <Text key={i_1}>└ {validation.name}:{" "}<Text color={validation.status === "capped" ? "warning" : "error"}>{validation.message}</Text></Text>;
 }
 function _temp10(warning, i_0) {
-  return (
-    <Box key={i_0} flexDirection="column">
-      <Text color="warning">Warning: {warning.issue}</Text>
-      <Text>Fix: {warning.fix}</Text>
-    </Box>
-  );
+  return <Box key={i_0} flexDirection="column"><Text color="warning">Warning: {warning.issue}</Text><Text>Fix: {warning.fix}</Text></Box>;
 }
 function _temp1(install, i) {
-  return (
-    <Text key={i}>
-      └ {install.type} at {install.path}
-    </Text>
-  );
+  return <Text key={i}>└ {install.type} at {install.path}</Text>;
 }
 function _temp0(a) {
   return {
     agentType: a.agentType,
-    source: a.source,
+    source: a.source
   };
 }
 function _temp9(v_0) {
-  return v_0.status !== 'valid';
+  return v_0.status !== "valid";
 }
 function _temp8(v) {
   const value = process.env[v.name];
   const result = validateBoundedIntEnvVar(v.name, value, v.default, v.upperLimit);
   return {
     name: v.name,
-    ...result,
+    ...result
   };
 }
 function _temp7(error) {
   return error.mcpErrorMetadata === undefined;
 }
 function _temp6(diag) {
-  const fetchDistTags = diag.installationType === 'native' ? getGcsDistTags : getNpmDistTags;
+  const fetchDistTags = diag.installationType === "native" ? getGcsDistTags : getNpmDistTags;
   return fetchDistTags().catch(_temp5);
 }
 function _temp5() {
   return {
     latest: null,
-    stable: null,
+    stable: null
   };
 }
 function _temp4(s_2) {

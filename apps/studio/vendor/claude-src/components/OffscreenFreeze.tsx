@@ -20,13 +20,17 @@ type Props = {
  * The cache is one slot deep: the first re-render after scrolling back into view
  * picks up the live children. Content still updates normally while visible.
  */
-export function OffscreenFreeze({ children }: Props): React.ReactNode {
+export function OffscreenFreeze({
+  children
+}: Props): React.ReactNode {
   // React Compiler: reading cached.current in the return is the entire
   // freeze mechanism — memoizing this component would defeat it. Opt out.
   'use no memo';
 
   const inVirtualList = useContext(InVirtualListContext);
-  const [ref, { isVisible }] = useTerminalViewport();
+  const [ref, {
+    isVisible
+  }] = useTerminalViewport();
   const cached = useRef(children);
   // Virtual list has no terminal scrollback — the ScrollBox clips inside the
   // viewport, so there's nothing to freeze. Freezing there also blocks

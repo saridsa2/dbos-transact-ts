@@ -8,7 +8,11 @@ export interface PathNode {
 /**
  * Finds the shortest directed path by hop count using BFS.
  */
-export function findShortestPath(fromId: string, toId: string, relationships: Relationship[]): PathNode[] | null {
+export function findShortestPath(
+  fromId: string,
+  toId: string,
+  relationships: Relationship[]
+): PathNode[] | null {
   if (fromId === toId) return null;
 
   const adjacency = new Map<string, { neighbourId: string; rel: Relationship }[]>();
@@ -19,7 +23,9 @@ export function findShortestPath(fromId: string, toId: string, relationships: Re
   }
 
   const visited = new Set<string>([fromId]);
-  const queue: { entityId: string; path: PathNode[] }[] = [{ entityId: fromId, path: [{ entityId: fromId }] }];
+  const queue: { entityId: string; path: PathNode[] }[] = [
+    { entityId: fromId, path: [{ entityId: fromId }] },
+  ];
 
   while (queue.length > 0) {
     const current = queue.shift();

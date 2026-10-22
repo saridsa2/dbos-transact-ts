@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { useLayoutEffect } from 'react';
 import { PassThrough } from 'stream';
@@ -17,8 +17,12 @@ import { render, useApp } from '../ink.js';
  */
 function RenderOnceAndExit(t0) {
   const $ = _c(5);
-  const { children } = t0;
-  const { exit } = useApp();
+  const {
+    children
+  } = t0;
+  const {
+    exit
+  } = useApp();
   let t1;
   let t2;
   if ($[0] !== exit) {
@@ -68,7 +72,7 @@ function extractFirstFrame(output: string): string {
  * Renders a React node to a string with ANSI escape codes (for terminal output).
  */
 export function renderToAnsiString(node: React.ReactNode, columns?: number): Promise<string> {
-  return new Promise(async (resolve) => {
+  return new Promise(async resolve => {
     let output = '';
 
     // Capture all writes. Set .columns so Ink (ink.tsx:~165) picks up a
@@ -77,13 +81,12 @@ export function renderToAnsiString(node: React.ReactNode, columns?: number): Pro
     // match what the user sees on screen.
     const stream = new PassThrough();
     if (columns !== undefined) {
-      (
-        stream as unknown as {
-          columns: number;
-        }
-      ).columns = columns;
+      ;
+      (stream as unknown as {
+        columns: number;
+      }).columns = columns;
     }
-    stream.on('data', (chunk) => {
+    stream.on('data', chunk => {
       output += chunk.toString();
     });
 
@@ -91,7 +94,7 @@ export function renderToAnsiString(node: React.ReactNode, columns?: number): Pro
     // Non-TTY stdout (PassThrough) gives full-frame output instead of diffs
     const instance = await render(<RenderOnceAndExit>{node}</RenderOnceAndExit>, {
       stdout: stream as unknown as NodeJS.WriteStream,
-      patchConsole: false,
+      patchConsole: false
     });
 
     // Wait for the component to exit naturally

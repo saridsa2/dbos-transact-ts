@@ -19,21 +19,21 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
       instruction: `Click on the ${entity.name} entity to learn about its properties`,
       targetType: 'entity' as const,
       targetId: entity.id,
-      hint: `Look for the ${entity.icon} icon in the graph`,
+      hint: `Look for the ${entity.icon} icon in the graph`
     }));
 
     quests.push({
-      id: 'quest-1',
-      title: 'Meet the Entities',
+      id: "quest-1",
+      title: "Meet the Entities",
       description: `Discover the core entity types in the ${ontology.name} ontology.`,
-      difficulty: 'beginner',
-      category: 'exploration',
+      difficulty: "beginner",
+      category: "exploration",
       steps: explorationSteps,
       reward: {
-        badge: 'Entity Explorer',
-        badgeIcon: '🎖️',
-        points: 100,
-      },
+        badge: "Entity Explorer",
+        badgeIcon: "🎖️",
+        points: 100
+      }
     });
   }
 
@@ -44,8 +44,8 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
 
     // Try to find a chain of relationships
     for (const rel of relationships.slice(0, 3)) {
-      const sourceEntity = entities.find((e) => e.id === rel.from);
-      const targetEntity = entities.find((e) => e.id === rel.to);
+      const sourceEntity = entities.find(e => e.id === rel.from);
+      const targetEntity = entities.find(e => e.id === rel.to);
 
       if (sourceEntity && !usedEntities.has(sourceEntity.id)) {
         relSteps.push({
@@ -53,7 +53,7 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
           instruction: `Start at the ${sourceEntity.name} entity`,
           targetType: 'entity',
           targetId: sourceEntity.id,
-          hint: `Find the ${sourceEntity.icon} icon`,
+          hint: `Find the ${sourceEntity.icon} icon`
         });
         usedEntities.add(sourceEntity.id);
       }
@@ -63,23 +63,23 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
         instruction: `Follow the '${rel.name}' relationship${targetEntity ? ` to ${targetEntity.name}` : ''}`,
         targetType: 'relationship',
         targetId: rel.id,
-        hint: `Click the line labeled "${rel.name}"`,
+        hint: `Click the line labeled "${rel.name}"`
       });
     }
 
     if (relSteps.length >= 2) {
       quests.push({
-        id: 'quest-2',
-        title: 'Relationship Navigator',
+        id: "quest-2",
+        title: "Relationship Navigator",
         description: `Trace the connections between entities in ${ontology.name}.`,
-        difficulty: 'intermediate',
-        category: 'traversal',
+        difficulty: "intermediate",
+        category: "traversal",
         steps: relSteps,
         reward: {
-          badge: 'Connection Master',
-          badgeIcon: '🔗',
-          points: 200,
-        },
+          badge: "Connection Master",
+          badgeIcon: "🔗",
+          points: 200
+        }
       });
     }
   }
@@ -90,28 +90,36 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
     connectionCount.set(entity.id, 0);
   }
   for (const relationship of relationships) {
-    connectionCount.set(relationship.from, (connectionCount.get(relationship.from) ?? 0) + 1);
+    connectionCount.set(
+      relationship.from,
+      (connectionCount.get(relationship.from) ?? 0) + 1,
+    );
     if (relationship.to !== relationship.from) {
-      connectionCount.set(relationship.to, (connectionCount.get(relationship.to) ?? 0) + 1);
+      connectionCount.set(
+        relationship.to,
+        (connectionCount.get(relationship.to) ?? 0) + 1,
+      );
     }
   }
-
+  
   const sortedByConnections = entities
-    .map((e) => ({ entity: e, connections: connectionCount.get(e.id) ?? 0 }))
+    .map(e => ({ entity: e, connections: connectionCount.get(e.id) ?? 0 }))
     .sort((a, b) => b.connections - a.connections);
 
   if (sortedByConnections.length >= 2 && sortedByConnections[0].connections >= 2) {
     const hub = sortedByConnections[0].entity;
-    const connectedRels = relationships.filter((r) => r.from === hub.id || r.to === hub.id).slice(0, 3);
+    const connectedRels = relationships.filter(
+      r => r.from === hub.id || r.to === hub.id
+    ).slice(0, 3);
 
     const hubSteps: QuestStep[] = [
       {
-        id: 'step-3-1',
+        id: "step-3-1",
         instruction: `Find the ${hub.name} entity - it's the most connected in this ontology!`,
         targetType: 'entity',
         targetId: hub.id,
-        hint: `${hub.name} has ${connectionCount.get(hub.id) ?? 0} connections`,
-      },
+        hint: `${hub.name} has ${connectionCount.get(hub.id) ?? 0} connections`
+      }
     ];
 
     connectedRels.forEach((rel, i) => {
@@ -120,64 +128,66 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
         instruction: `Explore the '${rel.name}' relationship`,
         targetType: 'relationship',
         targetId: rel.id,
-        hint: `This ${rel.from === hub.id ? 'originates from' : 'connects to'} ${hub.name}`,
+        hint: `This ${rel.from === hub.id ? 'originates from' : 'connects to'} ${hub.name}`
       });
     });
 
     quests.push({
-      id: 'quest-3',
-      title: 'Find the Hub',
+      id: "quest-3",
+      title: "Find the Hub",
       description: `Discover which entity is the most connected in ${ontology.name}.`,
-      difficulty: 'intermediate',
-      category: 'exploration',
+      difficulty: "intermediate",
+      category: "exploration",
       steps: hubSteps,
       reward: {
-        badge: 'Hub Detective',
-        badgeIcon: '🔍',
-        points: 200,
-      },
+        badge: "Hub Detective",
+        badgeIcon: "🔍",
+        points: 200
+      }
     });
   }
 
   // Quest 4: Property Detective - explore entity properties
-  const entitiesWithManyProps = entities.filter((e) => e.properties.length >= 3).slice(0, 2);
+  const entitiesWithManyProps = entities
+    .filter(e => e.properties.length >= 3)
+    .slice(0, 2);
 
   if (entitiesWithManyProps.length >= 1) {
     const propSteps: QuestStep[] = [];
-
+    
     for (const entity of entitiesWithManyProps) {
       propSteps.push({
         id: `step-4-${propSteps.length + 1}`,
         instruction: `Select the ${entity.name} entity and examine its ${entity.properties.length} properties`,
         targetType: 'entity',
         targetId: entity.id,
-        hint: `Check the Inspector panel for property details`,
+        hint: `Check the Inspector panel for property details`
       });
 
-      const identifierProp = entity.properties.find((p) => p.isIdentifier);
+      const identifierProp = entity.properties.find(p => p.isIdentifier);
       if (identifierProp) {
         propSteps.push({
           id: `step-4-${propSteps.length + 1}`,
           instruction: `Find the identifier property '${identifierProp.name}' in ${entity.name}`,
           targetType: 'property',
           targetId: identifierProp.name,
-          hint: `Look for the key icon 🔑 marking the identifier`,
+          hint: `Look for the key icon 🔑 marking the identifier`
         });
       }
     }
 
     quests.push({
-      id: 'quest-4',
-      title: 'Property Detective',
+      id: "quest-4",
+      title: "Property Detective",
       description: `Learn about the properties that define each entity type.`,
-      difficulty: 'intermediate',
-      category: 'exploration',
+      difficulty: "intermediate",
+      category: "exploration",
       steps: propSteps,
       reward: {
-        badge: 'Data Scholar',
-        badgeIcon: '📊',
-        points: 250,
-      },
+        badge: "Data Scholar",
+        badgeIcon: "📊",
+        points: 250
+      }
     });
   }
 
@@ -185,72 +195,71 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
   const sampleEntities = entities.slice(0, 2);
   const querySteps: QuestStep[] = [
     {
-      id: 'step-5-1',
+      id: "step-5-1",
       instruction: `Try asking: "What is ${sampleEntities[0]?.name || 'an entity'}?"`,
       targetType: 'query',
-      hint: 'Type in the Natural Language Query playground',
-    },
+      hint: "Type in the Natural Language Query playground"
+    }
   ];
 
   if (sampleEntities.length >= 2) {
     querySteps.push({
-      id: 'step-5-2',
+      id: "step-5-2",
       instruction: `Now ask: "How does ${sampleEntities[0].name} relate to ${sampleEntities[1].name}?"`,
       targetType: 'query',
-      hint: 'Explore the relationships between entities',
+      hint: "Explore the relationships between entities"
     });
   }
 
   if (relationships.length > 0) {
     const rel = relationships[0];
-    const fromEntity = entities.find((e) => e.id === rel.from);
-    const toEntity = entities.find((e) => e.id === rel.to);
+    const fromEntity = entities.find(e => e.id === rel.from);
+    const toEntity = entities.find(e => e.id === rel.to);
     querySteps.push({
-      id: 'step-5-3',
-      instruction:
-        fromEntity && toEntity
-          ? `Try a traversal query: "How does ${fromEntity.name} connect to ${toEntity.name}?"`
-          : `Try a traversal query about the "${rel.name}" relationship`,
+      id: "step-5-3",
+      instruction: fromEntity && toEntity
+        ? `Try a traversal query: "How does ${fromEntity.name} connect to ${toEntity.name}?"`
+        : `Try a traversal query about the "${rel.name}" relationship`,
       targetType: 'query',
-      hint: `This follows the "${rel.name}" relationship path`,
+      hint: `This follows the "${rel.name}" relationship path`
     });
   }
 
   quests.push({
-    id: 'quest-5',
-    title: 'Query Explorer',
-    description: 'Learn to ask questions using natural language queries.',
-    difficulty: 'advanced',
-    category: 'query',
+    id: "quest-5",
+    title: "Query Explorer",
+    description: "Learn to ask questions using natural language queries.",
+    difficulty: "advanced",
+    category: "query",
     steps: querySteps,
     reward: {
-      badge: 'Query Wizard',
-      badgeIcon: '🧙',
-      points: 300,
-    },
+      badge: "Query Wizard",
+      badgeIcon: "🧙",
+      points: 300
+    }
   });
 
   // Quest 6: Full Traversal - go through a chain of entities
   if (relationships.length >= 3) {
     // Try to find a chain: A -> B -> C
-    let chain: { entities: (typeof entities)[0][]; rels: (typeof relationships)[0][] } | null = null;
+    let chain: { entities: typeof entities[0][], rels: typeof relationships[0][] } | null = null;
 
     for (const startRel of relationships) {
-      const midEntity = entities.find((e) => e.id === startRel.to);
+      const midEntity = entities.find(e => e.id === startRel.to);
       if (!midEntity) continue;
 
-      const nextRel = relationships.find((r) => r.from === midEntity.id && r.id !== startRel.id);
+      const nextRel = relationships.find(r => r.from === midEntity.id && r.id !== startRel.id);
       if (!nextRel) continue;
 
-      const endEntity = entities.find((e) => e.id === nextRel.to);
+      const endEntity = entities.find(e => e.id === nextRel.to);
       if (!endEntity) continue;
 
-      const startEntity = entities.find((e) => e.id === startRel.from);
+      const startEntity = entities.find(e => e.id === startRel.from);
       if (!startEntity) continue;
 
       chain = {
         entities: [startEntity, midEntity, endEntity],
-        rels: [startRel, nextRel],
+        rels: [startRel, nextRel]
       };
       break;
     }
@@ -258,54 +267,54 @@ export function generateQuestsForOntology(ontology: Ontology): Quest[] {
     if (chain) {
       const chainSteps: QuestStep[] = [
         {
-          id: 'step-6-1',
+          id: "step-6-1",
           instruction: `Start your journey at ${chain.entities[0].name}`,
           targetType: 'entity',
           targetId: chain.entities[0].id,
-          hint: `Find the ${chain.entities[0].icon} icon`,
+          hint: `Find the ${chain.entities[0].icon} icon`
         },
         {
-          id: 'step-6-2',
+          id: "step-6-2",
           instruction: `Follow '${chain.rels[0].name}' to reach ${chain.entities[1].name}`,
           targetType: 'relationship',
           targetId: chain.rels[0].id,
-          hint: 'Click the connecting edge',
+          hint: "Click the connecting edge"
         },
         {
-          id: 'step-6-3',
+          id: "step-6-3",
           instruction: `Explore the ${chain.entities[1].name} entity`,
           targetType: 'entity',
           targetId: chain.entities[1].id,
-          hint: `This is the middle of your journey`,
+          hint: `This is the middle of your journey`
         },
         {
-          id: 'step-6-4',
+          id: "step-6-4",
           instruction: `Continue via '${chain.rels[1].name}' to reach ${chain.entities[2].name}`,
           targetType: 'relationship',
           targetId: chain.rels[1].id,
-          hint: 'One more connection to go!',
+          hint: "One more connection to go!"
         },
         {
-          id: 'step-6-5',
+          id: "step-6-5",
           instruction: `You made it! Explore ${chain.entities[2].name}`,
           targetType: 'entity',
           targetId: chain.entities[2].id,
-          hint: `Journey complete! ${chain.entities[2].icon}`,
-        },
+          hint: `Journey complete! ${chain.entities[2].icon}`
+        }
       ];
 
       quests.push({
-        id: 'quest-6',
-        title: 'The Full Journey',
+        id: "quest-6",
+        title: "The Full Journey",
         description: `Traverse from ${chain.entities[0].name} all the way to ${chain.entities[2].name}.`,
-        difficulty: 'advanced',
-        category: 'traversal',
+        difficulty: "advanced",
+        category: "traversal",
         steps: chainSteps,
         reward: {
-          badge: 'Path Pioneer',
-          badgeIcon: '🗺️',
-          points: 350,
-        },
+          badge: "Path Pioneer",
+          badgeIcon: "🗺️",
+          points: 350
+        }
       });
     }
   }

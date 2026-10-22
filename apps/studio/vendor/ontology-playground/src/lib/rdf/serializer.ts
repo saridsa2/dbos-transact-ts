@@ -1,4 +1,8 @@
-import type { DataBinding, Ontology, Relationship } from '../../data/ontology';
+import type {
+  DataBinding,
+  Ontology,
+  Relationship,
+} from '../../data/ontology';
 
 export type RdfExportProfile = 'playground' | 'standards';
 
@@ -6,7 +10,8 @@ export interface RdfSerializationOptions {
   profile?: RdfExportProfile;
 }
 
-export const PLAYGROUND_METADATA_NS = 'https://microsoft.github.io/Ontology-Playground/ns/metadata#';
+export const PLAYGROUND_METADATA_NS =
+  'https://microsoft.github.io/Ontology-Playground/ns/metadata#';
 
 const RDF_NS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
 const XSD_NS = 'http://www.w3.org/2001/XMLSchema#';
@@ -33,8 +38,7 @@ const PLAYGROUND_ANNOTATIONS = {
   fromEntityId: 'Playground ID of a relationship source entity.',
   toEntityId: 'Playground ID of a relationship target entity.',
   relationshipAttributeOf: 'Playground ID of the relationship described by an attribute.',
-  attributeType:
-    'Playground relationship attribute type: string, integer, decimal, double, date, datetime, boolean, or enum.',
+  attributeType: 'Playground relationship attribute type: string, integer, decimal, double, date, datetime, boolean, or enum.',
   generatedSubset: 'Whether this RDF document was generated from the Playground visual model.',
   sourceVersionIri: 'Version IRI of the source ontology represented by the visual model.',
   sourceVersionInfo: 'Version label of the source ontology represented by the visual model.',
@@ -69,7 +73,11 @@ export function deriveBaseUri(ontologyName: string): string {
   return `http://example.org/ontology/${slug || 'unnamed'}/`;
 }
 
-function serializeNamespaces(baseUri: string, includeShacl: boolean, includePlaygroundMetadata: boolean): string {
+function serializeNamespaces(
+  baseUri: string,
+  includeShacl: boolean,
+  includePlaygroundMetadata: boolean,
+): string {
   let rdf = '<rdf:RDF\n';
   rdf += `    xml:base="${escapeXml(baseUri)}"\n`;
   rdf += `    xmlns:rdf="${RDF_NS}"\n`;
@@ -88,7 +96,10 @@ function serializeNamespaces(baseUri: string, includeShacl: boolean, includePlay
   return rdf;
 }
 
-function serializeOntologyDeclaration(ontology: Ontology, baseUri: string): string {
+function serializeOntologyDeclaration(
+  ontology: Ontology,
+  baseUri: string,
+): string {
   const metadata = ontology.rdfMetadata;
   let rdf = `    <owl:Ontology rdf:about="${escapeXml(baseUri)}">\n`;
   rdf += `        <rdfs:label>${escapeXml(ontology.name)}</rdfs:label>\n`;
@@ -151,7 +162,10 @@ function serializePlaygroundMetadataDeclarations(): string {
   return `${rdf}\n`;
 }
 
-export function serializePlaygroundRDF(ontology: Ontology, bindings: DataBinding[] = []): string {
+export function serializePlaygroundRDF(
+  ontology: Ontology,
+  bindings: DataBinding[] = [],
+): string {
   const baseUri = deriveBaseUri(ontology.name);
   const parentsByEntity = subclassParents(ontology);
   let rdf = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -290,10 +304,13 @@ export function serializeStandardsRDF(ontology: Ontology): string {
   const parentsByEntity = subclassParents(ontology);
   const enumLists: Array<{ prefix: string; values: string[] }> = [];
   let rdf = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  rdf += serializeNamespaces(baseUri, true, ontology.rdfMetadata !== undefined);
+  rdf += serializeNamespaces(
+    baseUri,
+    true,
+    ontology.rdfMetadata !== undefined,
+  );
   rdf += serializeOntologyDeclaration(ontology, baseUri);
-  rdf +=
-    '    <!-- Standards-oriented OWL + SHACL profile. Playground-only UI metadata and bindings are omitted. -->\n\n';
+  rdf += '    <!-- Standards-oriented OWL + SHACL profile. Playground-only UI metadata and bindings are omitted. -->\n\n';
 
   for (const entity of ontology.entityTypes) {
     const classIri = baseUri + capitalize(entity.id);
@@ -455,5 +472,7 @@ export function serializeToRDF(
   bindings: DataBinding[] = [],
   options: RdfSerializationOptions = {},
 ): string {
-  return options.profile === 'standards' ? serializeStandardsRDF(ontology) : serializePlaygroundRDF(ontology, bindings);
+  return options.profile === 'standards'
+    ? serializeStandardsRDF(ontology)
+    : serializePlaygroundRDF(ontology, bindings);
 }

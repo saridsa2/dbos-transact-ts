@@ -13,9 +13,13 @@ import { gracefulShutdownSync } from '../../utils/gracefulShutdown.js';
 import { getSecureStorage } from '../../utils/secureStorage/index.js';
 import { clearToolSchemaCache } from '../../utils/toolSchemaCache.js';
 import { resetUserCache } from '../../utils/user.js';
-export async function performLogout({ clearOnboarding = false }): Promise<void> {
+export async function performLogout({
+  clearOnboarding = false
+}): Promise<void> {
   // Flush telemetry BEFORE clearing credentials to prevent org data leakage
-  const { flushTelemetry } = await import('../../utils/telemetry/instrumentation.js');
+  const {
+    flushTelemetry
+  } = await import('../../utils/telemetry/instrumentation.js');
   await flushTelemetry();
   await removeApiKey();
 
@@ -23,9 +27,9 @@ export async function performLogout({ clearOnboarding = false }): Promise<void> 
   const secureStorage = getSecureStorage();
   secureStorage.delete();
   await clearAuthRelatedCaches();
-  saveGlobalConfig((current) => {
+  saveGlobalConfig(current => {
     const updated = {
-      ...current,
+      ...current
     };
     if (clearOnboarding) {
       updated.hasCompletedOnboarding = false;
@@ -34,7 +38,7 @@ export async function performLogout({ clearOnboarding = false }): Promise<void> 
       if (updated.customApiKeyResponses?.approved) {
         updated.customApiKeyResponses = {
           ...updated.customApiKeyResponses,
-          approved: [],
+          approved: []
         };
       }
     }
@@ -67,7 +71,7 @@ export async function clearAuthRelatedCaches(): Promise<void> {
 }
 export async function call(): Promise<React.ReactNode> {
   await performLogout({
-    clearOnboarding: true,
+    clearOnboarding: true
   });
   const message = <Text>Successfully logged out from your Anthropic account.</Text>;
   setTimeout(() => {

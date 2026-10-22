@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { createContext, type RefObject, useContext, useLayoutEffect, useMemo } from 'react';
 import type { Key } from '../ink.js';
 import { type ChordResolveResult, getBindingDisplayText, resolveKeyWithChordState } from './resolver.js';
@@ -67,7 +67,7 @@ export function KeybindingProvider(t0) {
     registerActiveContext,
     unregisterActiveContext,
     handlerRegistryRef,
-    children,
+    children
   } = t0;
   let t1;
   if ($[0] !== bindings) {
@@ -80,7 +80,7 @@ export function KeybindingProvider(t0) {
   const getDisplay = t1;
   let t2;
   if ($[2] !== handlerRegistryRef) {
-    t2 = (registration) => {
+    t2 = registration => {
       const registry = handlerRegistryRef.current;
       if (!registry) {
         return _temp;
@@ -107,7 +107,7 @@ export function KeybindingProvider(t0) {
   const registerHandler = t2;
   let t3;
   if ($[4] !== activeContexts || $[5] !== handlerRegistryRef) {
-    t3 = (action_0) => {
+    t3 = action_0 => {
       const registry_0 = handlerRegistryRef.current;
       if (!registry_0) {
         return false;
@@ -141,18 +141,7 @@ export function KeybindingProvider(t0) {
     t4 = $[9];
   }
   let t5;
-  if (
-    $[10] !== activeContexts ||
-    $[11] !== bindings ||
-    $[12] !== getDisplay ||
-    $[13] !== invokeAction ||
-    $[14] !== pendingChord ||
-    $[15] !== registerActiveContext ||
-    $[16] !== registerHandler ||
-    $[17] !== setPendingChord ||
-    $[18] !== t4 ||
-    $[19] !== unregisterActiveContext
-  ) {
+  if ($[10] !== activeContexts || $[11] !== bindings || $[12] !== getDisplay || $[13] !== invokeAction || $[14] !== pendingChord || $[15] !== registerActiveContext || $[16] !== registerHandler || $[17] !== setPendingChord || $[18] !== t4 || $[19] !== unregisterActiveContext) {
     t5 = {
       resolve: t4,
       setPendingChord,
@@ -163,7 +152,7 @@ export function KeybindingProvider(t0) {
       registerActiveContext,
       unregisterActiveContext,
       registerHandler,
-      invokeAction,
+      invokeAction
     };
     $[10] = activeContexts;
     $[11] = bindings;
@@ -195,7 +184,7 @@ function _temp() {}
 export function useKeybindingContext() {
   const ctx = useContext(KeybindingContext);
   if (!ctx) {
-    throw new Error('useKeybindingContext must be used within KeybindingProvider');
+    throw new Error("useKeybindingContext must be used within KeybindingProvider");
   }
   return ctx;
 }

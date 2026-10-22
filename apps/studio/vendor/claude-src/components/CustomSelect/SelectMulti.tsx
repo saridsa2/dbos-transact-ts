@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import figures from 'figures';
 import React from 'react';
 import { Box, Text } from '../../ink.js';
@@ -51,13 +51,7 @@ export type SelectMultiProps<T> = {
    * with the current value and a setter function to update the internal state.
    */
   readonly onOpenEditor?: (currentValue: string, setValue: (value: string) => void) => void;
-  readonly onImagePaste?: (
-    base64Image: string,
-    mediaType?: string,
-    filename?: string,
-    dimensions?: ImageDimensions,
-    sourcePath?: string,
-  ) => void;
+  readonly onImagePaste?: (base64Image: string, mediaType?: string, filename?: string, dimensions?: ImageDimensions, sourcePath?: string) => void;
   readonly pastedContents?: Record<number, PastedContent>;
   readonly onRemoveImage?: (id: number) => void;
 };
@@ -81,7 +75,7 @@ export function SelectMulti(t0) {
     hideIndexes: t4,
     onImagePaste,
     pastedContents,
-    onRemoveImage,
+    onRemoveImage
   } = t0;
   const isDisabled = t1 === undefined ? false : t1;
   const visibleOptionCount = t2 === undefined ? 5 : t2;
@@ -96,22 +90,7 @@ export function SelectMulti(t0) {
   const defaultValue = t5;
   const hideIndexes = t4 === undefined ? false : t4;
   let t6;
-  if (
-    $[2] !== defaultValue ||
-    $[3] !== focusValue ||
-    $[4] !== hideIndexes ||
-    $[5] !== initialFocusLast ||
-    $[6] !== isDisabled ||
-    $[7] !== onCancel ||
-    $[8] !== onChange ||
-    $[9] !== onDownFromLastItem ||
-    $[10] !== onFocus ||
-    $[11] !== onSubmit ||
-    $[12] !== onUpFromFirstItem ||
-    $[13] !== options ||
-    $[14] !== submitButtonText ||
-    $[15] !== visibleOptionCount
-  ) {
+  if ($[2] !== defaultValue || $[3] !== focusValue || $[4] !== hideIndexes || $[5] !== initialFocusLast || $[6] !== isDisabled || $[7] !== onCancel || $[8] !== onChange || $[9] !== onDownFromLastItem || $[10] !== onFocus || $[11] !== onSubmit || $[12] !== onUpFromFirstItem || $[13] !== options || $[14] !== submitButtonText || $[15] !== visibleOptionCount) {
     t6 = {
       isDisabled,
       visibleOptionCount,
@@ -126,7 +105,7 @@ export function SelectMulti(t0) {
       onDownFromLastItem,
       onUpFromFirstItem,
       initialFocusLast,
-      hideIndexes,
+      hideIndexes
     };
     $[2] = defaultValue;
     $[3] = focusValue;
@@ -152,22 +131,12 @@ export function SelectMulti(t0) {
   let t7;
   let t8;
   let t9;
-  if (
-    $[17] !== hideIndexes ||
-    $[18] !== isDisabled ||
-    $[19] !== onCancel ||
-    $[20] !== onImagePaste ||
-    $[21] !== onOpenEditor ||
-    $[22] !== onRemoveImage ||
-    $[23] !== options.length ||
-    $[24] !== pastedContents ||
-    $[25] !== state
-  ) {
+  if ($[17] !== hideIndexes || $[18] !== isDisabled || $[19] !== onCancel || $[20] !== onImagePaste || $[21] !== onOpenEditor || $[22] !== onRemoveImage || $[23] !== options.length || $[24] !== pastedContents || $[25] !== state) {
     const maxIndexWidth = options.length.toString().length;
     T1 = Box;
-    t9 = 'column';
+    t9 = "column";
     T0 = Box;
-    t7 = 'column';
+    t7 = "column";
     t8 = state.visibleOptions.map((option, index) => {
       const isOptionFocused = !isDisabled && state.focusedValue === option.value && !state.isSubmitFocused;
       const isSelected = state.selectedValues.includes(option.value);
@@ -176,52 +145,15 @@ export function SelectMulti(t0) {
       const areMoreOptionsBelow = state.visibleToIndex < options.length;
       const areMoreOptionsAbove = state.visibleFromIndex > 0;
       const i = state.visibleFromIndex + index + 1;
-      if (option.type === 'input') {
-        const inputValue = state.inputValues.get(option.value) || '';
-        return (
-          <Box key={String(option.value)} gap={1}>
-            <SelectInputOption
-              option={option}
-              isFocused={isOptionFocused}
-              isSelected={false}
-              shouldShowDownArrow={areMoreOptionsBelow && isLastVisibleOption}
-              shouldShowUpArrow={areMoreOptionsAbove && isFirstVisibleOption}
-              maxIndexWidth={maxIndexWidth}
-              index={i}
-              inputValue={inputValue}
-              onInputChange={(value) => {
-                state.updateInputValue(option.value, value);
-              }}
-              onSubmit={_temp}
-              onExit={() => {
-                onCancel();
-              }}
-              layout="compact"
-              onOpenEditor={onOpenEditor}
-              onImagePaste={onImagePaste}
-              pastedContents={pastedContents}
-              onRemoveImage={onRemoveImage}
-            >
-              <Text color={isSelected ? 'success' : undefined}>[{isSelected ? figures.tick : ' '}] </Text>
-            </SelectInputOption>
-          </Box>
-        );
+      if (option.type === "input") {
+        const inputValue = state.inputValues.get(option.value) || "";
+        return <Box key={String(option.value)} gap={1}><SelectInputOption option={option} isFocused={isOptionFocused} isSelected={false} shouldShowDownArrow={areMoreOptionsBelow && isLastVisibleOption} shouldShowUpArrow={areMoreOptionsAbove && isFirstVisibleOption} maxIndexWidth={maxIndexWidth} index={i} inputValue={inputValue} onInputChange={value => {
+            state.updateInputValue(option.value, value);
+          }} onSubmit={_temp} onExit={() => {
+            onCancel();
+          }} layout="compact" onOpenEditor={onOpenEditor} onImagePaste={onImagePaste} pastedContents={pastedContents} onRemoveImage={onRemoveImage}><Text color={isSelected ? "success" : undefined}>[{isSelected ? figures.tick : " "}]{" "}</Text></SelectInputOption></Box>;
       }
-      return (
-        <Box key={String(option.value)} gap={1}>
-          <SelectOption
-            isFocused={isOptionFocused}
-            isSelected={false}
-            shouldShowDownArrow={areMoreOptionsBelow && isLastVisibleOption}
-            shouldShowUpArrow={areMoreOptionsAbove && isFirstVisibleOption}
-            description={option.description}
-          >
-            {!hideIndexes && <Text dimColor={true}>{`${i}.`.padEnd(maxIndexWidth)}</Text>}
-            <Text color={isSelected ? 'success' : undefined}>[{isSelected ? figures.tick : ' '}]</Text>
-            <Text color={isOptionFocused ? 'suggestion' : undefined}>{option.label}</Text>
-          </SelectOption>
-        </Box>
-      );
+      return <Box key={String(option.value)} gap={1}><SelectOption isFocused={isOptionFocused} isSelected={false} shouldShowDownArrow={areMoreOptionsBelow && isLastVisibleOption} shouldShowUpArrow={areMoreOptionsAbove && isFirstVisibleOption} description={option.description}>{!hideIndexes && <Text dimColor={true}>{`${i}.`.padEnd(maxIndexWidth)}</Text>}<Text color={isSelected ? "success" : undefined}>[{isSelected ? figures.tick : " "}]</Text><Text color={isOptionFocused ? "suggestion" : undefined}>{option.label}</Text></SelectOption></Box>;
     });
     $[17] = hideIndexes;
     $[18] = isDisabled;
@@ -256,16 +188,7 @@ export function SelectMulti(t0) {
   }
   let t11;
   if ($[35] !== onSubmit || $[36] !== state.isSubmitFocused || $[37] !== submitButtonText) {
-    t11 = submitButtonText && onSubmit && (
-      <Box marginTop={0} gap={1}>
-        {state.isSubmitFocused ? <Text color="suggestion">{figures.pointer}</Text> : <Text> </Text>}
-        <Box marginLeft={3}>
-          <Text color={state.isSubmitFocused ? 'suggestion' : undefined} bold={true}>
-            {submitButtonText}
-          </Text>
-        </Box>
-      </Box>
-    );
+    t11 = submitButtonText && onSubmit && <Box marginTop={0} gap={1}>{state.isSubmitFocused ? <Text color="suggestion">{figures.pointer}</Text> : <Text> </Text>}<Box marginLeft={3}><Text color={state.isSubmitFocused ? "suggestion" : undefined} bold={true}>{submitButtonText}</Text></Box></Box>;
     $[35] = onSubmit;
     $[36] = state.isSubmitFocused;
     $[37] = submitButtonText;
@@ -275,12 +198,7 @@ export function SelectMulti(t0) {
   }
   let t12;
   if ($[39] !== T1 || $[40] !== t10 || $[41] !== t11 || $[42] !== t9) {
-    t12 = (
-      <T1 flexDirection={t9}>
-        {t10}
-        {t11}
-      </T1>
-    );
+    t12 = <T1 flexDirection={t9}>{t10}{t11}</T1>;
     $[39] = T1;
     $[40] = t10;
     $[41] = t11;

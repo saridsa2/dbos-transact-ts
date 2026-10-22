@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 // eslint-disable-next-line custom-rules/prefer-use-keybindings -- 'r' is a view-specific key, not a global keybinding
@@ -10,12 +10,22 @@ import { useTabHeaderFocus } from '../../design-system/Tabs.js';
 type Props = {
   onHeaderFocusChange?: (focused: boolean) => void;
   /** Called when approved/retry state changes so parent can act on exit */
-  onStateChange: (state: { approved: Set<number>; retry: Set<number>; denials: readonly AutoModeDenial[] }) => void;
+  onStateChange: (state: {
+    approved: Set<number>;
+    retry: Set<number>;
+    denials: readonly AutoModeDenial[];
+  }) => void;
 };
 export function RecentDenialsTab(t0) {
   const $ = _c(30);
-  const { onHeaderFocusChange, onStateChange } = t0;
-  const { headerFocused, focusHeader } = useTabHeaderFocus();
+  const {
+    onHeaderFocusChange,
+    onStateChange
+  } = t0;
+  const {
+    headerFocused,
+    focusHeader
+  } = useTabHeaderFocus();
   let t1;
   let t2;
   if ($[0] !== headerFocused || $[1] !== onHeaderFocusChange) {
@@ -43,7 +53,7 @@ export function RecentDenialsTab(t0) {
       onStateChange({
         approved,
         retry,
-        denials,
+        denials
       });
     };
     t4 = [approved, retry, denials, onStateChange];
@@ -59,10 +69,10 @@ export function RecentDenialsTab(t0) {
   }
   useEffect(t3, t4);
   let t5;
-  if ($[10] === Symbol.for('react.memo_cache_sentinel')) {
-    t5 = (value) => {
+  if ($[10] === Symbol.for("react.memo_cache_sentinel")) {
+    t5 = value => {
       const idx = Number(value);
-      setApproved((prev) => {
+      setApproved(prev => {
         const next = new Set(prev);
         if (next.has(idx)) {
           next.delete(idx);
@@ -78,8 +88,8 @@ export function RecentDenialsTab(t0) {
   }
   const handleSelect = t5;
   let t6;
-  if ($[11] === Symbol.for('react.memo_cache_sentinel')) {
-    t6 = (value_0) => {
+  if ($[11] === Symbol.for("react.memo_cache_sentinel")) {
+    t6 = value_0 => {
       setFocusedIdx(Number(value_0));
     };
     $[11] = t6;
@@ -90,8 +100,8 @@ export function RecentDenialsTab(t0) {
   let t7;
   if ($[12] !== focusedIdx) {
     t7 = (input, _key) => {
-      if (input === 'r') {
-        setRetry((prev_0) => {
+      if (input === "r") {
+        setRetry(prev_0 => {
           const next_0 = new Set(prev_0);
           if (next_0.has(focusedIdx)) {
             next_0.delete(focusedIdx);
@@ -100,7 +110,7 @@ export function RecentDenialsTab(t0) {
           }
           return next_0;
         });
-        setApproved((prev_1) => {
+        setApproved(prev_1 => {
           if (prev_1.has(focusedIdx)) {
             return prev_1;
           }
@@ -119,7 +129,7 @@ export function RecentDenialsTab(t0) {
   let t9;
   if ($[14] !== t8) {
     t9 = {
-      isActive: t8,
+      isActive: t8
     };
     $[14] = t8;
     $[15] = t9;
@@ -129,10 +139,8 @@ export function RecentDenialsTab(t0) {
   useInput(t7, t9);
   if (denials.length === 0) {
     let t10;
-    if ($[16] === Symbol.for('react.memo_cache_sentinel')) {
-      t10 = (
-        <Text dimColor={true}>No recent denials. Commands denied by the auto mode classifier will appear here.</Text>
-      );
+    if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
+      t10 = <Text dimColor={true}>No recent denials. Commands denied by the auto mode classifier will appear here.</Text>;
       $[16] = t10;
     } else {
       t10 = $[16];
@@ -145,16 +153,10 @@ export function RecentDenialsTab(t0) {
     if ($[21] !== approved || $[22] !== retry) {
       t11 = (d, idx_0) => {
         const isApproved = approved.has(idx_0);
-        const suffix = retry.has(idx_0) ? ' (retry)' : '';
+        const suffix = retry.has(idx_0) ? " (retry)" : "";
         return {
-          label: (
-            <Text>
-              <StatusIcon status={isApproved ? 'success' : 'error'} withSpace={true} />
-              {d.display}
-              <Text dimColor={true}>{suffix}</Text>
-            </Text>
-          ),
-          value: String(idx_0),
+          label: <Text><StatusIcon status={isApproved ? "success" : "error"} withSpace={true} />{d.display}<Text dimColor={true}>{suffix}</Text></Text>,
+          value: String(idx_0)
         };
       };
       $[21] = approved;
@@ -173,7 +175,7 @@ export function RecentDenialsTab(t0) {
   }
   const options = t10;
   let t11;
-  if ($[24] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[24] === Symbol.for("react.memo_cache_sentinel")) {
     t11 = <Text>Commands recently denied by the auto mode classifier.</Text>;
     $[24] = t11;
   } else {
@@ -182,21 +184,7 @@ export function RecentDenialsTab(t0) {
   const t12 = Math.min(10, options.length);
   let t13;
   if ($[25] !== focusHeader || $[26] !== headerFocused || $[27] !== options || $[28] !== t12) {
-    t13 = (
-      <Box flexDirection="column">
-        {t11}
-        <Box marginTop={1}>
-          <Select
-            options={options}
-            onChange={handleSelect}
-            onFocus={handleFocus}
-            visibleOptionCount={t12}
-            isDisabled={headerFocused}
-            onUpFromFirstItem={focusHeader}
-          />
-        </Box>
-      </Box>
-    );
+    t13 = <Box flexDirection="column">{t11}<Box marginTop={1}><Select options={options} onChange={handleSelect} onFocus={handleFocus} visibleOptionCount={t12} isDisabled={headerFocused} onUpFromFirstItem={focusHeader} /></Box></Box>;
     $[25] = focusHeader;
     $[26] = headerFocused;
     $[27] = options;

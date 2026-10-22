@@ -137,11 +137,7 @@ function readGraphColors(darkMode: boolean, el?: HTMLElement | null): GraphColor
   };
 }
 
-export function OntologyGraph({
-  onConfigureEntity,
-  accessibleLabel,
-  legendTitle,
-}: { onConfigureEntity?: (id: string) => void; accessibleLabel?: string; legendTitle?: string } = {}) {
+export function OntologyGraph({ onConfigureEntity, accessibleLabel, legendTitle }: { onConfigureEntity?: (id: string) => void; accessibleLabel?: string; legendTitle?: string } = {}) {
   const configureRef = useRef(onConfigureEntity);
   configureRef.current = onConfigureEntity;
   const cyRef = useRef<Core | null>(null);
@@ -1420,9 +1416,7 @@ export function OntologyGraph({
         </div>
       )}
 
-      {!isBoundedView && (
-        <GraphLegend title={legendTitle} entityTypes={legendEntities} hiddenCount={hiddenLegendCount} />
-      )}
+      {!isBoundedView && <GraphLegend title={legendTitle} entityTypes={legendEntities} hiddenCount={hiddenLegendCount} />}
     </div>
   );
 }

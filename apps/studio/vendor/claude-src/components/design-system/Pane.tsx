@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React from 'react';
 import { useIsInsideModal } from '../../context/modalContext.js';
 import { Box } from '../../ink.js';
@@ -32,15 +32,14 @@ type PaneProps = {
  */
 export function Pane(t0) {
   const $ = _c(9);
-  const { children, color } = t0;
+  const {
+    children,
+    color
+  } = t0;
   if (useIsInsideModal()) {
     let t1;
     if ($[0] !== children) {
-      t1 = (
-        <Box flexDirection="column" paddingX={1} flexShrink={0}>
-          {children}
-        </Box>
-      );
+      t1 = <Box flexDirection="column" paddingX={1} flexShrink={0}>{children}</Box>;
       $[0] = children;
       $[1] = t1;
     } else {
@@ -58,11 +57,7 @@ export function Pane(t0) {
   }
   let t2;
   if ($[4] !== children) {
-    t2 = (
-      <Box flexDirection="column" paddingX={2}>
-        {children}
-      </Box>
-    );
+    t2 = <Box flexDirection="column" paddingX={2}>{children}</Box>;
     $[4] = children;
     $[5] = t2;
   } else {
@@ -70,12 +65,7 @@ export function Pane(t0) {
   }
   let t3;
   if ($[6] !== t1 || $[7] !== t2) {
-    t3 = (
-      <Box flexDirection="column" paddingTop={1}>
-        {t1}
-        {t2}
-      </Box>
-    );
+    t3 = <Box flexDirection="column" paddingTop={1}>{t1}{t2}</Box>;
     $[6] = t1;
     $[7] = t2;
     $[8] = t3;

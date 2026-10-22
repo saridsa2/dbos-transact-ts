@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { createContext, type ReactNode, useContext, useMemo } from 'react';
 import type { Command } from '../../commands.js';
 import type { Tool } from '../../Tool.js';
@@ -17,14 +17,14 @@ const MCPConnectionContext = createContext<MCPConnectionContextValue | null>(nul
 export function useMcpReconnect() {
   const context = useContext(MCPConnectionContext);
   if (!context) {
-    throw new Error('useMcpReconnect must be used within MCPConnectionManager');
+    throw new Error("useMcpReconnect must be used within MCPConnectionManager");
   }
   return context.reconnectMcpServer;
 }
 export function useMcpToggleEnabled() {
   const context = useContext(MCPConnectionContext);
   if (!context) {
-    throw new Error('useMcpToggleEnabled must be used within MCPConnectionManager');
+    throw new Error("useMcpToggleEnabled must be used within MCPConnectionManager");
   }
   return context.toggleMcpServer;
 }
@@ -37,13 +37,20 @@ interface MCPConnectionManagerProps {
 // TODO (ollie): We may be able to get rid of this context by putting these function on app state
 export function MCPConnectionManager(t0) {
   const $ = _c(6);
-  const { children, dynamicMcpConfig, isStrictMcpConfig } = t0;
-  const { reconnectMcpServer, toggleMcpServer } = useManageMCPConnections(dynamicMcpConfig, isStrictMcpConfig);
+  const {
+    children,
+    dynamicMcpConfig,
+    isStrictMcpConfig
+  } = t0;
+  const {
+    reconnectMcpServer,
+    toggleMcpServer
+  } = useManageMCPConnections(dynamicMcpConfig, isStrictMcpConfig);
   let t1;
   if ($[0] !== reconnectMcpServer || $[1] !== toggleMcpServer) {
     t1 = {
       reconnectMcpServer,
-      toggleMcpServer,
+      toggleMcpServer
     };
     $[0] = reconnectMcpServer;
     $[1] = toggleMcpServer;

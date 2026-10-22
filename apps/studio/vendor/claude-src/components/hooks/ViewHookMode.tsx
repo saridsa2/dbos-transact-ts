@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 /**
  * ViewHookMode shows read-only details for a single configured hook.
  *
@@ -16,14 +16,14 @@ type Props = {
 };
 export function ViewHookMode(t0) {
   const $ = _c(40);
-  const { selectedHook, eventSupportsMatcher, onCancel } = t0;
+  const {
+    selectedHook,
+    eventSupportsMatcher,
+    onCancel
+  } = t0;
   let t1;
   if ($[0] !== selectedHook.event) {
-    t1 = (
-      <Text>
-        Event: <Text bold={true}>{selectedHook.event}</Text>
-      </Text>
-    );
+    t1 = <Text>Event: <Text bold={true}>{selectedHook.event}</Text></Text>;
     $[0] = selectedHook.event;
     $[1] = t1;
   } else {
@@ -31,11 +31,7 @@ export function ViewHookMode(t0) {
   }
   let t2;
   if ($[2] !== eventSupportsMatcher || $[3] !== selectedHook.matcher) {
-    t2 = eventSupportsMatcher && (
-      <Text>
-        Matcher: <Text bold={true}>{selectedHook.matcher || '(all)'}</Text>
-      </Text>
-    );
+    t2 = eventSupportsMatcher && <Text>Matcher: <Text bold={true}>{selectedHook.matcher || "(all)"}</Text></Text>;
     $[2] = eventSupportsMatcher;
     $[3] = selectedHook.matcher;
     $[4] = t2;
@@ -44,11 +40,7 @@ export function ViewHookMode(t0) {
   }
   let t3;
   if ($[5] !== selectedHook.config.type) {
-    t3 = (
-      <Text>
-        Type: <Text bold={true}>{selectedHook.config.type}</Text>
-      </Text>
-    );
+    t3 = <Text>Type: <Text bold={true}>{selectedHook.config.type}</Text></Text>;
     $[5] = selectedHook.config.type;
     $[6] = t3;
   } else {
@@ -64,11 +56,7 @@ export function ViewHookMode(t0) {
   }
   let t5;
   if ($[9] !== t4) {
-    t5 = (
-      <Text>
-        Source: <Text dimColor={true}>{t4}</Text>
-      </Text>
-    );
+    t5 = <Text>Source:{" "}<Text dimColor={true}>{t4}</Text></Text>;
     $[9] = t4;
     $[10] = t5;
   } else {
@@ -76,11 +64,7 @@ export function ViewHookMode(t0) {
   }
   let t6;
   if ($[11] !== selectedHook.pluginName) {
-    t6 = selectedHook.pluginName && (
-      <Text>
-        Plugin: <Text dimColor={true}>{selectedHook.pluginName}</Text>
-      </Text>
-    );
+    t6 = selectedHook.pluginName && <Text>Plugin: <Text dimColor={true}>{selectedHook.pluginName}</Text></Text>;
     $[11] = selectedHook.pluginName;
     $[12] = t6;
   } else {
@@ -88,15 +72,7 @@ export function ViewHookMode(t0) {
   }
   let t7;
   if ($[13] !== t1 || $[14] !== t2 || $[15] !== t3 || $[16] !== t5 || $[17] !== t6) {
-    t7 = (
-      <Box flexDirection="column">
-        {t1}
-        {t2}
-        {t3}
-        {t5}
-        {t6}
-      </Box>
-    );
+    t7 = <Box flexDirection="column">{t1}{t2}{t3}{t5}{t6}</Box>;
     $[13] = t1;
     $[14] = t2;
     $[15] = t3;
@@ -132,11 +108,7 @@ export function ViewHookMode(t0) {
   }
   let t11;
   if ($[25] !== t10) {
-    t11 = (
-      <Box borderStyle="round" borderDimColor={true} paddingLeft={1} paddingRight={1}>
-        <Text>{t10}</Text>
-      </Box>
-    );
+    t11 = <Box borderStyle="round" borderDimColor={true} paddingLeft={1} paddingRight={1}><Text>{t10}</Text></Box>;
     $[25] = t10;
     $[26] = t11;
   } else {
@@ -144,12 +116,7 @@ export function ViewHookMode(t0) {
   }
   let t12;
   if ($[27] !== t11 || $[28] !== t9) {
-    t12 = (
-      <Box flexDirection="column">
-        {t9}
-        {t11}
-      </Box>
-    );
+    t12 = <Box flexDirection="column">{t9}{t11}</Box>;
     $[27] = t11;
     $[28] = t9;
     $[29] = t12;
@@ -158,35 +125,22 @@ export function ViewHookMode(t0) {
   }
   let t13;
   if ($[30] !== selectedHook.config) {
-    t13 = 'statusMessage' in selectedHook.config && selectedHook.config.statusMessage && (
-      <Text>
-        Status message: <Text dimColor={true}>{selectedHook.config.statusMessage}</Text>
-      </Text>
-    );
+    t13 = "statusMessage" in selectedHook.config && selectedHook.config.statusMessage && <Text>Status message:{" "}<Text dimColor={true}>{selectedHook.config.statusMessage}</Text></Text>;
     $[30] = selectedHook.config;
     $[31] = t13;
   } else {
     t13 = $[31];
   }
   let t14;
-  if ($[32] === Symbol.for('react.memo_cache_sentinel')) {
-    t14 = (
-      <Text dimColor={true}>To modify or remove this hook, edit settings.json directly or ask Claude to help.</Text>
-    );
+  if ($[32] === Symbol.for("react.memo_cache_sentinel")) {
+    t14 = <Text dimColor={true}>To modify or remove this hook, edit settings.json directly or ask Claude to help.</Text>;
     $[32] = t14;
   } else {
     t14 = $[32];
   }
   let t15;
   if ($[33] !== t12 || $[34] !== t13 || $[35] !== t7) {
-    t15 = (
-      <Box flexDirection="column" gap={1}>
-        {t7}
-        {t12}
-        {t13}
-        {t14}
-      </Box>
-    );
+    t15 = <Box flexDirection="column" gap={1}>{t7}{t12}{t13}{t14}</Box>;
     $[33] = t12;
     $[34] = t13;
     $[35] = t7;
@@ -196,11 +150,7 @@ export function ViewHookMode(t0) {
   }
   let t16;
   if ($[37] !== onCancel || $[38] !== t15) {
-    t16 = (
-      <Dialog title="Hook details" onCancel={onCancel} inputGuide={_temp}>
-        {t15}
-      </Dialog>
-    );
+    t16 = <Dialog title="Hook details" onCancel={onCancel} inputGuide={_temp}>{t15}</Dialog>;
     $[37] = onCancel;
     $[38] = t15;
     $[39] = t16;

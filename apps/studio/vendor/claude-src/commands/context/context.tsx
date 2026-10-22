@@ -19,8 +19,9 @@ function toApiView(messages: Message[]): Message[] {
   let view = getMessagesAfterCompactBoundary(messages);
   if (feature('CONTEXT_COLLAPSE')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
-    const { projectView } =
-      require('../../services/contextCollapse/operations.js') as typeof import('../../services/contextCollapse/operations.js');
+    const {
+      projectView
+    } = require('../../services/contextCollapse/operations.js') as typeof import('../../services/contextCollapse/operations.js');
     /* eslint-enable @typescript-eslint/no-require-imports */
     view = projectView(view);
   }
@@ -30,12 +31,17 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
   const {
     messages,
     getAppState,
-    options: { mainLoopModel, tools },
+    options: {
+      mainLoopModel,
+      tools
+    }
   } = context;
   const apiView = toApiView(messages);
 
   // Apply microcompact to get accurate representation of messages sent to API
-  const { messages: compactedMessages } = await microcompactMessages(apiView);
+  const {
+    messages: compactedMessages
+  } = await microcompactMessages(apiView);
 
   // Get terminal width for responsive sizing
   const terminalWidth = process.stdout.columns || 80;
@@ -43,18 +49,11 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
 
   // Analyze context with compacted messages
   // Pass original messages as last parameter for accurate API usage extraction
-  const data = await analyzeContextUsage(
-    compactedMessages,
-    mainLoopModel,
-    async () => appState.toolPermissionContext,
-    tools,
-    appState.agentDefinitions,
-    terminalWidth,
-    context,
-    // Pass full context for system prompt calculation
-    undefined,
-    // mainThreadAgentDefinition
-    apiView, // Original messages for API usage extraction
+  const data = await analyzeContextUsage(compactedMessages, mainLoopModel, async () => appState.toolPermissionContext, tools, appState.agentDefinitions, terminalWidth, context,
+  // Pass full context for system prompt calculation
+  undefined,
+  // mainThreadAgentDefinition
+  apiView // Original messages for API usage extraction
   );
 
   // Render to ANSI string to preserve colors and pass to onDone like local commands do

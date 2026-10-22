@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import { saveCurrentProjectConfig } from '../utils/config.js';
 export type StatsStore = {
@@ -9,7 +9,7 @@ export type StatsStore = {
   getAll(): Record<string, number>;
 };
 function percentile(sorted: number[], p: number): number {
-  const index = (p / 100) * (sorted.length - 1);
+  const index = p / 100 * (sorted.length - 1);
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
   if (lower === upper) {
@@ -44,7 +44,7 @@ export function createStatsStore(): StatsStore {
           count: 0,
           sum: 0,
           min: value,
-          max: value,
+          max: value
         };
         histograms.set(name, h);
       }
@@ -93,7 +93,7 @@ export function createStatsStore(): StatsStore {
         result[name] = s.size;
       }
       return result;
-    },
+    }
   };
 }
 export const StatsContext = createContext<StatsStore | null>(null);
@@ -103,9 +103,12 @@ type Props = {
 };
 export function StatsProvider(t0) {
   const $ = _c(7);
-  const { store: externalStore, children } = t0;
+  const {
+    store: externalStore,
+    children
+  } = t0;
   let t1;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = createStatsStore();
     $[0] = t1;
   } else {
@@ -120,15 +123,15 @@ export function StatsProvider(t0) {
       const flush = () => {
         const metrics = store.getAll();
         if (Object.keys(metrics).length > 0) {
-          saveCurrentProjectConfig((current) => ({
+          saveCurrentProjectConfig(current => ({
             ...current,
-            lastSessionMetrics: metrics,
+            lastSessionMetrics: metrics
           }));
         }
       };
-      process.on('exit', flush);
+      process.on("exit", flush);
       return () => {
-        process.off('exit', flush);
+        process.off("exit", flush);
       };
     };
     t3 = [store];
@@ -154,7 +157,7 @@ export function StatsProvider(t0) {
 export function useStats() {
   const store = useContext(StatsContext);
   if (!store) {
-    throw new Error('useStats must be used within a StatsProvider');
+    throw new Error("useStats must be used within a StatsProvider");
   }
   return store;
 }
@@ -163,7 +166,7 @@ export function useCounter(name) {
   const store = useStats();
   let t0;
   if ($[0] !== name || $[1] !== store) {
-    t0 = (value) => store.increment(name, value);
+    t0 = value => store.increment(name, value);
     $[0] = name;
     $[1] = store;
     $[2] = t0;
@@ -177,7 +180,7 @@ export function useGauge(name) {
   const store = useStats();
   let t0;
   if ($[0] !== name || $[1] !== store) {
-    t0 = (value) => store.set(name, value);
+    t0 = value => store.set(name, value);
     $[0] = name;
     $[1] = store;
     $[2] = t0;
@@ -191,7 +194,7 @@ export function useTimer(name) {
   const store = useStats();
   let t0;
   if ($[0] !== name || $[1] !== store) {
-    t0 = (value) => store.observe(name, value);
+    t0 = value => store.observe(name, value);
     $[0] = name;
     $[1] = store;
     $[2] = t0;
@@ -205,7 +208,7 @@ export function useSet(name) {
   const store = useStats();
   let t0;
   if ($[0] !== name || $[1] !== store) {
-    t0 = (value) => store.add(name, value);
+    t0 = value => store.add(name, value);
     $[0] = name;
     $[1] = store;
     $[2] = t0;

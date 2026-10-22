@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 /**
  * Hook for LSP plugin recommendations
  *
@@ -41,16 +41,22 @@ type UseLspPluginRecommendationResult = {
 export function useLspPluginRecommendation() {
   const $ = _c(12);
   const trackedFiles = useAppState(_temp);
-  const { addNotification } = useNotifications();
+  const {
+    addNotification
+  } = useNotifications();
   let t0;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t0 = new Set();
     $[0] = t0;
   } else {
     t0 = $[0];
   }
   const checkedFilesRef = React.useRef(t0);
-  const { recommendation, clearRecommendation, tryResolve } = usePluginRecommendationBase();
+  const {
+    recommendation,
+    clearRecommendation,
+    tryResolve
+  } = usePluginRecommendationBase();
   let t1;
   let t2;
   if ($[1] !== trackedFiles || $[2] !== tryResolve) {
@@ -67,6 +73,7 @@ export function useLspPluginRecommendation() {
           }
         }
         for (const filePath of newFiles) {
+          ;
           try {
             const matches = await getMatchingLspPlugins(filePath);
             const match = matches[0];
@@ -78,7 +85,7 @@ export function useLspPluginRecommendation() {
                 pluginName: match.pluginName,
                 pluginDescription: match.description,
                 fileExtension: extname(filePath),
-                shownAt: Date.now(),
+                shownAt: Date.now()
               };
             }
           } catch (t3) {
@@ -101,47 +108,52 @@ export function useLspPluginRecommendation() {
   React.useEffect(t1, t2);
   let t3;
   if ($[5] !== addNotification || $[6] !== clearRecommendation || $[7] !== recommendation) {
-    t3 = (response) => {
+    t3 = response => {
       if (!recommendation) {
         return;
       }
-      const { pluginId, pluginName, shownAt } = recommendation;
+      const {
+        pluginId,
+        pluginName,
+        shownAt
+      } = recommendation;
       logForDebugging(`[useLspPluginRecommendation] User response: ${response} for ${pluginName}`);
       bb60: switch (response) {
-        case 'yes': {
-          installPluginAndNotify(pluginId, pluginName, 'lsp-plugin', addNotification, async (pluginData) => {
-            logForDebugging(`[useLspPluginRecommendation] Installing plugin: ${pluginId}`);
-            const localSourcePath =
-              typeof pluginData.entry.source === 'string'
-                ? join(pluginData.marketplaceInstallLocation, pluginData.entry.source)
-                : undefined;
-            await cacheAndRegisterPlugin(pluginId, pluginData.entry, 'user', undefined, localSourcePath);
-            const settings = getSettingsForSource('userSettings');
-            updateSettingsForSource('userSettings', {
-              enabledPlugins: {
-                ...settings?.enabledPlugins,
-                [pluginId]: true,
-              },
+        case "yes":
+          {
+            installPluginAndNotify(pluginId, pluginName, "lsp-plugin", addNotification, async pluginData => {
+              logForDebugging(`[useLspPluginRecommendation] Installing plugin: ${pluginId}`);
+              const localSourcePath = typeof pluginData.entry.source === "string" ? join(pluginData.marketplaceInstallLocation, pluginData.entry.source) : undefined;
+              await cacheAndRegisterPlugin(pluginId, pluginData.entry, "user", undefined, localSourcePath);
+              const settings = getSettingsForSource("userSettings");
+              updateSettingsForSource("userSettings", {
+                enabledPlugins: {
+                  ...settings?.enabledPlugins,
+                  [pluginId]: true
+                }
+              });
+              logForDebugging(`[useLspPluginRecommendation] Plugin installed: ${pluginId}`);
             });
-            logForDebugging(`[useLspPluginRecommendation] Plugin installed: ${pluginId}`);
-          });
-          break bb60;
-        }
-        case 'no': {
-          const elapsed = Date.now() - shownAt;
-          if (elapsed >= TIMEOUT_THRESHOLD_MS) {
-            logForDebugging(`[useLspPluginRecommendation] Timeout detected (${elapsed}ms), incrementing ignored count`);
-            incrementIgnoredCount();
+            break bb60;
           }
-          break bb60;
-        }
-        case 'never': {
-          addToNeverSuggest(pluginId);
-          break bb60;
-        }
-        case 'disable': {
-          saveGlobalConfig(_temp2);
-        }
+        case "no":
+          {
+            const elapsed = Date.now() - shownAt;
+            if (elapsed >= TIMEOUT_THRESHOLD_MS) {
+              logForDebugging(`[useLspPluginRecommendation] Timeout detected (${elapsed}ms), incrementing ignored count`);
+              incrementIgnoredCount();
+            }
+            break bb60;
+          }
+        case "never":
+          {
+            addToNeverSuggest(pluginId);
+            break bb60;
+          }
+        case "disable":
+          {
+            saveGlobalConfig(_temp2);
+          }
       }
       clearRecommendation();
     };
@@ -157,7 +169,7 @@ export function useLspPluginRecommendation() {
   if ($[9] !== handleResponse || $[10] !== recommendation) {
     t4 = {
       recommendation,
-      handleResponse,
+      handleResponse
     };
     $[9] = handleResponse;
     $[10] = recommendation;
@@ -173,7 +185,7 @@ function _temp2(current) {
   }
   return {
     ...current,
-    lspRecommendationDisabled: true,
+    lspRecommendationDisabled: true
   };
 }
 function _temp(s) {

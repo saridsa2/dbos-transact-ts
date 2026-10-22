@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import { homedir } from 'os';
 import { relative } from 'path';
 import React from 'react';
@@ -20,7 +20,9 @@ export function getRelativeMemoryPath(path: string): string {
 }
 export function MemoryUpdateNotification(t0) {
   const $ = _c(4);
-  const { memoryPath } = t0;
+  const {
+    memoryPath
+  } = t0;
   let t1;
   if ($[0] !== memoryPath) {
     t1 = getRelativeMemoryPath(memoryPath);
@@ -32,11 +34,7 @@ export function MemoryUpdateNotification(t0) {
   const displayPath = t1;
   let t2;
   if ($[2] !== displayPath) {
-    t2 = (
-      <Box flexDirection="column" flexGrow={1}>
-        <Text color="text">Memory updated in {displayPath} · /memory to edit</Text>
-      </Box>
-    );
+    t2 = <Box flexDirection="column" flexGrow={1}><Text color="text">Memory updated in {displayPath} · /memory to edit</Text></Box>;
     $[2] = displayPath;
     $[3] = t2;
   } else {

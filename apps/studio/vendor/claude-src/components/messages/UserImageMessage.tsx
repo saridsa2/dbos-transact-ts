@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { pathToFileURL } from 'url';
 import Link from '../../ink/components/Link.js';
@@ -19,19 +19,15 @@ type Props = {
  */
 export function UserImageMessage(t0) {
   const $ = _c(7);
-  const { imageId, addMargin } = t0;
-  const label = imageId ? `[Image #${imageId}]` : '[Image]';
+  const {
+    imageId,
+    addMargin
+  } = t0;
+  const label = imageId ? `[Image #${imageId}]` : "[Image]";
   let t1;
   if ($[0] !== imageId || $[1] !== label) {
     const imagePath = imageId ? getStoredImagePath(imageId) : null;
-    t1 =
-      imagePath && supportsHyperlinks() ? (
-        <Link url={pathToFileURL(imagePath).href}>
-          <Text>{label}</Text>
-        </Link>
-      ) : (
-        <Text>{label}</Text>
-      );
+    t1 = imagePath && supportsHyperlinks() ? <Link url={pathToFileURL(imagePath).href}><Text>{label}</Text></Link> : <Text>{label}</Text>;
     $[0] = imageId;
     $[1] = label;
     $[2] = t1;

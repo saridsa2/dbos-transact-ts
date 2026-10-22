@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs';
 import * as React from 'react';
 import { BLACK_CIRCLE } from '../../constants/figures.js';
@@ -22,11 +22,16 @@ function getStatusColor(status: string | null): TextProps['color'] {
 }
 export function UserAgentNotificationMessage(t0) {
   const $ = _c(12);
-  const { addMargin, param: t1 } = t0;
-  const { text } = t1;
+  const {
+    addMargin,
+    param: t1
+  } = t0;
+  const {
+    text
+  } = t1;
   let t2;
   if ($[0] !== text) {
-    t2 = extractTag(text, 'summary');
+    t2 = extractTag(text, "summary");
     $[0] = text;
     $[1] = t2;
   } else {
@@ -38,7 +43,7 @@ export function UserAgentNotificationMessage(t0) {
   }
   let t3;
   if ($[2] !== text) {
-    const status = extractTag(text, 'status');
+    const status = extractTag(text, "status");
     t3 = getStatusColor(status);
     $[2] = text;
     $[3] = t3;
@@ -57,11 +62,7 @@ export function UserAgentNotificationMessage(t0) {
   }
   let t6;
   if ($[6] !== summary || $[7] !== t5) {
-    t6 = (
-      <Text>
-        {t5} {summary}
-      </Text>
-    );
+    t6 = <Text>{t5} {summary}</Text>;
     $[6] = summary;
     $[7] = t5;
     $[8] = t6;

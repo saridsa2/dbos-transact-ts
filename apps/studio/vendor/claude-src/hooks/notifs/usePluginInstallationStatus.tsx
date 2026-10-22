@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { useEffect, useMemo } from 'react';
 import { getIsRemoteMode } from '../../bootstrap/state.js';
@@ -9,17 +9,19 @@ import { logForDebugging } from '../../utils/debug.js';
 import { plural } from '../../utils/stringUtils.js';
 export function usePluginInstallationStatus() {
   const $ = _c(20);
-  const { addNotification } = useNotifications();
+  const {
+    addNotification
+  } = useNotifications();
   const installationStatus = useAppState(_temp);
   let t0;
   bb0: {
     if (!installationStatus) {
       let t1;
-      if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+      if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
         t1 = {
           totalFailed: 0,
           failedMarketplacesCount: 0,
-          failedPluginsCount: 0,
+          failedPluginsCount: 0
         };
         $[0] = t1;
       } else {
@@ -52,7 +54,7 @@ export function usePluginInstallationStatus() {
       t4 = {
         totalFailed: t3,
         failedMarketplacesCount: failedMarketplaces.length,
-        failedPluginsCount: failedPlugins.length,
+        failedPluginsCount: failedPlugins.length
       };
       $[5] = failedMarketplaces.length;
       $[6] = failedPlugins.length;
@@ -63,44 +65,33 @@ export function usePluginInstallationStatus() {
     }
     t0 = t4;
   }
-  const { totalFailed, failedMarketplacesCount, failedPluginsCount } = t0;
+  const {
+    totalFailed,
+    failedMarketplacesCount,
+    failedPluginsCount
+  } = t0;
   let t1;
-  if (
-    $[9] !== addNotification ||
-    $[10] !== failedMarketplacesCount ||
-    $[11] !== failedPluginsCount ||
-    $[12] !== installationStatus ||
-    $[13] !== totalFailed
-  ) {
+  if ($[9] !== addNotification || $[10] !== failedMarketplacesCount || $[11] !== failedPluginsCount || $[12] !== installationStatus || $[13] !== totalFailed) {
     t1 = () => {
       if (getIsRemoteMode()) {
         return;
       }
       if (!installationStatus) {
-        logForDebugging('No installation status to monitor');
+        logForDebugging("No installation status to monitor");
         return;
       }
       if (totalFailed === 0) {
         return;
       }
-      logForDebugging(
-        `Plugin installation status: ${failedMarketplacesCount} failed marketplaces, ${failedPluginsCount} failed plugins`,
-      );
+      logForDebugging(`Plugin installation status: ${failedMarketplacesCount} failed marketplaces, ${failedPluginsCount} failed plugins`);
       if (totalFailed === 0) {
         return;
       }
       logForDebugging(`Adding notification for ${totalFailed} failed installations`);
       addNotification({
-        key: 'plugin-install-failed',
-        jsx: (
-          <>
-            <Text color="error">
-              {totalFailed} {plural(totalFailed, 'plugin')} failed to install
-            </Text>
-            <Text dimColor={true}> · /plugin for details</Text>
-          </>
-        ),
-        priority: 'medium',
+        key: "plugin-install-failed",
+        jsx: <><Text color="error">{totalFailed} {plural(totalFailed, "plugin")} failed to install</Text><Text dimColor={true}> · /plugin for details</Text></>,
+        priority: "medium"
       });
     };
     $[9] = addNotification;
@@ -113,12 +104,7 @@ export function usePluginInstallationStatus() {
     t1 = $[14];
   }
   let t2;
-  if (
-    $[15] !== addNotification ||
-    $[16] !== failedMarketplacesCount ||
-    $[17] !== failedPluginsCount ||
-    $[18] !== totalFailed
-  ) {
+  if ($[15] !== addNotification || $[16] !== failedMarketplacesCount || $[17] !== failedPluginsCount || $[18] !== totalFailed) {
     t2 = [addNotification, totalFailed, failedMarketplacesCount, failedPluginsCount];
     $[15] = addNotification;
     $[16] = failedMarketplacesCount;
@@ -131,10 +117,10 @@ export function usePluginInstallationStatus() {
   useEffect(t1, t2);
 }
 function _temp3(p) {
-  return p.status === 'failed';
+  return p.status === "failed";
 }
 function _temp2(m) {
-  return m.status === 'failed';
+  return m.status === "failed";
 }
 function _temp(s) {
   return s.plugins.installationStatus;

@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import { useContext } from 'react';
 import { Box, NoSelect, Text } from '../ink.js';
@@ -9,29 +9,24 @@ type Props = {
 };
 export function MessageResponse(t0) {
   const $ = _c(8);
-  const { children, height } = t0;
+  const {
+    children,
+    height
+  } = t0;
   const isMessageResponse = useContext(MessageResponseContext);
   if (isMessageResponse) {
     return children;
   }
   let t1;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
-    t1 = (
-      <NoSelect fromLeftEdge={true} flexShrink={0}>
-        <Text dimColor={true}>{'  '}⎿  </Text>
-      </NoSelect>
-    );
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
+    t1 = <NoSelect fromLeftEdge={true} flexShrink={0}><Text dimColor={true}>{"  "}⎿  </Text></NoSelect>;
     $[0] = t1;
   } else {
     t1 = $[0];
   }
   let t2;
   if ($[1] !== children) {
-    t2 = (
-      <Box flexShrink={1} flexGrow={1}>
-        {children}
-      </Box>
-    );
+    t2 = <Box flexShrink={1} flexGrow={1}>{children}</Box>;
     $[1] = children;
     $[2] = t2;
   } else {
@@ -39,14 +34,7 @@ export function MessageResponse(t0) {
   }
   let t3;
   if ($[3] !== height || $[4] !== t2) {
-    t3 = (
-      <MessageResponseProvider>
-        <Box flexDirection="row" height={height} overflowY="hidden">
-          {t1}
-          {t2}
-        </Box>
-      </MessageResponseProvider>
-    );
+    t3 = <MessageResponseProvider><Box flexDirection="row" height={height} overflowY="hidden">{t1}{t2}</Box></MessageResponseProvider>;
     $[3] = height;
     $[4] = t2;
     $[5] = t3;
@@ -74,7 +62,9 @@ export function MessageResponse(t0) {
 const MessageResponseContext = React.createContext(false);
 function MessageResponseProvider(t0) {
   const $ = _c(2);
-  const { children } = t0;
+  const {
+    children
+  } = t0;
   let t1;
   if ($[0] !== children) {
     t1 = <MessageResponseContext.Provider value={true}>{children}</MessageResponseContext.Provider>;

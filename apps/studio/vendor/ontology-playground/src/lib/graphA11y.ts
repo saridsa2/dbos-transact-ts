@@ -22,9 +22,8 @@ export function describeOntologyGraph(
   const subject = name ? `${name} ontology graph` : 'Ontology graph';
   const entityTypes = pluralize(ontology.entityTypes.length, 'entity type');
   const relationships = pluralize(ontology.relationships.length, 'relationship');
-  const overview =
-    view?.mode === 'bounded'
-      ? ` Semantic overview showing ${pluralize(view.visibleNodeCount, 'entity type')} and ${pluralize(view.visibleEdgeCount, 'relationship')}.`
-      : '';
+  const overview = view?.mode === 'bounded'
+    ? ` Semantic overview showing ${pluralize(view.visibleNodeCount, 'entity type')} and ${pluralize(view.visibleEdgeCount, 'relationship')}.`
+    : '';
   return `${subject}: ${entityTypes}, ${relationships}.${overview} Interactive diagram.`;
 }

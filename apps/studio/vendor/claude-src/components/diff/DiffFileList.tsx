@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import figures from 'figures';
 import React, { useMemo } from 'react';
 import type { DiffFile } from '../../hooks/useDiffData.js';
@@ -13,8 +13,13 @@ type Props = {
 };
 export function DiffFileList(t0) {
   const $ = _c(36);
-  const { files, selectedIndex } = t0;
-  const { columns } = useTerminalSize();
+  const {
+    files,
+    selectedIndex
+  } = t0;
+  const {
+    columns
+  } = useTerminalSize();
   let t1;
   bb0: {
     if (files.length === 0 || files.length <= MAX_VISIBLE_FILES) {
@@ -22,7 +27,7 @@ export function DiffFileList(t0) {
       if ($[0] !== files.length) {
         t2 = {
           startIndex: 0,
-          endIndex: files.length,
+          endIndex: files.length
         };
         $[0] = files.length;
         $[1] = t2;
@@ -42,7 +47,7 @@ export function DiffFileList(t0) {
     if ($[2] !== end || $[3] !== start) {
       t2 = {
         startIndex: start,
-        endIndex: end,
+        endIndex: end
       };
       $[2] = end;
       $[3] = start;
@@ -52,10 +57,13 @@ export function DiffFileList(t0) {
     }
     t1 = t2;
   }
-  const { startIndex, endIndex } = t1;
+  const {
+    startIndex,
+    endIndex
+  } = t1;
   if (files.length === 0) {
     let t2;
-    if ($[5] === Symbol.for('react.memo_cache_sentinel')) {
+    if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
       t2 = <Text dimColor={true}>No changed files</Text>;
       $[5] = t2;
     } else {
@@ -76,11 +84,9 @@ export function DiffFileList(t0) {
     needsPagination = files.length > MAX_VISIBLE_FILES;
     const maxPathWidth = Math.max(20, columns - 16 - 3 - 4);
     T0 = Box;
-    t2 = 'column';
+    t2 = "column";
     if ($[17] !== hasMoreAbove || $[18] !== needsPagination || $[19] !== startIndex) {
-      t3 = needsPagination && (
-        <Text dimColor={true}>{hasMoreAbove ? ` ↑ ${startIndex} more ${plural(startIndex, 'file')}` : ' '}</Text>
-      );
+      t3 = needsPagination && <Text dimColor={true}>{hasMoreAbove ? ` ↑ ${startIndex} more ${plural(startIndex, "file")}` : " "}</Text>;
       $[17] = hasMoreAbove;
       $[18] = needsPagination;
       $[19] = startIndex;
@@ -90,14 +96,7 @@ export function DiffFileList(t0) {
     }
     let t5;
     if ($[21] !== maxPathWidth || $[22] !== selectedIndex || $[23] !== startIndex) {
-      t5 = (file, index) => (
-        <FileItem
-          key={file.path}
-          file={file}
-          isSelected={startIndex + index === selectedIndex}
-          maxPathWidth={maxPathWidth}
-        />
-      );
+      t5 = (file, index) => <FileItem key={file.path} file={file} isSelected={startIndex + index === selectedIndex} maxPathWidth={maxPathWidth} />;
       $[21] = maxPathWidth;
       $[22] = selectedIndex;
       $[23] = startIndex;
@@ -127,11 +126,7 @@ export function DiffFileList(t0) {
   }
   let t5;
   if ($[25] !== endIndex || $[26] !== files.length || $[27] !== hasMoreBelow || $[28] !== needsPagination) {
-    t5 = needsPagination && (
-      <Text dimColor={true}>
-        {hasMoreBelow ? ` ↓ ${files.length - endIndex} more ${plural(files.length - endIndex, 'file')}` : ' '}
-      </Text>
-    );
+    t5 = needsPagination && <Text dimColor={true}>{hasMoreBelow ? ` ↓ ${files.length - endIndex} more ${plural(files.length - endIndex, "file")}` : " "}</Text>;
     $[25] = endIndex;
     $[26] = files.length;
     $[27] = hasMoreBelow;
@@ -142,13 +137,7 @@ export function DiffFileList(t0) {
   }
   let t6;
   if ($[30] !== T0 || $[31] !== t2 || $[32] !== t3 || $[33] !== t4 || $[34] !== t5) {
-    t6 = (
-      <T0 flexDirection={t2}>
-        {t3}
-        {t4}
-        {t5}
-      </T0>
-    );
+    t6 = <T0 flexDirection={t2}>{t3}{t4}{t5}</T0>;
     $[30] = T0;
     $[31] = t2;
     $[32] = t3;
@@ -162,7 +151,11 @@ export function DiffFileList(t0) {
 }
 function FileItem(t0) {
   const $ = _c(14);
-  const { file, isSelected, maxPathWidth } = t0;
+  const {
+    file,
+    isSelected,
+    maxPathWidth
+  } = t0;
   let t1;
   if ($[0] !== file.path || $[1] !== maxPathWidth) {
     t1 = truncateStartToWidth(file.path, maxPathWidth);
@@ -173,16 +166,12 @@ function FileItem(t0) {
     t1 = $[2];
   }
   const displayPath = t1;
-  const pointer = isSelected ? figures.pointer + ' ' : '  ';
+  const pointer = isSelected ? figures.pointer + " " : "  ";
   const line = `${pointer}${displayPath}`;
-  const t2 = isSelected ? 'background' : undefined;
+  const t2 = isSelected ? "background" : undefined;
   let t3;
   if ($[3] !== isSelected || $[4] !== line || $[5] !== t2) {
-    t3 = (
-      <Text bold={isSelected} color={t2} inverse={isSelected}>
-        {line}
-      </Text>
-    );
+    t3 = <Text bold={isSelected} color={t2} inverse={isSelected}>{line}</Text>;
     $[3] = isSelected;
     $[4] = line;
     $[5] = t2;
@@ -191,7 +180,7 @@ function FileItem(t0) {
     t3 = $[6];
   }
   let t4;
-  if ($[7] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
     t4 = <Box flexGrow={1} />;
     $[7] = t4;
   } else {
@@ -208,13 +197,7 @@ function FileItem(t0) {
   }
   let t6;
   if ($[11] !== t3 || $[12] !== t5) {
-    t6 = (
-      <Box flexDirection="row">
-        {t3}
-        {t4}
-        {t5}
-      </Box>
-    );
+    t6 = <Box flexDirection="row">{t3}{t4}{t5}</Box>;
     $[11] = t3;
     $[12] = t5;
     $[13] = t6;
@@ -225,16 +208,15 @@ function FileItem(t0) {
 }
 function FileStats(t0) {
   const $ = _c(20);
-  const { file, isSelected } = t0;
+  const {
+    file,
+    isSelected
+  } = t0;
   if (file.isUntracked) {
     const t1 = !isSelected;
     let t2;
     if ($[0] !== t1) {
-      t2 = (
-        <Text dimColor={t1} italic={true}>
-          untracked
-        </Text>
-      );
+      t2 = <Text dimColor={t1} italic={true}>untracked</Text>;
       $[0] = t1;
       $[1] = t2;
     } else {
@@ -246,11 +228,7 @@ function FileStats(t0) {
     const t1 = !isSelected;
     let t2;
     if ($[2] !== t1) {
-      t2 = (
-        <Text dimColor={t1} italic={true}>
-          Binary file
-        </Text>
-      );
+      t2 = <Text dimColor={t1} italic={true}>Binary file</Text>;
       $[2] = t1;
       $[3] = t2;
     } else {
@@ -262,11 +240,7 @@ function FileStats(t0) {
     const t1 = !isSelected;
     let t2;
     if ($[4] !== t1) {
-      t2 = (
-        <Text dimColor={t1} italic={true}>
-          Large file modified
-        </Text>
-      );
+      t2 = <Text dimColor={t1} italic={true}>Large file modified</Text>;
       $[4] = t1;
       $[5] = t2;
     } else {
@@ -276,25 +250,17 @@ function FileStats(t0) {
   }
   let t1;
   if ($[6] !== file.linesAdded || $[7] !== isSelected) {
-    t1 = file.linesAdded > 0 && (
-      <Text color="diffAddedWord" bold={isSelected}>
-        +{file.linesAdded}
-      </Text>
-    );
+    t1 = file.linesAdded > 0 && <Text color="diffAddedWord" bold={isSelected}>+{file.linesAdded}</Text>;
     $[6] = file.linesAdded;
     $[7] = isSelected;
     $[8] = t1;
   } else {
     t1 = $[8];
   }
-  const t2 = file.linesAdded > 0 && file.linesRemoved > 0 && ' ';
+  const t2 = file.linesAdded > 0 && file.linesRemoved > 0 && " ";
   let t3;
   if ($[9] !== file.linesRemoved || $[10] !== isSelected) {
-    t3 = file.linesRemoved > 0 && (
-      <Text color="diffRemovedWord" bold={isSelected}>
-        -{file.linesRemoved}
-      </Text>
-    );
+    t3 = file.linesRemoved > 0 && <Text color="diffRemovedWord" bold={isSelected}>-{file.linesRemoved}</Text>;
     $[9] = file.linesRemoved;
     $[10] = isSelected;
     $[11] = t3;
@@ -312,14 +278,7 @@ function FileStats(t0) {
   }
   let t5;
   if ($[15] !== t1 || $[16] !== t2 || $[17] !== t3 || $[18] !== t4) {
-    t5 = (
-      <Text>
-        {t1}
-        {t2}
-        {t3}
-        {t4}
-      </Text>
-    );
+    t5 = <Text>{t1}{t2}{t3}{t4}</Text>;
     $[15] = t1;
     $[16] = t2;
     $[17] = t3;

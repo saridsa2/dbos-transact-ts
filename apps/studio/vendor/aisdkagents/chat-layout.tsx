@@ -1,9 +1,23 @@
-'use client';
+"use client";
 
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  PointerEvent,
+  ReactNode,
+} from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface ChatLayoutState {
   /** True when the frame is too narrow for panes side by side. */
@@ -25,7 +39,7 @@ const ChatLayoutContext = createContext<ChatLayoutState | null>(null);
 export const useChatLayout = (): ChatLayoutState => {
   const state = useContext(ChatLayoutContext);
   if (!state) {
-    throw new Error('useChatLayout must be used inside <ChatLayout>.');
+    throw new Error("useChatLayout must be used inside <ChatLayout>.");
   }
   return state;
 };
@@ -85,22 +99,27 @@ const SETTLE_MS = 60;
 const EXIT_MS = 360;
 
 const THEME_VARS = [
-  '[--chat-layout-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  'dark:[--chat-layout-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  '[--chat-layout-sheet-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_8px_24px_-6px_rgba(0,0,0,0.18),0_24px_48px_-12px_rgba(0,0,0,0.16)]',
-  'dark:[--chat-layout-sheet-shadow:0_0_0_1px_rgba(255,255,255,0.1),0_24px_48px_-12px_rgba(0,0,0,0.7)]',
-  '[--chat-layout-scrim:rgba(0,0,0,0.28)] dark:[--chat-layout-scrim:rgba(0,0,0,0.55)]',
-].join(' ');
+  "[--chat-layout-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "dark:[--chat-layout-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "[--chat-layout-sheet-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_8px_24px_-6px_rgba(0,0,0,0.18),0_24px_48px_-12px_rgba(0,0,0,0.16)]",
+  "dark:[--chat-layout-sheet-shadow:0_0_0_1px_rgba(255,255,255,0.1),0_24px_48px_-12px_rgba(0,0,0,0.7)]",
+  "[--chat-layout-scrim:rgba(0,0,0,0.28)] dark:[--chat-layout-scrim:rgba(0,0,0,0.55)]",
+].join(" ");
 
 const FOCUS_CLASS =
-  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
 
 /** Steep start, long settle: a pane leaves the edge at once and lands softly. */
-const PANE_EASE = 'ease-[cubic-bezier(0.32,0.72,0,1)]';
+const PANE_EASE = "ease-[cubic-bezier(0.32,0.72,0,1)]";
 
-const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), Math.max(min, max));
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(Math.max(value, min), Math.max(min, max));
 
-const useControlled = <T,>(controlled: T | undefined, initial: T, onChange: ((value: T) => void) | undefined) => {
+const useControlled = <T,>(
+  controlled: T | undefined,
+  initial: T,
+  onChange: ((value: T) => void) | undefined
+) => {
   const [inner, setInner] = useState(initial);
   const report = useRef(onChange);
   useEffect(() => {
@@ -147,9 +166,9 @@ export const ChatLayout = ({
   minMainWidth = 360,
   compactBelow = 768,
   onCompactChange,
-  shortcut = 'b',
-  sidebarLabel = 'Sidebar',
-  panelLabel = 'Side panel',
+  shortcut = "b",
+  sidebarLabel = "Sidebar",
+  panelLabel = "Side panel",
   className,
   classNames,
   style,
@@ -162,9 +181,21 @@ export const ChatLayout = ({
   const [frame, setFrame] = useState<number | null>(null);
   const [instant, setInstant] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const [sidebarWanted, setSidebarWanted] = useControlled(sidebarOpenProp, defaultSidebarOpen, onSidebarOpenChange);
-  const [panelWanted, setPanelWanted] = useControlled(panelOpenProp, defaultPanelOpen, onPanelOpenChange);
-  const [wantedWidth, setWantedWidth] = useControlled(panelWidthProp, defaultPanelWidth, onPanelWidthChange);
+  const [sidebarWanted, setSidebarWanted] = useControlled(
+    sidebarOpenProp,
+    defaultSidebarOpen,
+    onSidebarOpenChange
+  );
+  const [panelWanted, setPanelWanted] = useControlled(
+    panelOpenProp,
+    defaultPanelOpen,
+    onPanelOpenChange
+  );
+  const [wantedWidth, setWantedWidth] = useControlled(
+    panelWidthProp,
+    defaultPanelWidth,
+    onPanelWidthChange
+  );
 
   const hasSidebar = sidebar !== null && sidebar !== undefined;
   const hasPanel = panel !== null && panel !== undefined && panel !== false;
@@ -262,7 +293,7 @@ export const ChatLayout = ({
       }
       setSidebarWanted(open);
     },
-    [compact, panelOpen, setPanelWanted, setSidebarWanted],
+    [compact, panelOpen, setPanelWanted, setSidebarWanted]
   );
   const setPanelOpen = useCallback(
     (open: boolean) => {
@@ -271,7 +302,7 @@ export const ChatLayout = ({
       }
       setPanelWanted(open);
     },
-    [compact, setPanelWanted, setSidebarWanted, sidebarOpen],
+    [compact, setPanelWanted, setSidebarWanted, sidebarOpen]
   );
 
   const state = useMemo<ChatLayoutState>(
@@ -288,15 +319,15 @@ export const ChatLayout = ({
         setSidebarOpen(!sidebarOpen);
       },
     }),
-    [compact, panelOpen, setPanelOpen, setSidebarOpen, sidebarOpen],
+    [compact, panelOpen, setPanelOpen, setSidebarOpen, sidebarOpen]
   );
 
   // The sheet on top, if any. The thread under it is inert.
-  let sheet: 'panel' | 'sidebar' | null = null;
+  let sheet: "panel" | "sidebar" | null = null;
   if (compact && panelOpen) {
-    sheet = 'panel';
+    sheet = "panel";
   } else if (compact && sidebarOpen) {
-    sheet = 'sidebar';
+    sheet = "sidebar";
   }
 
   useEffect(() => {
@@ -304,23 +335,23 @@ export const ChatLayout = ({
       return;
     }
     const before = document.activeElement;
-    const node = sheet === 'panel' ? panelRef.current : sidebarRef.current;
+    const node = sheet === "panel" ? panelRef.current : sidebarRef.current;
     node?.focus({ preventScroll: true });
     // Escape closes the sheet even when focus has wandered off the frame.
     const onEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) {
+      if (event.key !== "Escape" || event.defaultPrevented) {
         return;
       }
       event.preventDefault();
-      if (sheet === 'panel') {
+      if (sheet === "panel") {
         setPanelWanted(false);
       } else {
         setSidebarWanted(false);
       }
     };
-    document.addEventListener('keydown', onEscape);
+    document.addEventListener("keydown", onEscape);
     return () => {
-      document.removeEventListener('keydown', onEscape);
+      document.removeEventListener("keydown", onEscape);
       // Hand focus back only if it was left stranded in the closed sheet.
       const now = document.activeElement;
       const stranded = now === document.body || (node?.contains(now) ?? false);
@@ -335,7 +366,12 @@ export const ChatLayout = ({
   const rail = sidebarClosedWidth >= GUTTER_PX * 4;
   const railWidth = sidebarOpen ? sidebarWidth : closedWidth;
   const maxPanelWidth =
-    frame === null ? wantedWidth : frame - (hasSidebar ? railWidth : GUTTER_PX) - minMainWidth - GUTTER_PX * 2;
+    frame === null
+      ? wantedWidth
+      : frame -
+        (hasSidebar ? railWidth : GUTTER_PX) -
+        minMainWidth -
+        GUTTER_PX * 2;
   const panelWidth = clamp(wantedWidth, minPanelWidth, maxPanelWidth);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -380,7 +416,8 @@ export const ChatLayout = ({
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
       // On-screen pixels per layout pixel, when the frame is zoomed or scaled.
-      scale: node && box && node.offsetWidth > 0 ? box.width / node.offsetWidth : 1,
+      scale:
+        node && box && node.offsetWidth > 0 ? box.width / node.offsetWidth : 1,
       width: panelWidth,
       x: event.clientX,
     };
@@ -391,7 +428,13 @@ export const ChatLayout = ({
     if (!from) {
       return;
     }
-    paint(clamp(from.width + (from.x - event.clientX) / from.scale, minPanelWidth, maxPanelWidth));
+    paint(
+      clamp(
+        from.width + (from.x - event.clientX) / from.scale,
+        minPanelWidth,
+        maxPanelWidth
+      )
+    );
   };
   const onHandleUp = () => {
     if (!drag.current) {
@@ -404,15 +447,15 @@ export const ChatLayout = ({
   const onHandleKey = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = event.shiftKey ? KEY_LEAP_PX : KEY_STEP_PX;
     let next: number | null = null;
-    if (event.key === 'ArrowLeft') {
+    if (event.key === "ArrowLeft") {
       next = panelWidth + step;
-    } else if (event.key === 'ArrowRight') {
+    } else if (event.key === "ArrowRight") {
       next = panelWidth - step;
-    } else if (event.key === 'Home') {
+    } else if (event.key === "Home") {
       next = maxPanelWidth;
-    } else if (event.key === 'End') {
+    } else if (event.key === "End") {
       next = minPanelWidth;
-    } else if (event.key === 'Enter') {
+    } else if (event.key === "Enter") {
       next = defaultPanelWidth;
     }
     if (next === null) {
@@ -425,7 +468,9 @@ export const ChatLayout = ({
   };
 
   const still = instant || resizing || frame === null;
-  const paneMotion = still ? 'transition-none' : cn('duration-300 motion-reduce:transition-none', PANE_EASE);
+  const paneMotion = still
+    ? "transition-none"
+    : cn("duration-300 motion-reduce:transition-none", PANE_EASE);
 
   return (
     <ChatLayoutContext.Provider value={state}>
@@ -433,13 +478,14 @@ export const ChatLayout = ({
       <div
         className={cn(
           THEME_VARS,
-          'relative isolate flex size-full min-h-0 min-w-0 overflow-hidden bg-muted text-foreground dark:bg-background',
-          !compact && 'pr-2',
-          resizing && 'cursor-col-resize select-none [&_iframe]:pointer-events-none',
+          "relative isolate flex size-full min-h-0 min-w-0 overflow-hidden bg-muted text-foreground dark:bg-background",
+          !compact && "pr-2",
+          resizing &&
+            "cursor-col-resize select-none [&_iframe]:pointer-events-none",
           className,
-          classNames?.root,
+          classNames?.root
         )}
-        data-compact={compact ? 'true' : undefined}
+        data-compact={compact ? "true" : undefined}
         data-slot="chat-layout"
         onKeyDown={onKeyDown}
         ref={root}
@@ -449,24 +495,24 @@ export const ChatLayout = ({
           <aside
             aria-label={sidebarLabel}
             className={cn(
-              'flex-none overflow-hidden outline-none',
+              "flex-none overflow-hidden outline-none",
               compact
                 ? cn(
-                    'absolute inset-y-0 left-0 z-30 max-w-[calc(100%-3rem)] rounded-r-2xl bg-muted shadow-(--chat-layout-sheet-shadow) dark:bg-background',
+                    "absolute inset-y-0 left-0 z-30 max-w-[calc(100%-3rem)] rounded-r-2xl bg-muted shadow-(--chat-layout-sheet-shadow) dark:bg-background",
                     // Shown at once, so it can take focus. Hidden only once it is off screen.
                     sidebarOpen
-                      ? 'visible translate-x-0 transition-[translate]'
-                      : 'invisible -translate-x-full transition-[translate,visibility]',
+                      ? "visible translate-x-0 transition-[translate]"
+                      : "invisible -translate-x-full transition-[translate,visibility]",
                     // Leaving is quicker than arriving.
-                    !still && !sidebarOpen && 'duration-200',
+                    !still && !sidebarOpen && "duration-200"
                   )
-                : 'relative transition-[width]',
+                : "relative transition-[width]",
               paneMotion,
-              compact && !still && !sidebarOpen && 'duration-200',
-              classNames?.sidebar,
+              compact && !still && !sidebarOpen && "duration-200",
+              classNames?.sidebar
             )}
             data-slot="chat-layout-sidebar"
-            data-state={sidebarOpen ? 'open' : 'closed'}
+            data-state={sidebarOpen ? "open" : "closed"}
             inert={compact ? !sidebarOpen : sheet !== null}
             ref={sidebarRef}
             style={{ width: compact ? sidebarWidth : railWidth }}
@@ -474,27 +520,31 @@ export const ChatLayout = ({
           >
             <div
               className={cn(
-                'h-full transition-opacity duration-200 ease-out motion-reduce:transition-none',
+                "h-full transition-opacity duration-200 ease-out motion-reduce:transition-none",
                 // Nothing of a fully closed sidebar should show in the gutter.
-                !compact && !sidebarOpen && !rail ? 'opacity-0' : 'opacity-100',
-                still && 'transition-none',
+                !compact && !sidebarOpen && !rail ? "opacity-0" : "opacity-100",
+                still && "transition-none"
               )}
               inert={!compact && !sidebarOpen && !rail}
               // A rail squeezes with the pane. A sidebar that hides is clipped.
-              style={{ width: compact || rail ? '100%' : sidebarWidth }}
+              style={{ width: compact || rail ? "100%" : sidebarWidth }}
             >
               {sidebar}
             </div>
           </aside>
         ) : (
-          <div aria-hidden="true" className={cn('flex-none', compact && 'hidden')} style={{ width: GUTTER_PX }} />
+          <div
+            aria-hidden="true"
+            className={cn("flex-none", compact && "hidden")}
+            style={{ width: GUTTER_PX }}
+          />
         )}
 
         <main
           className={cn(
-            'relative flex min-w-0 flex-1 flex-col overflow-hidden bg-card text-card-foreground',
-            compact ? '' : 'my-2 rounded-2xl shadow-(--chat-layout-shadow)',
-            classNames?.main,
+            "relative flex min-w-0 flex-1 flex-col overflow-hidden bg-card text-card-foreground",
+            compact ? "" : "my-2 rounded-2xl shadow-(--chat-layout-shadow)",
+            classNames?.main
           )}
           data-slot="chat-layout-main"
           inert={sheet !== null}
@@ -506,10 +556,12 @@ export const ChatLayout = ({
           <div
             aria-hidden="true"
             className={cn(
-              'absolute inset-0 z-20 bg-(--chat-layout-scrim) transition-opacity ease-out',
-              sheet === 'sidebar' ? 'opacity-100 duration-300' : 'pointer-events-none opacity-0 duration-200',
-              still && 'transition-none',
-              classNames?.scrim,
+              "absolute inset-0 z-20 bg-(--chat-layout-scrim) transition-opacity ease-out",
+              sheet === "sidebar"
+                ? "opacity-100 duration-300"
+                : "pointer-events-none opacity-0 duration-200",
+              still && "transition-none",
+              classNames?.scrim
             )}
             data-slot="chat-layout-scrim"
             onClick={() => {
@@ -522,22 +574,22 @@ export const ChatLayout = ({
           <aside
             aria-label={panelLabel}
             className={cn(
-              'flex flex-none overflow-hidden outline-none',
+              "flex flex-none overflow-hidden outline-none",
               compact
                 ? cn(
-                    'absolute inset-0 z-30 bg-muted p-2 dark:bg-background',
+                    "absolute inset-0 z-30 bg-muted p-2 dark:bg-background",
                     // Shown at once, so it can take focus. Hidden only once it is off screen.
                     panelOpen
-                      ? 'visible translate-x-0 transition-[translate]'
-                      : 'invisible translate-x-full transition-[translate,visibility]',
+                      ? "visible translate-x-0 transition-[translate]"
+                      : "invisible translate-x-full transition-[translate,visibility]"
                   )
-                : 'relative py-2 transition-[width]',
+                : "relative py-2 transition-[width]",
               paneMotion,
-              compact && !still && !panelOpen && 'duration-200',
-              classNames?.panel,
+              compact && !still && !panelOpen && "duration-200",
+              classNames?.panel
             )}
             data-slot="chat-layout-panel"
-            data-state={panelOpen ? 'open' : 'closed'}
+            data-state={panelOpen ? "open" : "closed"}
             inert={!panelOpen}
             onTransitionEnd={(event) => {
               if (event.target === event.currentTarget && !panelOpen) {
@@ -545,7 +597,11 @@ export const ChatLayout = ({
               }
             }}
             ref={panelRef}
-            style={compact ? undefined : { width: panelOpen ? panelWidth + GUTTER_PX : 0 }}
+            style={
+              compact
+                ? undefined
+                : { width: panelOpen ? panelWidth + GUTTER_PX : 0 }
+            }
             tabIndex={-1}
           >
             {compact ? null : (
@@ -553,18 +609,24 @@ export const ChatLayout = ({
               <div
                 aria-label="Resize side panel"
                 aria-orientation="vertical"
-                aria-valuemax={Math.round(Math.max(minPanelWidth, maxPanelWidth))}
+                aria-valuemax={Math.round(
+                  Math.max(minPanelWidth, maxPanelWidth)
+                )}
                 aria-valuemin={minPanelWidth}
                 aria-valuenow={Math.round(panelWidth)}
                 className={cn(
                   "group/handle relative z-10 flex flex-none cursor-col-resize touch-none items-center justify-center rounded-full outline-none after:absolute after:-inset-x-1 after:inset-y-0 after:content-['']",
                   FOCUS_CLASS,
-                  classNames?.handle,
+                  classNames?.handle
                 )}
                 data-slot="chat-layout-handle"
                 onDoubleClick={() => {
                   jump();
-                  setWantedWidth(Math.round(clamp(defaultPanelWidth, minPanelWidth, maxPanelWidth)));
+                  setWantedWidth(
+                    Math.round(
+                      clamp(defaultPanelWidth, minPanelWidth, maxPanelWidth)
+                    )
+                  );
                 }}
                 onKeyDown={onHandleKey}
                 onLostPointerCapture={onHandleUp}
@@ -580,13 +642,17 @@ export const ChatLayout = ({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    'h-8 w-[3px] rounded-full bg-foreground/25 opacity-0 transition-[opacity,height,background-color] delay-0 duration-150 ease-out group-hover/handle:opacity-100 group-hover/handle:delay-100 group-focus-visible/handle:opacity-100 motion-reduce:transition-none',
-                    resizing && 'h-12 bg-foreground/45 opacity-100',
+                    "h-8 w-[3px] rounded-full bg-foreground/25 opacity-0 transition-[opacity,height,background-color] delay-0 duration-150 ease-out group-hover/handle:opacity-100 group-hover/handle:delay-100 group-focus-visible/handle:opacity-100 motion-reduce:transition-none",
+                    resizing && "h-12 bg-foreground/45 opacity-100"
                   )}
                 />
               </div>
             )}
-            <div className="h-full min-w-0 flex-none" ref={panelInner} style={{ width: compact ? '100%' : panelWidth }}>
+            <div
+              className="h-full min-w-0 flex-none"
+              ref={panelInner}
+              style={{ width: compact ? "100%" : panelWidth }}
+            >
               {shownPanel}
             </div>
           </aside>

@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import * as React from 'react';
 import type { KeybindingAction, KeybindingContextName } from '../keybindings/types.js';
 import { useShortcutDisplay } from '../keybindings/useShortcutDisplay.js';
@@ -32,7 +32,14 @@ type Props = {
  */
 export function ConfigurableShortcutHint(t0) {
   const $ = _c(5);
-  const { action, context, fallback, description, parens, bold } = t0;
+  const {
+    action,
+    context,
+    fallback,
+    description,
+    parens,
+    bold
+  } = t0;
   const shortcut = useShortcutDisplay(action, context, fallback);
   let t1;
   if ($[0] !== bold || $[1] !== description || $[2] !== parens || $[3] !== shortcut) {

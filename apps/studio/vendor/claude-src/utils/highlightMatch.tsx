@@ -16,11 +16,9 @@ export function highlightMatch(text: string, query: string): React.ReactNode {
   if (idx === -1) return text;
   while (idx !== -1) {
     if (idx > offset) parts.push(text.slice(offset, idx));
-    parts.push(
-      <Text key={idx} inverse>
+    parts.push(<Text key={idx} inverse>
         {text.slice(idx, idx + query.length)}
-      </Text>,
-    );
+      </Text>);
     offset = idx + query.length;
     idx = textLower.indexOf(queryLower, offset);
   }

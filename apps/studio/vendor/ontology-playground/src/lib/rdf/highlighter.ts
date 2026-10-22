@@ -8,30 +8,30 @@ import { createElement, Fragment } from 'react';
 import type { ReactNode } from 'react';
 
 interface HighlightTheme {
-  tag: string; // XML tag names (<owl:Class>)
-  attr: string; // attribute names (rdf:about=)
-  string: string; // quoted values ("...")
-  comment: string; // <!-- ... -->
+  tag: string;       // XML tag names (<owl:Class>)
+  attr: string;      // attribute names (rdf:about=)
+  string: string;    // quoted values ("...")
+  comment: string;   // <!-- ... -->
   namespace: string; // namespace prefixes (rdf:, owl:, xmlns:)
-  text: string; // default text color
+  text: string;      // default text color
 }
 
 export const RDF_HIGHLIGHT_DARK: HighlightTheme = {
-  tag: '#569CD6', // blue — tags
-  attr: '#9CDCFE', // light blue — attributes
-  string: '#CE9178', // orange — string values
-  comment: '#6A9955', // green — comments
+  tag: '#569CD6',       // blue — tags
+  attr: '#9CDCFE',      // light blue — attributes
+  string: '#CE9178',    // orange — string values
+  comment: '#6A9955',   // green — comments
   namespace: '#C586C0', // purple — namespace prefixes
-  text: '#D4D4D4', // gray — default
+  text: '#D4D4D4',      // gray — default
 };
 
 export const RDF_HIGHLIGHT_LIGHT: HighlightTheme = {
-  tag: '#0000FF', // blue
-  attr: '#FF0000', // red — matches VS Code light XML
-  string: '#A31515', // dark red
-  comment: '#008000', // green
+  tag: '#0000FF',       // blue
+  attr: '#FF0000',      // red — matches VS Code light XML
+  string: '#A31515',    // dark red
+  comment: '#008000',   // green
   namespace: '#800080', // purple
-  text: '#333333', // dark gray
+  text: '#333333',      // dark gray
 };
 
 /**

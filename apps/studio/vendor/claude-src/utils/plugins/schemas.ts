@@ -1,7 +1,7 @@
-import { z } from 'zod/v4';
-import { HooksSchema } from '../../schemas/hooks.js';
-import { McpServerConfigSchema } from '../../services/mcp/types.js';
-import { lazySchema } from '../lazySchema.js';
+import { z } from 'zod/v4'
+import { HooksSchema } from '../../schemas/hooks.js'
+import { McpServerConfigSchema } from '../../services/mcp/types.js'
+import { lazySchema } from '../lazySchema.js'
 
 /**
  * First-layer defense against official marketplace impersonation.
@@ -25,14 +25,14 @@ export const ALLOWED_OFFICIAL_MARKETPLACE_NAMES = new Set([
   'agent-skills',
   'life-sciences',
   'knowledge-work-plugins',
-]);
+])
 
 /**
  * Official marketplaces that should NOT auto-update by default.
  * These are still reserved/allowed names, but opt out of the auto-update
  * default that other official marketplaces receive.
  */
-const NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES = new Set(['knowledge-work-plugins']);
+const NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES = new Set(['knowledge-work-plugins'])
 
 /**
  * Check if auto-update is enabled for a marketplace.
@@ -45,13 +45,16 @@ const NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES = new Set(['knowledge-work-plugins'])
  * @param entry - The marketplace entry (may have autoUpdate set)
  * @returns Whether auto-update is enabled for this marketplace
  */
-export function isMarketplaceAutoUpdate(marketplaceName: string, entry: { autoUpdate?: boolean }): boolean {
-  const normalizedName = marketplaceName.toLowerCase();
+export function isMarketplaceAutoUpdate(
+  marketplaceName: string,
+  entry: { autoUpdate?: boolean },
+): boolean {
+  const normalizedName = marketplaceName.toLowerCase()
   return (
     entry.autoUpdate ??
     (ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(normalizedName) &&
       !NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES.has(normalizedName))
-  );
+  )
 }
 
 /**
@@ -66,14 +69,14 @@ export function isMarketplaceAutoUpdate(marketplaceName: string, entry: { autoUp
  * The pattern is case-insensitive.
  */
 export const BLOCKED_OFFICIAL_NAME_PATTERN =
-  /(?:official[^a-z0-9]*(anthropic|claude)|(?:anthropic|claude)[^a-z0-9]*official|^(?:anthropic|claude)[^a-z0-9]*(marketplace|plugins|official))/i;
+  /(?:official[^a-z0-9]*(anthropic|claude)|(?:anthropic|claude)[^a-z0-9]*official|^(?:anthropic|claude)[^a-z0-9]*(marketplace|plugins|official))/i
 
 /**
  * Pattern to detect non-ASCII characters that could be used for homograph attacks.
  * Marketplace names should only contain ASCII characters to prevent impersonation
  * via lookalike Unicode characters (e.g., Cyrillic 'а' instead of Latin 'a').
  */
-const NON_ASCII_PATTERN = /[^\u0020-\u007E]/;
+const NON_ASCII_PATTERN = /[^\u0020-\u007E]/
 
 /**
  * Check if a marketplace name impersonates an official Anthropic/Claude marketplace.
@@ -84,24 +87,24 @@ const NON_ASCII_PATTERN = /[^\u0020-\u007E]/;
 export function isBlockedOfficialName(name: string): boolean {
   // If it's in the allowed list, it's not blocked
   if (ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(name.toLowerCase())) {
-    return false;
+    return false
   }
 
   // Block names with non-ASCII characters to prevent homograph attacks
   // (e.g., using Cyrillic 'а' to impersonate 'anthropic')
   if (NON_ASCII_PATTERN.test(name)) {
-    return true;
+    return true
   }
 
   // Check if it matches the blocked pattern
-  return BLOCKED_OFFICIAL_NAME_PATTERN.test(name);
+  return BLOCKED_OFFICIAL_NAME_PATTERN.test(name)
 }
 
 /**
  * The official GitHub organization for Anthropic marketplaces.
  * Reserved names must come from this org.
  */
-export const OFFICIAL_GITHUB_ORG = 'anthropics';
+export const OFFICIAL_GITHUB_ORG = 'anthropics'
 
 /**
  * Validate that a marketplace with a reserved name comes from the official source.
@@ -117,51 +120,51 @@ export function validateOfficialNameSource(
   name: string,
   source: { source: string; repo?: string; url?: string },
 ): string | null {
-  const normalizedName = name.toLowerCase();
+  const normalizedName = name.toLowerCase()
 
   // Only validate reserved names
   if (!ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(normalizedName)) {
-    return null; // Not a reserved name, no source validation needed
+    return null // Not a reserved name, no source validation needed
   }
 
   // Check for GitHub source type
   if (source.source === 'github') {
     // Verify the repo is from the official org
-    const repo = source.repo || '';
+    const repo = source.repo || ''
     if (!repo.toLowerCase().startsWith(`${OFFICIAL_GITHUB_ORG}/`)) {
-      return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`;
+      return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
     }
-    return null; // Valid: reserved name from official GitHub source
+    return null // Valid: reserved name from official GitHub source
   }
 
   // Check for git URL source type
   if (source.source === 'git' && source.url) {
-    const url = source.url.toLowerCase();
+    const url = source.url.toLowerCase()
     // Check for HTTPS URL format: https://github.com/anthropics/...
     // or SSH format: git@github.com:anthropics/...
-    const isHttpsAnthropics = url.includes('github.com/anthropics/');
-    const isSshAnthropics = url.includes('git@github.com:anthropics/');
+    const isHttpsAnthropics = url.includes('github.com/anthropics/')
+    const isSshAnthropics = url.includes('git@github.com:anthropics/')
 
     if (isHttpsAnthropics || isSshAnthropics) {
-      return null; // Valid: reserved name from official git URL
+      return null // Valid: reserved name from official git URL
     }
 
-    return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`;
+    return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
   }
 
   // Reserved names must come from GitHub (either 'github' or 'git' source)
-  return `The name '${name}' is reserved for official Anthropic marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`;
+  return `The name '${name}' is reserved for official Anthropic marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
 }
 
 /**
  * Schema for relative file paths that must start with './'
  */
-const RelativePath = lazySchema(() => z.string().startsWith('./'));
+const RelativePath = lazySchema(() => z.string().startsWith('./'))
 
 /**
  * Schema for relative paths to JSON files
  */
-const RelativeJSONPath = lazySchema(() => RelativePath().endsWith('.json'));
+const RelativeJSONPath = lazySchema(() => RelativePath().endsWith('.json'))
 
 /**
  * Schema for MCPB (MCP Bundle) file paths
@@ -170,24 +173,24 @@ const RelativeJSONPath = lazySchema(() => RelativePath().endsWith('.json'));
 const McpbPath = lazySchema(() =>
   z.union([
     RelativePath()
-      .refine((path) => path.endsWith('.mcpb') || path.endsWith('.dxt'), {
+      .refine(path => path.endsWith('.mcpb') || path.endsWith('.dxt'), {
         message: 'MCPB file path must end with .mcpb or .dxt',
       })
       .describe('Path to MCPB file relative to plugin root'),
     z
       .string()
       .url()
-      .refine((url) => url.endsWith('.mcpb') || url.endsWith('.dxt'), {
+      .refine(url => url.endsWith('.mcpb') || url.endsWith('.dxt'), {
         message: 'MCPB URL must end with .mcpb or .dxt',
       })
       .describe('URL to MCPB file'),
   ]),
-);
+)
 
 /**
  * Schema for relative paths to Markdown files
  */
-const RelativeMarkdownPath = lazySchema(() => RelativePath().endsWith('.md'));
+const RelativeMarkdownPath = lazySchema(() => RelativePath().endsWith('.md'))
 
 /**
  * Schema for relative paths to command sources (markdown files or directories containing SKILL.md)
@@ -197,7 +200,7 @@ const RelativeCommandPath = lazySchema(() =>
     RelativeMarkdownPath(),
     RelativePath(), // Allow any relative path, including directories
   ]),
-);
+)
 
 /**
  * Shared marketplace-name validation. Used by both PluginMarketplaceSchema
@@ -214,22 +217,33 @@ const MarketplaceNameSchema = lazySchema(() =>
   z
     .string()
     .min(1, 'Marketplace must have a name')
-    .refine((name) => !name.includes(' '), {
-      message: 'Marketplace name cannot contain spaces. Use kebab-case (e.g., "my-marketplace")',
+    .refine(name => !name.includes(' '), {
+      message:
+        'Marketplace name cannot contain spaces. Use kebab-case (e.g., "my-marketplace")',
     })
-    .refine((name) => !name.includes('/') && !name.includes('\\') && !name.includes('..') && name !== '.', {
-      message: 'Marketplace name cannot contain path separators (/ or \\), ".." sequences, or be "."',
+    .refine(
+      name =>
+        !name.includes('/') &&
+        !name.includes('\\') &&
+        !name.includes('..') &&
+        name !== '.',
+      {
+        message:
+          'Marketplace name cannot contain path separators (/ or \\), ".." sequences, or be "."',
+      },
+    )
+    .refine(name => !isBlockedOfficialName(name), {
+      message:
+        'Marketplace name impersonates an official Anthropic/Claude marketplace',
     })
-    .refine((name) => !isBlockedOfficialName(name), {
-      message: 'Marketplace name impersonates an official Anthropic/Claude marketplace',
+    .refine(name => name.toLowerCase() !== 'inline', {
+      message:
+        'Marketplace name "inline" is reserved for --plugin-dir session plugins',
     })
-    .refine((name) => name.toLowerCase() !== 'inline', {
-      message: 'Marketplace name "inline" is reserved for --plugin-dir session plugins',
-    })
-    .refine((name) => name.toLowerCase() !== 'builtin', {
+    .refine(name => name.toLowerCase() !== 'builtin', {
       message: 'Marketplace name "builtin" is reserved for built-in plugins',
     }),
-);
+)
 
 /**
  * Schema for plugin author information
@@ -240,10 +254,16 @@ export const PluginAuthorSchema = lazySchema(() =>
       .string()
       .min(1, 'Author name cannot be empty')
       .describe('Display name of the plugin author or organization'),
-    email: z.string().optional().describe('Contact email for support or feedback'),
-    url: z.string().optional().describe('Website, GitHub profile, or organization URL'),
+    email: z
+      .string()
+      .optional()
+      .describe('Contact email for support or feedback'),
+    url: z
+      .string()
+      .optional()
+      .describe('Website, GitHub profile, or organization URL'),
   }),
-);
+)
 
 /**
  * Metadata part of the plugin manifest file (plugin.json)
@@ -256,17 +276,40 @@ const PluginManifestMetadataSchema = lazySchema(() =>
     name: z
       .string()
       .min(1, 'Plugin name cannot be empty')
-      .refine((name) => !name.includes(' '), {
-        message: 'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
+      .refine(name => !name.includes(' '), {
+        message:
+          'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
       })
-      .describe('Unique identifier for the plugin, used for namespacing (prefer kebab-case)'),
-    version: z.string().optional().describe('Semantic version (e.g., 1.2.3) following semver.org specification'),
-    description: z.string().optional().describe('Brief, user-facing explanation of what the plugin provides'),
-    author: PluginAuthorSchema().optional().describe('Information about the plugin creator or maintainer'),
-    homepage: z.string().url().optional().describe('Plugin homepage or documentation URL'),
+      .describe(
+        'Unique identifier for the plugin, used for namespacing (prefer kebab-case)',
+      ),
+    version: z
+      .string()
+      .optional()
+      .describe(
+        'Semantic version (e.g., 1.2.3) following semver.org specification',
+      ),
+    description: z
+      .string()
+      .optional()
+      .describe('Brief, user-facing explanation of what the plugin provides'),
+    author: PluginAuthorSchema()
+      .optional()
+      .describe('Information about the plugin creator or maintainer'),
+    homepage: z
+      .string()
+      .url()
+      .optional()
+      .describe('Plugin homepage or documentation URL'),
     repository: z.string().optional().describe('Source code repository URL'),
-    license: z.string().optional().describe('SPDX license identifier (e.g., MIT, Apache-2.0)'),
-    keywords: z.array(z.string()).optional().describe('Tags for plugin discovery and categorization'),
+    license: z
+      .string()
+      .optional()
+      .describe('SPDX license identifier (e.g., MIT, Apache-2.0)'),
+    keywords: z
+      .array(z.string())
+      .optional()
+      .describe('Tags for plugin discovery and categorization'),
     dependencies: z
       .array(DependencyRefSchema())
       .optional()
@@ -274,7 +317,7 @@ const PluginManifestMetadataSchema = lazySchema(() =>
         'Plugins that must be enabled for this plugin to function. Bare names (no "@marketplace") are resolved against the declaring plugin\'s own marketplace.',
       ),
   }),
-);
+)
 
 /**
  * Schema for plugin hooks configuration (hooks.json)
@@ -284,12 +327,17 @@ const PluginManifestMetadataSchema = lazySchema(() =>
  */
 export const PluginHooksSchema = lazySchema(() =>
   z.object({
-    description: z.string().optional().describe('Brief, user-facing explanation of what these hooks provide'),
+    description: z
+      .string()
+      .optional()
+      .describe('Brief, user-facing explanation of what these hooks provide'),
     hooks: z
       .lazy(() => HooksSchema())
-      .describe('The hooks provided by the plugin, in the same format as the one used for settings'),
+      .describe(
+        'The hooks provided by the plugin, in the same format as the one used for settings',
+      ),
   }),
-);
+)
 
 /**
  * Schema for additional hooks configuration in plugin manifest
@@ -303,7 +351,11 @@ const PluginManifestHooksSchema = lazySchema(() =>
       RelativeJSONPath().describe(
         'Path to file with additional hooks (in addition to those in hooks/hooks.json, if it exists), relative to the plugin root',
       ),
-      z.lazy(() => HooksSchema()).describe('Additional hooks (in addition to those in hooks/hooks.json, if it exists)'),
+      z
+        .lazy(() => HooksSchema())
+        .describe(
+          'Additional hooks (in addition to those in hooks/hooks.json, if it exists)',
+        ),
       z.array(
         z.union([
           RelativeJSONPath().describe(
@@ -311,12 +363,14 @@ const PluginManifestHooksSchema = lazySchema(() =>
           ),
           z
             .lazy(() => HooksSchema())
-            .describe('Additional hooks (in addition to those in hooks/hooks.json, if it exists)'),
+            .describe(
+              'Additional hooks (in addition to those in hooks/hooks.json, if it exists)',
+            ),
         ]),
       ),
     ]),
   }),
-);
+)
 
 /**
  * Schema for command metadata when using object-mapping format
@@ -331,17 +385,35 @@ const PluginManifestHooksSchema = lazySchema(() =>
 export const CommandMetadataSchema = lazySchema(() =>
   z
     .object({
-      source: RelativeCommandPath().optional().describe('Path to command markdown file, relative to plugin root'),
-      content: z.string().optional().describe('Inline markdown content for the command'),
-      description: z.string().optional().describe('Command description override'),
-      argumentHint: z.string().optional().describe('Hint for command arguments (e.g., "[file]")'),
+      source: RelativeCommandPath()
+        .optional()
+        .describe('Path to command markdown file, relative to plugin root'),
+      content: z
+        .string()
+        .optional()
+        .describe('Inline markdown content for the command'),
+      description: z
+        .string()
+        .optional()
+        .describe('Command description override'),
+      argumentHint: z
+        .string()
+        .optional()
+        .describe('Hint for command arguments (e.g., "[file]")'),
       model: z.string().optional().describe('Default model for this command'),
-      allowedTools: z.array(z.string()).optional().describe('Tools allowed when command runs'),
+      allowedTools: z
+        .array(z.string())
+        .optional()
+        .describe('Tools allowed when command runs'),
     })
-    .refine((data) => (data.source && !data.content) || (!data.source && data.content), {
-      message: 'Command must have either "source" (file path) or "content" (inline markdown), but not both',
-    }),
-);
+    .refine(
+      data => (data.source && !data.content) || (!data.source && data.content),
+      {
+        message:
+          'Command must have either "source" (file path) or "content" (inline markdown), but not both',
+      },
+    ),
+)
 
 /**
  * Schema for additional command definitions in plugin manifest
@@ -367,7 +439,9 @@ const PluginManifestCommandsSchema = lazySchema(() =>
             'Path to additional command file or skill directory (in addition to those in the commands/ directory, if it exists), relative to the plugin root',
           ),
         )
-        .describe('List of paths to additional command files or skill directories'),
+        .describe(
+          'List of paths to additional command files or skill directories',
+        ),
       z
         .record(z.string(), CommandMetadataSchema())
         .describe(
@@ -375,7 +449,7 @@ const PluginManifestCommandsSchema = lazySchema(() =>
         ),
     ]),
   }),
-);
+)
 
 /**
  * Schema for additional agent definitions in plugin manifest
@@ -399,7 +473,7 @@ const PluginManifestAgentsSchema = lazySchema(() =>
         .describe('List of paths to additional agent files'),
     ]),
   }),
-);
+)
 
 /**
  * Schema for additional skill definitions in plugin manifest
@@ -422,7 +496,7 @@ const PluginManifestSkillsSchema = lazySchema(() =>
         .describe('List of paths to additional skill directories'),
     ]),
   }),
-);
+)
 
 /**
  * Schema for additional output style definitions in plugin manifest
@@ -442,21 +516,23 @@ const PluginManifestOutputStylesSchema = lazySchema(() =>
             'Path to additional output styles directory or file (in addition to those in the output-styles/ directory, if it exists), relative to the plugin root',
           ),
         )
-        .describe('List of paths to additional output styles directories or files'),
+        .describe(
+          'List of paths to additional output styles directories or files',
+        ),
     ]),
   }),
-);
+)
 
 // Helper validators for LSP config
-const nonEmptyString = lazySchema(() => z.string().min(1));
+const nonEmptyString = lazySchema(() => z.string().min(1))
 const fileExtension = lazySchema(() =>
   z
     .string()
     .min(2)
-    .refine((ext) => ext.startsWith('.'), {
+    .refine(ext => ext.startsWith('.'), {
       message: 'File extensions must start with dot (e.g., ".ts", not "ts")',
     }),
-);
+)
 
 /**
  * Schema for MCP server configurations in plugin manifest
@@ -470,20 +546,30 @@ const PluginManifestMcpServerSchema = lazySchema(() =>
       RelativeJSONPath().describe(
         'MCP servers to include in the plugin (in addition to those in the .mcp.json file, if it exists)',
       ),
-      McpbPath().describe('Path or URL to MCPB file containing MCP server configuration'),
-      z.record(z.string(), McpServerConfigSchema()).describe('MCP server configurations keyed by server name'),
+      McpbPath().describe(
+        'Path or URL to MCPB file containing MCP server configuration',
+      ),
+      z
+        .record(z.string(), McpServerConfigSchema())
+        .describe('MCP server configurations keyed by server name'),
       z
         .array(
           z.union([
-            RelativeJSONPath().describe('Path to MCP servers configuration file'),
+            RelativeJSONPath().describe(
+              'Path to MCP servers configuration file',
+            ),
             McpbPath().describe('Path or URL to MCPB file'),
-            z.record(z.string(), McpServerConfigSchema()).describe('Inline MCP server configurations'),
+            z
+              .record(z.string(), McpServerConfigSchema())
+              .describe('Inline MCP server configurations'),
           ]),
         )
-        .describe('Array of MCP server configurations (paths, MCPB files, or inline definitions)'),
+        .describe(
+          'Array of MCP server configurations (paths, MCPB files, or inline definitions)',
+        ),
     ]),
   }),
-);
+)
 
 /**
  * Schema for a single user-configurable option in plugin manifest userConfig.
@@ -501,15 +587,27 @@ const PluginManifestMcpServerSchema = lazySchema(() =>
 const PluginUserConfigOptionSchema = lazySchema(() =>
   z
     .object({
-      type: z.enum(['string', 'number', 'boolean', 'directory', 'file']).describe('Type of the configuration value'),
-      title: z.string().describe('Human-readable label shown in the config dialog'),
-      description: z.string().describe('Help text shown beneath the field in the config dialog'),
-      required: z.boolean().optional().describe('If true, validation fails when this field is empty'),
+      type: z
+        .enum(['string', 'number', 'boolean', 'directory', 'file'])
+        .describe('Type of the configuration value'),
+      title: z
+        .string()
+        .describe('Human-readable label shown in the config dialog'),
+      description: z
+        .string()
+        .describe('Help text shown beneath the field in the config dialog'),
+      required: z
+        .boolean()
+        .optional()
+        .describe('If true, validation fails when this field is empty'),
       default: z
         .union([z.string(), z.number(), z.boolean(), z.array(z.string())])
         .optional()
         .describe('Default value used when the user provides nothing'),
-      multiple: z.boolean().optional().describe('For string type: allow an array of strings'),
+      multiple: z
+        .boolean()
+        .optional()
+        .describe('For string type: allow an array of strings'),
       sensitive: z
         .boolean()
         .optional()
@@ -520,7 +618,7 @@ const PluginUserConfigOptionSchema = lazySchema(() =>
       max: z.number().optional().describe('Maximum value (number type only)'),
     })
     .strict(),
-);
+)
 
 /**
  * Schema for the top-level userConfig field in plugin manifest.
@@ -553,7 +651,7 @@ const PluginManifestUserConfigSchema = lazySchema(() =>
           'secret counts small to stay under the ~2KB stdin-safe limit (see INC-3028).',
       ),
   }),
-);
+)
 
 /**
  * Schema for channel declarations in plugin manifest.
@@ -578,7 +676,9 @@ const PluginManifestChannelsSchema = lazySchema(() =>
             server: z
               .string()
               .min(1)
-              .describe("Name of the MCP server this channel binds to. Must match a key in this plugin's mcpServers."),
+              .describe(
+                "Name of the MCP server this channel binds to. Must match a key in this plugin's mcpServers.",
+              ),
             displayName: z
               .string()
               .optional()
@@ -600,7 +700,7 @@ const PluginManifestChannelsSchema = lazySchema(() =>
           'and optionally specifies user configuration to prompt for at enable time.',
       ),
   }),
-);
+)
 
 /**
  * Schema for individual LSP server configuration.
@@ -611,35 +711,57 @@ export const LspServerConfigSchema = lazySchema(() =>
       .string()
       .min(1)
       .refine(
-        (cmd) => {
+        cmd => {
           // Commands with spaces should use args array instead
           if (cmd.includes(' ') && !cmd.startsWith('/')) {
-            return false;
+            return false
           }
-          return true;
+          return true
         },
         {
-          message: 'Command should not contain spaces. Use args array for arguments.',
+          message:
+            'Command should not contain spaces. Use args array for arguments.',
         },
       )
-      .describe('Command to execute the LSP server (e.g., "typescript-language-server")'),
-    args: z.array(nonEmptyString()).optional().describe('Command-line arguments to pass to the server'),
+      .describe(
+        'Command to execute the LSP server (e.g., "typescript-language-server")',
+      ),
+    args: z
+      .array(nonEmptyString())
+      .optional()
+      .describe('Command-line arguments to pass to the server'),
     extensionToLanguage: z
       .record(fileExtension(), nonEmptyString())
-      .refine((record) => Object.keys(record).length > 0, {
+      .refine(record => Object.keys(record).length > 0, {
         message: 'extensionToLanguage must have at least one mapping',
       })
       .describe(
         'Mapping from file extension to LSP language ID. File extensions and languages are derived from this mapping.',
       ),
-    transport: z.enum(['stdio', 'socket']).default('stdio').describe('Communication transport mechanism'),
-    env: z.record(z.string(), z.string()).optional().describe('Environment variables to set when starting the server'),
+    transport: z
+      .enum(['stdio', 'socket'])
+      .default('stdio')
+      .describe('Communication transport mechanism'),
+    env: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Environment variables to set when starting the server'),
     initializationOptions: z
       .unknown()
       .optional()
-      .describe('Initialization options passed to the server during initialization'),
-    settings: z.unknown().optional().describe('Settings passed to the server via workspace/didChangeConfiguration'),
-    workspaceFolder: z.string().optional().describe('Workspace folder path to use for the server'),
+      .describe(
+        'Initialization options passed to the server during initialization',
+      ),
+    settings: z
+      .unknown()
+      .optional()
+      .describe(
+        'Settings passed to the server via workspace/didChangeConfiguration',
+      ),
+    workspaceFolder: z
+      .string()
+      .optional()
+      .describe('Workspace folder path to use for the server'),
     startupTimeout: z
       .number()
       .int()
@@ -652,7 +774,10 @@ export const LspServerConfigSchema = lazySchema(() =>
       .positive()
       .optional()
       .describe('Maximum time to wait for graceful shutdown (milliseconds)'),
-    restartOnCrash: z.boolean().optional().describe('Whether to restart the server if it crashes'),
+    restartOnCrash: z
+      .boolean()
+      .optional()
+      .describe('Whether to restart the server if it crashes'),
     maxRestarts: z
       .number()
       .int()
@@ -660,7 +785,7 @@ export const LspServerConfigSchema = lazySchema(() =>
       .optional()
       .describe('Maximum number of restart attempts before giving up'),
   }),
-);
+)
 
 /**
  * Schema for LSP server declarations in plugin manifest.
@@ -672,19 +797,27 @@ export const LspServerConfigSchema = lazySchema(() =>
 const PluginManifestLspServerSchema = lazySchema(() =>
   z.object({
     lspServers: z.union([
-      RelativeJSONPath().describe('Path to .lsp.json configuration file relative to plugin root'),
-      z.record(z.string(), LspServerConfigSchema()).describe('LSP server configurations keyed by server name'),
+      RelativeJSONPath().describe(
+        'Path to .lsp.json configuration file relative to plugin root',
+      ),
+      z
+        .record(z.string(), LspServerConfigSchema())
+        .describe('LSP server configurations keyed by server name'),
       z
         .array(
           z.union([
             RelativeJSONPath().describe('Path to LSP configuration file'),
-            z.record(z.string(), LspServerConfigSchema()).describe('Inline LSP server configurations'),
+            z
+              .record(z.string(), LspServerConfigSchema())
+              .describe('Inline LSP server configurations'),
           ]),
         )
-        .describe('Array of LSP server configurations (paths or inline definitions)'),
+        .describe(
+          'Array of LSP server configurations (paths or inline definitions)',
+        ),
     ]),
   }),
-);
+)
 
 /**
  * Schema for npm package names
@@ -705,16 +838,16 @@ const NpmPackageNameSchema = lazySchema(() =>
   z
     .string()
     .refine(
-      (name) => !name.includes('..') && !name.includes('//'),
+      name => !name.includes('..') && !name.includes('//'),
       'Package name cannot contain path traversal patterns',
     )
-    .refine((name) => {
+    .refine(name => {
       // Allow scoped packages (@org/package) and regular packages
-      const scopedPackageRegex = /^@[a-z0-9][a-z0-9-._]*\/[a-z0-9][a-z0-9-._]*$/;
-      const regularPackageRegex = /^[a-z0-9][a-z0-9-._]*$/;
-      return scopedPackageRegex.test(name) || regularPackageRegex.test(name);
+      const scopedPackageRegex = /^@[a-z0-9][a-z0-9-._]*\/[a-z0-9][a-z0-9-._]*$/
+      const regularPackageRegex = /^[a-z0-9][a-z0-9-._]*$/
+      return scopedPackageRegex.test(name) || regularPackageRegex.test(name)
     }, 'Invalid npm package name format'),
-);
+)
 
 /**
  * Schema for plugin settings that get merged into the settings cascade.
@@ -726,9 +859,12 @@ const PluginManifestSettingsSchema = lazySchema(() =>
     settings: z
       .record(z.string(), z.unknown())
       .optional()
-      .describe('Settings to merge when plugin is enabled. ' + 'Only allowlisted keys are kept (currently: agent)'),
+      .describe(
+        'Settings to merge when plugin is enabled. ' +
+          'Only allowlisted keys are kept (currently: agent)',
+      ),
   }),
-);
+)
 
 /**
  * Plugin manifest file (plugin.json)
@@ -759,7 +895,7 @@ export const PluginManifestSchema = lazySchema(() =>
     ...PluginManifestSettingsSchema().partial().shape,
     ...PluginManifestUserConfigSchema().partial().shape,
   }),
-);
+)
 
 /**
  * Schema for marketplace source locations
@@ -772,7 +908,10 @@ export const MarketplaceSourceSchema = lazySchema(() =>
     z.object({
       source: z.literal('url'),
       url: z.string().url().describe('Direct URL to marketplace.json file'),
-      headers: z.record(z.string(), z.string()).optional().describe('Custom HTTP headers (e.g., for authentication)'),
+      headers: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe('Custom HTTP headers (e.g., for authentication)'),
     }),
     z.object({
       source: z.literal('github'),
@@ -780,11 +919,15 @@ export const MarketplaceSourceSchema = lazySchema(() =>
       ref: z
         .string()
         .optional()
-        .describe('Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.'),
+        .describe(
+          'Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.',
+        ),
       path: z
         .string()
         .optional()
-        .describe('Path to marketplace.json within repo (defaults to .claude-plugin/marketplace.json)'),
+        .describe(
+          'Path to marketplace.json within repo (defaults to .claude-plugin/marketplace.json)',
+        ),
       sparsePaths: z
         .array(z.string())
         .optional()
@@ -808,11 +951,15 @@ export const MarketplaceSourceSchema = lazySchema(() =>
       ref: z
         .string()
         .optional()
-        .describe('Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.'),
+        .describe(
+          'Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.',
+        ),
       path: z
         .string()
         .optional()
-        .describe('Path to marketplace.json within repo (defaults to .claude-plugin/marketplace.json)'),
+        .describe(
+          'Path to marketplace.json within repo (defaults to .claude-plugin/marketplace.json)',
+        ),
       sparsePaths: z
         .array(z.string())
         .optional()
@@ -825,7 +972,9 @@ export const MarketplaceSourceSchema = lazySchema(() =>
     }),
     z.object({
       source: z.literal('npm'),
-      package: NpmPackageNameSchema().describe('NPM package containing marketplace.json'),
+      package: NpmPackageNameSchema().describe(
+        'NPM package containing marketplace.json',
+      ),
     }),
     z.object({
       source: z.literal('file'),
@@ -833,7 +982,9 @@ export const MarketplaceSourceSchema = lazySchema(() =>
     }),
     z.object({
       source: z.literal('directory'),
-      path: z.string().describe('Local directory containing .claude-plugin/marketplace.json'),
+      path: z
+        .string()
+        .describe('Local directory containing .claude-plugin/marketplace.json'),
     }),
     z.object({
       source: z.literal('hostPattern'),
@@ -862,20 +1013,25 @@ export const MarketplaceSourceSchema = lazySchema(() =>
       .object({
         source: z.literal('settings'),
         name: MarketplaceNameSchema()
-          .refine((name) => !ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(name.toLowerCase()), {
-            message:
-              'Reserved official marketplace names cannot be used with settings sources. ' +
-              'validateOfficialNameSource only accepts github/git sources from anthropics/* ' +
-              'for these names; a settings source would be rejected after ' +
-              'loadAndCacheMarketplace has already written to disk with cleanupNeeded=false.',
-          })
+          .refine(
+            name => !ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(name.toLowerCase()),
+            {
+              message:
+                'Reserved official marketplace names cannot be used with settings sources. ' +
+                'validateOfficialNameSource only accepts github/git sources from anthropics/* ' +
+                'for these names; a settings source would be rejected after ' +
+                'loadAndCacheMarketplace has already written to disk with cleanupNeeded=false.',
+            },
+          )
           .describe(
             'Marketplace name. Must match the extraKnownMarketplaces key (enforced); ' +
               'the synthetic manifest is written under this name. Same validation ' +
               'as PluginMarketplaceSchema plus reserved-name rejection \u2014 ' +
               'validateOfficialNameSource runs after the disk write, too late to clean up.',
           ),
-        plugins: z.array(SettingsMarketplacePluginSchema()).describe('Plugin entries declared inline in settings.json'),
+        plugins: z
+          .array(SettingsMarketplacePluginSchema())
+          .describe('Plugin entries declared inline in settings.json'),
         owner: PluginAuthorSchema().optional(),
       })
       .describe(
@@ -885,14 +1041,17 @@ export const MarketplaceSourceSchema = lazySchema(() =>
           '(the plugins array is inside this object, so edits surface as sourceChanged).',
       ),
   ]),
-);
+)
 
 export const gitSha = lazySchema(() =>
   z
     .string()
     .length(40)
-    .regex(/^[a-f0-9]{40}$/, 'Must be a full 40-character lowercase git commit SHA'),
-);
+    .regex(
+      /^[a-f0-9]{40}$/,
+      'Must be a full 40-character lowercase git commit SHA',
+    ),
+)
 
 /**
  * Schema for plugin source locations
@@ -910,25 +1069,39 @@ export const PluginSourceSchema = lazySchema(() =>
         source: z.literal('npm'),
         package: NpmPackageNameSchema()
           .or(z.string()) // Allow URLs and local paths as well
-          .describe('Package name (or url, or local path, or anything else that can be passed to `npm` as a package)'),
-        version: z.string().optional().describe('Specific version or version range (e.g., ^1.0.0, ~2.1.0)'),
+          .describe(
+            'Package name (or url, or local path, or anything else that can be passed to `npm` as a package)',
+          ),
+        version: z
+          .string()
+          .optional()
+          .describe('Specific version or version range (e.g., ^1.0.0, ~2.1.0)'),
         registry: z
           .string()
           .url()
           .optional()
-          .describe('Custom NPM registry URL (defaults to using system default, likely npmjs.org)'),
+          .describe(
+            'Custom NPM registry URL (defaults to using system default, likely npmjs.org)',
+          ),
       })
       .describe('NPM package as plugin source'),
     z
       .object({
         source: z.literal('pip'),
-        package: z.string().describe('Python package name as it appears on PyPI'),
-        version: z.string().optional().describe('Version specifier (e.g., ==1.0.0, >=2.0.0, <3.0.0)'),
+        package: z
+          .string()
+          .describe('Python package name as it appears on PyPI'),
+        version: z
+          .string()
+          .optional()
+          .describe('Version specifier (e.g., ==1.0.0, >=2.0.0, <3.0.0)'),
         registry: z
           .string()
           .url()
           .optional()
-          .describe('Custom PyPI registry URL (defaults to using system default, likely pypi.org)'),
+          .describe(
+            'Custom PyPI registry URL (defaults to using system default, likely pypi.org)',
+          ),
       })
       .describe('Python package as plugin source'),
     z.object({
@@ -939,7 +1112,9 @@ export const PluginSourceSchema = lazySchema(() =>
       ref: z
         .string()
         .optional()
-        .describe('Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.'),
+        .describe(
+          'Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.',
+        ),
       sha: gitSha().optional().describe('Specific commit SHA to use'),
     }),
     z.object({
@@ -948,13 +1123,19 @@ export const PluginSourceSchema = lazySchema(() =>
       ref: z
         .string()
         .optional()
-        .describe('Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.'),
+        .describe(
+          'Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.',
+        ),
       sha: gitSha().optional().describe('Specific commit SHA to use'),
     }),
     z
       .object({
         source: z.literal('git-subdir'),
-        url: z.string().describe('Git repository: GitHub owner/repo shorthand, https://, or git@ URL'),
+        url: z
+          .string()
+          .describe(
+            'Git repository: GitHub owner/repo shorthand, https://, or git@ URL',
+          ),
         path: z
           .string()
           .min(1)
@@ -965,7 +1146,9 @@ export const PluginSourceSchema = lazySchema(() =>
         ref: z
           .string()
           .optional()
-          .describe('Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.'),
+          .describe(
+            'Git branch or tag to use (e.g., "main", "v1.0.0"). Defaults to repository default branch.',
+          ),
         sha: gitSha().optional().describe('Specific commit SHA to use'),
       })
       .describe(
@@ -975,7 +1158,7 @@ export const PluginSourceSchema = lazySchema(() =>
     // TODO (future work) gist
     // TODO (future work) single file?
   ]),
-);
+)
 
 /**
  * Narrow plugin entry for settings-sourced marketplaces.
@@ -1002,8 +1185,9 @@ const SettingsMarketplacePluginSchema = lazySchema(() =>
       name: z
         .string()
         .min(1, 'Plugin name cannot be empty')
-        .refine((name) => !name.includes(' '), {
-          message: 'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
+        .refine(name => !name.includes(' '), {
+          message:
+            'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
         })
         .describe('Plugin name as it appears in the target repository'),
       source: PluginSourceSchema().describe(
@@ -1014,13 +1198,13 @@ const SettingsMarketplacePluginSchema = lazySchema(() =>
       version: z.string().optional(),
       strict: z.boolean().optional(),
     })
-    .refine((p) => typeof p.source !== 'string', {
+    .refine(p => typeof p.source !== 'string', {
       message:
         'Plugins in a settings-sourced marketplace must use remote sources ' +
         '(github, git-subdir, npm, url, pip). Relative-path sources like "./foo" ' +
         'have no marketplace repository to resolve against.',
     }),
-);
+)
 
 /**
  * Check if a plugin source is a local path (stored in marketplace directory).
@@ -1035,7 +1219,7 @@ const SettingsMarketplacePluginSchema = lazySchema(() =>
  * @returns true if the source is a local path, false if it's an external source
  */
 export function isLocalPluginSource(source: PluginSource): source is string {
-  return typeof source === 'string' && source.startsWith('./');
+  return typeof source === 'string' && source.startsWith('./')
 }
 
 /**
@@ -1052,7 +1236,7 @@ export function isLocalPluginSource(source: PluginSource): source is string {
 export function isLocalMarketplaceSource(
   source: MarketplaceSource,
 ): source is Extract<MarketplaceSource, { source: 'file' | 'directory' }> {
-  return source.source === 'file' || source.source === 'directory';
+  return source.source === 'file' || source.source === 'directory'
 }
 
 /**
@@ -1074,13 +1258,22 @@ export const PluginMarketplaceEntrySchema = lazySchema(() =>
       name: z
         .string()
         .min(1, 'Plugin name cannot be empty')
-        .refine((name) => !name.includes(' '), {
-          message: 'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
+        .refine(name => !name.includes(' '), {
+          message:
+            'Plugin name cannot contain spaces. Use kebab-case (e.g., "my-plugin")',
         })
         .describe('Unique identifier matching the plugin name'),
       source: PluginSourceSchema().describe('Where to fetch the plugin from'),
-      category: z.string().optional().describe('Category for organizing plugins (e.g., "productivity", "development")'),
-      tags: z.array(z.string()).optional().describe('Tags for searchability and discovery'),
+      category: z
+        .string()
+        .optional()
+        .describe(
+          'Category for organizing plugins (e.g., "productivity", "development")',
+        ),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('Tags for searchability and discovery'),
       strict: z
         .boolean()
         .optional()
@@ -1089,7 +1282,7 @@ export const PluginMarketplaceEntrySchema = lazySchema(() =>
           'Require the plugin manifest to be present in the plugin folder. If false, the marketplace entry provides the manifest.',
         ),
     }),
-);
+)
 
 /**
  * Schema for plugin marketplace configuration
@@ -1100,8 +1293,12 @@ export const PluginMarketplaceEntrySchema = lazySchema(() =>
 export const PluginMarketplaceSchema = lazySchema(() =>
   z.object({
     name: MarketplaceNameSchema(),
-    owner: PluginAuthorSchema().describe('Marketplace maintainer or curator information'),
-    plugins: z.array(PluginMarketplaceEntrySchema()).describe('Collection of available plugins in this marketplace'),
+    owner: PluginAuthorSchema().describe(
+      'Marketplace maintainer or curator information',
+    ),
+    plugins: z
+      .array(PluginMarketplaceEntrySchema())
+      .describe('Collection of available plugins in this marketplace'),
     forceRemoveDeletedPlugins: z
       .boolean()
       .optional()
@@ -1110,7 +1307,10 @@ export const PluginMarketplaceSchema = lazySchema(() =>
       ),
     metadata: z
       .object({
-        pluginRoot: z.string().optional().describe('Base path for relative plugin sources'),
+        pluginRoot: z
+          .string()
+          .optional()
+          .describe('Base path for relative plugin sources'),
         version: z.string().optional().describe('Marketplace version'),
         description: z.string().optional().describe('Marketplace description'),
       })
@@ -1123,7 +1323,7 @@ export const PluginMarketplaceSchema = lazySchema(() =>
         "Marketplace names whose plugins may be auto-installed as dependencies. Only the root marketplace's allowlist applies \u2014 no transitive trust.",
       ),
   }),
-);
+)
 
 /**
  * Schema for plugin ID format
@@ -1137,10 +1337,16 @@ export const PluginMarketplaceSchema = lazySchema(() =>
  * - "my.plugin@personal-marketplace"
  */
 export const PluginIdSchema = lazySchema(() =>
-  z.string().regex(/^[a-z0-9][-a-z0-9._]*@[a-z0-9][-a-z0-9._]*$/i, 'Plugin ID must be in format: plugin@marketplace'),
-);
+  z
+    .string()
+    .regex(
+      /^[a-z0-9][-a-z0-9._]*@[a-z0-9][-a-z0-9._]*$/i,
+      'Plugin ID must be in format: plugin@marketplace',
+    ),
+)
 
-const DEP_REF_REGEX = /^[a-z0-9][-a-z0-9._]*(@[a-z0-9][-a-z0-9._]*)?(@\^[^@]*)?$/i;
+const DEP_REF_REGEX =
+  /^[a-z0-9][-a-z0-9._]*(@[a-z0-9][-a-z0-9._]*)?(@\^[^@]*)?$/i
 
 /**
  * Schema for entries in a plugin's `dependencies` array.
@@ -1162,8 +1368,11 @@ export const DependencyRefSchema = lazySchema(() =>
   z.union([
     z
       .string()
-      .regex(DEP_REF_REGEX, 'Dependency must be a plugin name, optionally qualified with @marketplace')
-      .transform((s) => s.replace(/@\^[^@]*$/, '')),
+      .regex(
+        DEP_REF_REGEX,
+        'Dependency must be a plugin name, optionally qualified with @marketplace',
+      )
+      .transform(s => s.replace(/@\^[^@]*$/, '')),
     z
       .object({
         name: z
@@ -1177,9 +1386,9 @@ export const DependencyRefSchema = lazySchema(() =>
           .optional(),
       })
       .loose()
-      .transform((o) => (o.marketplace ? `${o.name}@${o.marketplace}` : o.name)),
+      .transform(o => (o.marketplace ? `${o.name}@${o.marketplace}` : o.name)),
   ]),
-);
+)
 
 /**
  * Schema for plugin reference in settings (repo or user level)
@@ -1202,13 +1411,21 @@ export const SettingsPluginEntrySchema = lazySchema(() =>
     PluginIdSchema(),
     // Extended format with configuration
     z.object({
-      id: PluginIdSchema().describe('Plugin identifier (e.g., "formatter@tools")'),
-      version: z.string().optional().describe('Version constraint (e.g., "^2.0.0")'),
+      id: PluginIdSchema().describe(
+        'Plugin identifier (e.g., "formatter@tools")',
+      ),
+      version: z
+        .string()
+        .optional()
+        .describe('Version constraint (e.g., "^2.0.0")'),
       required: z.boolean().optional().describe('If true, cannot be disabled'),
-      config: z.record(z.string(), z.unknown()).optional().describe('Plugin-specific configuration'),
+      config: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe('Plugin-specific configuration'),
     }),
   ]),
-);
+)
 
 /**
  * Schema for installed plugin metadata (V1 format)
@@ -1230,11 +1447,19 @@ export const InstalledPluginSchema = lazySchema(() =>
   z.object({
     version: z.string().describe('Currently installed version'),
     installedAt: z.string().describe('ISO 8601 timestamp of installation'),
-    lastUpdated: z.string().optional().describe('ISO 8601 timestamp of last update'),
-    installPath: z.string().describe('Absolute path to the installed plugin directory'),
-    gitCommitSha: z.string().optional().describe('Git commit SHA for git-based plugins (for version tracking)'),
+    lastUpdated: z
+      .string()
+      .optional()
+      .describe('ISO 8601 timestamp of last update'),
+    installPath: z
+      .string()
+      .describe('Absolute path to the installed plugin directory'),
+    gitCommitSha: z
+      .string()
+      .optional()
+      .describe('Git commit SHA for git-based plugins (for version tracking)'),
   }),
-);
+)
 
 /**
  * Schema for the installed_plugins.json file (V1 format)
@@ -1264,7 +1489,7 @@ export const InstalledPluginsFileSchemaV1 = lazySchema(() =>
       )
       .describe('Map of plugin IDs to their installation metadata'),
   }),
-);
+)
 
 /**
  * Scope types for plugin installation (V2)
@@ -1278,7 +1503,9 @@ export const InstalledPluginsFileSchemaV1 = lazySchema(() =>
  * Note: 'flag' scope plugins (from --settings) are session-only and
  * are NOT persisted to installed_plugins.json.
  */
-export const PluginScopeSchema = lazySchema(() => z.enum(['managed', 'user', 'project', 'local']));
+export const PluginScopeSchema = lazySchema(() =>
+  z.enum(['managed', 'user', 'project', 'local']),
+)
 
 /**
  * Schema for a single plugin installation entry (V2)
@@ -1290,15 +1517,29 @@ export const PluginScopeSchema = lazySchema(() => z.enum(['managed', 'user', 'pr
 export const PluginInstallationEntrySchema = lazySchema(() =>
   z.object({
     scope: PluginScopeSchema().describe('Installation scope'),
-    projectPath: z.string().optional().describe('Project path (required for project/local scopes)'),
-    installPath: z.string().describe('Absolute path to the versioned plugin directory'),
+    projectPath: z
+      .string()
+      .optional()
+      .describe('Project path (required for project/local scopes)'),
+    installPath: z
+      .string()
+      .describe('Absolute path to the versioned plugin directory'),
     // Preserved from V1:
     version: z.string().optional().describe('Currently installed version'),
-    installedAt: z.string().optional().describe('ISO 8601 timestamp of installation'),
-    lastUpdated: z.string().optional().describe('ISO 8601 timestamp of last update'),
-    gitCommitSha: z.string().optional().describe('Git commit SHA for git-based plugins'),
+    installedAt: z
+      .string()
+      .optional()
+      .describe('ISO 8601 timestamp of installation'),
+    lastUpdated: z
+      .string()
+      .optional()
+      .describe('ISO 8601 timestamp of last update'),
+    gitCommitSha: z
+      .string()
+      .optional()
+      .describe('Git commit SHA for git-based plugins'),
   }),
-);
+)
 
 /**
  * Schema for the installed_plugins.json file (V2 format)
@@ -1325,7 +1566,7 @@ export const InstalledPluginsFileSchemaV2 = lazySchema(() =>
       .record(PluginIdSchema(), z.array(PluginInstallationEntrySchema()))
       .describe('Map of plugin IDs to arrays of installation entries'),
   }),
-);
+)
 
 /**
  * Combined schema that accepts both V1 and V2 formats
@@ -1333,7 +1574,7 @@ export const InstalledPluginsFileSchemaV2 = lazySchema(() =>
  */
 export const InstalledPluginsFileSchema = lazySchema(() =>
   z.union([InstalledPluginsFileSchemaV1(), InstalledPluginsFileSchemaV2()]),
-);
+)
 
 /**
  * Schema for a known marketplace entry
@@ -1350,15 +1591,23 @@ export const InstalledPluginsFileSchema = lazySchema(() =>
  */
 export const KnownMarketplaceSchema = lazySchema(() =>
   z.object({
-    source: MarketplaceSourceSchema().describe('Where to fetch the marketplace from'),
-    installLocation: z.string().describe('Local cache path where marketplace manifest is stored'),
-    lastUpdated: z.string().describe('ISO 8601 timestamp of last marketplace refresh'),
+    source: MarketplaceSourceSchema().describe(
+      'Where to fetch the marketplace from',
+    ),
+    installLocation: z
+      .string()
+      .describe('Local cache path where marketplace manifest is stored'),
+    lastUpdated: z
+      .string()
+      .describe('ISO 8601 timestamp of last marketplace refresh'),
     autoUpdate: z
       .boolean()
       .optional()
-      .describe('Whether to automatically update this marketplace and its installed plugins on startup'),
+      .describe(
+        'Whether to automatically update this marketplace and its installed plugins on startup',
+      ),
   }),
-);
+)
 
 /**
  * Schema for the known_marketplaces.json file
@@ -1377,7 +1626,7 @@ export const KnownMarketplacesFileSchema = lazySchema(() =>
     z.string(), // Marketplace name as key
     KnownMarketplaceSchema(),
   ),
-);
+)
 
 // Inferred types from schemas
 /**
@@ -1395,20 +1644,38 @@ export const KnownMarketplacesFileSchema = lazySchema(() =>
  *
  * @see CommandMetadataSchema for runtime validation rules
  */
-export type CommandMetadata = z.infer<ReturnType<typeof CommandMetadataSchema>>;
-export type MarketplaceSource = z.infer<ReturnType<typeof MarketplaceSourceSchema>>;
-export type PluginAuthor = z.infer<ReturnType<typeof PluginAuthorSchema>>;
-export type PluginSource = z.infer<ReturnType<typeof PluginSourceSchema>>;
-export type PluginManifest = z.infer<ReturnType<typeof PluginManifestSchema>>;
-export type PluginManifestChannel = NonNullable<PluginManifest['channels']>[number];
+export type CommandMetadata = z.infer<ReturnType<typeof CommandMetadataSchema>>
+export type MarketplaceSource = z.infer<
+  ReturnType<typeof MarketplaceSourceSchema>
+>
+export type PluginAuthor = z.infer<ReturnType<typeof PluginAuthorSchema>>
+export type PluginSource = z.infer<ReturnType<typeof PluginSourceSchema>>
+export type PluginManifest = z.infer<ReturnType<typeof PluginManifestSchema>>
+export type PluginManifestChannel = NonNullable<
+  PluginManifest['channels']
+>[number]
 
-export type PluginMarketplace = z.infer<ReturnType<typeof PluginMarketplaceSchema>>;
-export type PluginMarketplaceEntry = z.infer<ReturnType<typeof PluginMarketplaceEntrySchema>>;
-export type PluginId = z.infer<ReturnType<typeof PluginIdSchema>>; // string in "plugin@marketplace" format
-export type InstalledPlugin = z.infer<ReturnType<typeof InstalledPluginSchema>>;
-export type InstalledPluginsFileV1 = z.infer<ReturnType<typeof InstalledPluginsFileSchemaV1>>;
-export type InstalledPluginsFileV2 = z.infer<ReturnType<typeof InstalledPluginsFileSchemaV2>>;
-export type PluginScope = z.infer<ReturnType<typeof PluginScopeSchema>>;
-export type PluginInstallationEntry = z.infer<ReturnType<typeof PluginInstallationEntrySchema>>;
-export type KnownMarketplace = z.infer<ReturnType<typeof KnownMarketplaceSchema>>;
-export type KnownMarketplacesFile = z.infer<ReturnType<typeof KnownMarketplacesFileSchema>>; // Record<string, KnownMarketplace>
+export type PluginMarketplace = z.infer<
+  ReturnType<typeof PluginMarketplaceSchema>
+>
+export type PluginMarketplaceEntry = z.infer<
+  ReturnType<typeof PluginMarketplaceEntrySchema>
+>
+export type PluginId = z.infer<ReturnType<typeof PluginIdSchema>> // string in "plugin@marketplace" format
+export type InstalledPlugin = z.infer<ReturnType<typeof InstalledPluginSchema>>
+export type InstalledPluginsFileV1 = z.infer<
+  ReturnType<typeof InstalledPluginsFileSchemaV1>
+>
+export type InstalledPluginsFileV2 = z.infer<
+  ReturnType<typeof InstalledPluginsFileSchemaV2>
+>
+export type PluginScope = z.infer<ReturnType<typeof PluginScopeSchema>>
+export type PluginInstallationEntry = z.infer<
+  ReturnType<typeof PluginInstallationEntrySchema>
+>
+export type KnownMarketplace = z.infer<
+  ReturnType<typeof KnownMarketplaceSchema>
+>
+export type KnownMarketplacesFile = z.infer<
+  ReturnType<typeof KnownMarketplacesFileSchema>
+> // Record<string, KnownMarketplace>

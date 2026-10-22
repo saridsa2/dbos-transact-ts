@@ -10,12 +10,7 @@ import { color } from '../../ink.js';
 import { maybeMarkProjectOnboardingComplete } from '../../projectOnboardingState.js';
 import type { ToolUseContext } from '../../Tool.js';
 import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js';
-import {
-  backupTerminalPreferences,
-  checkAndRestoreTerminalBackup,
-  getTerminalPlistPath,
-  markTerminalSetupComplete,
-} from '../../utils/appleTerminalBackup.js';
+import { backupTerminalPreferences, checkAndRestoreTerminalBackup, getTerminalPlistPath, markTerminalSetupComplete } from '../../utils/appleTerminalBackup.js';
 import { setupShellCompletion } from '../../utils/completionCache.js';
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
 import { env } from '../../utils/env.js';
@@ -33,7 +28,7 @@ const NATIVE_CSIU_TERMINALS: Record<string, string> = {
   kitty: 'Kitty',
   'iTerm.app': 'iTerm2',
   WezTerm: 'WezTerm',
-  WarpTerminal: 'Warp',
+  WarpTerminal: 'Warp'
 };
 
 /**
@@ -47,14 +42,7 @@ function isVSCodeRemoteSSH(): boolean {
 
   // Check both env vars - VSCODE_GIT_ASKPASS_MAIN is more reliable when git extension
   // is active, and PATH is a fallback. Omit path separator for Windows compatibility.
-  return (
-    askpassMain.includes('.vscode-server') ||
-    askpassMain.includes('.cursor-server') ||
-    askpassMain.includes('.windsurf-server') ||
-    path.includes('.vscode-server') ||
-    path.includes('.cursor-server') ||
-    path.includes('.windsurf-server')
-  );
+  return askpassMain.includes('.vscode-server') || askpassMain.includes('.cursor-server') || askpassMain.includes('.windsurf-server') || path.includes('.vscode-server') || path.includes('.cursor-server') || path.includes('.windsurf-server');
 }
 export function getNativeCSIuTerminalDisplayName(): string | null {
   if (!env.terminal || !(env.terminal in NATIVE_CSIU_TERMINALS)) {
@@ -86,14 +74,7 @@ export function shouldOfferTerminalSetup(): boolean {
   // iTerm2, WezTerm, Ghostty, Kitty, and Warp natively support CSI u / Kitty
   // keyboard protocol, which Claude Code already parses. No setup needed for
   // these terminals.
-  return (
-    (platform() === 'darwin' && env.terminal === 'Apple_Terminal') ||
-    env.terminal === 'vscode' ||
-    env.terminal === 'cursor' ||
-    env.terminal === 'windsurf' ||
-    env.terminal === 'alacritty' ||
-    env.terminal === 'zed'
-  );
+  return platform() === 'darwin' && env.terminal === 'Apple_Terminal' || env.terminal === 'vscode' || env.terminal === 'cursor' || env.terminal === 'windsurf' || env.terminal === 'alacritty' || env.terminal === 'zed';
 }
 export async function setupTerminal(theme: ThemeName): Promise<string> {
   let result = '';
@@ -119,18 +100,18 @@ export async function setupTerminal(theme: ThemeName): Promise<string> {
     case null:
       break;
   }
-  saveGlobalConfig((current) => {
+  saveGlobalConfig(current => {
     if (['vscode', 'cursor', 'windsurf', 'alacritty', 'zed'].includes(env.terminal ?? '')) {
       if (current.shiftEnterKeyBindingInstalled === true) return current;
       return {
         ...current,
-        shiftEnterKeyBindingInstalled: true,
+        shiftEnterKeyBindingInstalled: true
       };
     } else if (env.terminal === 'Apple_Terminal') {
       if (current.optionAsMetaKeyInstalled === true) return current;
       return {
         ...current,
-        optionAsMetaKeyInstalled: true,
+        optionAsMetaKeyInstalled: true
       };
     }
     return current;
@@ -138,7 +119,7 @@ export async function setupTerminal(theme: ThemeName): Promise<string> {
   maybeMarkProjectOnboardingComplete();
 
   // Install shell completions (ant-only, since the completion command is ant-only)
-  if ('external' === 'ant') {
+  if ("external" === 'ant') {
     result += await setupShellCompletion(theme);
   }
   return result;
@@ -152,17 +133,13 @@ export function hasUsedBackslashReturn(): boolean {
 export function markBackslashReturnUsed(): void {
   const config = getGlobalConfig();
   if (!config.hasUsedBackslashReturn) {
-    saveGlobalConfig((current) => ({
+    saveGlobalConfig(current => ({
       ...current,
-      hasUsedBackslashReturn: true,
+      hasUsedBackslashReturn: true
     }));
   }
 }
-export async function call(
-  onDone: LocalJSXCommandOnDone,
-  context: ToolUseContext & LocalJSXCommandContext,
-  _args: string,
-): Promise<null> {
+export async function call(onDone: LocalJSXCommandOnDone, context: ToolUseContext & LocalJSXCommandContext, _args: string): Promise<null> {
   if (env.terminal && env.terminal in NATIVE_CSIU_TERMINALS) {
     const message = `Shift+Enter is natively supported in ${NATIVE_CSIU_TERMINALS[env.terminal]}.
 
@@ -214,10 +191,7 @@ type VSCodeKeybinding = {
   };
   when: string;
 };
-async function installBindingsForVSCodeTerminal(
-  editor: 'VSCode' | 'Cursor' | 'Windsurf' = 'VSCode',
-  theme: ThemeName,
-): Promise<string> {
+async function installBindingsForVSCodeTerminal(editor: 'VSCode' | 'Cursor' | 'Windsurf' = 'VSCode', theme: ThemeName): Promise<string> {
   // Check if we're running in a VSCode Remote SSH session
   // In this case, keybindings need to be installed on the LOCAL machine
   if (isVSCodeRemoteSSH()) {
@@ -231,19 +205,12 @@ async function installBindingsForVSCodeTerminal(
 ]`)}${EOL}`;
   }
   const editorDir = editor === 'VSCode' ? 'Code' : editor;
-  const userDirPath = join(
-    homedir(),
-    platform() === 'win32'
-      ? join('AppData', 'Roaming', editorDir, 'User')
-      : platform() === 'darwin'
-        ? join('Library', 'Application Support', editorDir, 'User')
-        : join('.config', editorDir, 'User'),
-  );
+  const userDirPath = join(homedir(), platform() === 'win32' ? join('AppData', 'Roaming', editorDir, 'User') : platform() === 'darwin' ? join('Library', 'Application Support', editorDir, 'User') : join('.config', editorDir, 'User'));
   const keybindingsPath = join(userDirPath, 'keybindings.json');
   try {
     // Ensure user directory exists (idempotent with recursive)
     await mkdir(userDirPath, {
-      recursive: true,
+      recursive: true
     });
 
     // Read existing keybindings file, or default to empty array if it doesn't exist
@@ -252,10 +219,10 @@ async function installBindingsForVSCodeTerminal(
     let fileExists = false;
     try {
       content = await readFile(keybindingsPath, {
-        encoding: 'utf-8',
+        encoding: 'utf-8'
       });
       fileExists = true;
-      keybindings = (safeParseJSONC(content) as VSCodeKeybinding[]) ?? [];
+      keybindings = safeParseJSONC(content) as VSCodeKeybinding[] ?? [];
     } catch (e: unknown) {
       if (!isFsInaccessible(e)) throw e;
     }
@@ -272,12 +239,7 @@ async function installBindingsForVSCodeTerminal(
     }
 
     // Check if keybinding already exists
-    const existingBinding = keybindings.find(
-      (binding) =>
-        binding.key === 'shift+enter' &&
-        binding.command === 'workbench.action.terminal.sendSequence' &&
-        binding.when === 'terminalFocus',
-    );
+    const existingBinding = keybindings.find(binding => binding.key === 'shift+enter' && binding.command === 'workbench.action.terminal.sendSequence' && binding.when === 'terminalFocus');
     if (existingBinding) {
       return `${color('warning', theme)(`Found existing ${editor} terminal Shift+Enter key binding. Remove it to continue.`)}${EOL}${chalk.dim(`See ${formatPathLink(keybindingsPath)}`)}${EOL}`;
     }
@@ -287,9 +249,9 @@ async function installBindingsForVSCodeTerminal(
       key: 'shift+enter',
       command: 'workbench.action.terminal.sendSequence',
       args: {
-        text: '\u001b\r',
+        text: '\u001b\r'
       },
-      when: 'terminalFocus',
+      when: 'terminalFocus'
     };
 
     // Modify the content by adding the new keybinding while preserving comments and formatting
@@ -297,7 +259,7 @@ async function installBindingsForVSCodeTerminal(
 
     // Write the updated content back to the file
     await writeFile(keybindingsPath, updatedContent, {
-      encoding: 'utf-8',
+      encoding: 'utf-8'
     });
     return `${color('success', theme)(`Installed ${editor} terminal Shift+Enter key binding`)}${EOL}${chalk.dim(`See ${formatPathLink(keybindingsPath)}`)}${EOL}`;
   } catch (error) {
@@ -308,19 +270,15 @@ async function installBindingsForVSCodeTerminal(
 async function enableOptionAsMetaForProfile(profileName: string): Promise<boolean> {
   // First try to add the property (in case it doesn't exist)
   // Quote the profile name to handle names with spaces (e.g., "Man Page", "Red Sands")
-  const { code: addCode } = await execFileNoThrow('/usr/libexec/PlistBuddy', [
-    '-c',
-    `Add :'Window Settings':'${profileName}':useOptionAsMetaKey bool true`,
-    getTerminalPlistPath(),
-  ]);
+  const {
+    code: addCode
+  } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Add :'Window Settings':'${profileName}':useOptionAsMetaKey bool true`, getTerminalPlistPath()]);
 
   // If adding fails (likely because it already exists), try setting it instead
   if (addCode !== 0) {
-    const { code: setCode } = await execFileNoThrow('/usr/libexec/PlistBuddy', [
-      '-c',
-      `Set :'Window Settings':'${profileName}':useOptionAsMetaKey true`,
-      getTerminalPlistPath(),
-    ]);
+    const {
+      code: setCode
+    } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Set :'Window Settings':'${profileName}':useOptionAsMetaKey true`, getTerminalPlistPath()]);
     if (setCode !== 0) {
       logError(new Error(`Failed to enable Option as Meta key for Terminal.app profile: ${profileName}`));
       return false;
@@ -331,19 +289,15 @@ async function enableOptionAsMetaForProfile(profileName: string): Promise<boolea
 async function disableAudioBellForProfile(profileName: string): Promise<boolean> {
   // First try to add the property (in case it doesn't exist)
   // Quote the profile name to handle names with spaces (e.g., "Man Page", "Red Sands")
-  const { code: addCode } = await execFileNoThrow('/usr/libexec/PlistBuddy', [
-    '-c',
-    `Add :'Window Settings':'${profileName}':Bell bool false`,
-    getTerminalPlistPath(),
-  ]);
+  const {
+    code: addCode
+  } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Add :'Window Settings':'${profileName}':Bell bool false`, getTerminalPlistPath()]);
 
   // If adding fails (likely because it already exists), try setting it instead
   if (addCode !== 0) {
-    const { code: setCode } = await execFileNoThrow('/usr/libexec/PlistBuddy', [
-      '-c',
-      `Set :'Window Settings':'${profileName}':Bell false`,
-      getTerminalPlistPath(),
-    ]);
+    const {
+      code: setCode
+    } = await execFileNoThrow('/usr/libexec/PlistBuddy', ['-c', `Set :'Window Settings':'${profileName}':Bell false`, getTerminalPlistPath()]);
     if (setCode !== 0) {
       logError(new Error(`Failed to disable audio bell for Terminal.app profile: ${profileName}`));
       return false;
@@ -362,19 +316,17 @@ async function enableOptionAsMetaForTerminal(theme: ThemeName): Promise<string> 
     }
 
     // Read the current default profile from the plist
-    const { stdout: defaultProfile, code: readCode } = await execFileNoThrow('defaults', [
-      'read',
-      'com.apple.Terminal',
-      'Default Window Settings',
-    ]);
+    const {
+      stdout: defaultProfile,
+      code: readCode
+    } = await execFileNoThrow('defaults', ['read', 'com.apple.Terminal', 'Default Window Settings']);
     if (readCode !== 0 || !defaultProfile.trim()) {
       throw new Error('Failed to read default Terminal.app profile');
     }
-    const { stdout: startupProfile, code: startupCode } = await execFileNoThrow('defaults', [
-      'read',
-      'com.apple.Terminal',
-      'Startup Window Settings',
-    ]);
+    const {
+      stdout: startupProfile,
+      code: startupCode
+    } = await execFileNoThrow('defaults', ['read', 'com.apple.Terminal', 'Startup Window Settings']);
     if (startupCode !== 0 || !startupProfile.trim()) {
       throw new Error('Failed to read startup Terminal.app profile');
     }
@@ -412,9 +364,7 @@ async function enableOptionAsMetaForTerminal(theme: ThemeName): Promise<string> 
     if (restoreResult.status === 'restored') {
       throw new Error(`${errorMessage} Your settings have been restored from backup.`);
     } else if (restoreResult.status === 'failed') {
-      throw new Error(
-        `${errorMessage} Restoring from backup failed, try manually with: defaults import com.apple.Terminal ${restoreResult.backupPath}`,
-      );
+      throw new Error(`${errorMessage} Restoring from backup failed, try manually with: defaults import com.apple.Terminal ${restoreResult.backupPath}`);
     } else {
       throw new Error(`${errorMessage} No backup was available to restore from.`);
     }
@@ -452,7 +402,7 @@ chars = "\\u001B\\r"`;
   for (const path of configPaths) {
     try {
       configContent = await readFile(path, {
-        encoding: 'utf-8',
+        encoding: 'utf-8'
       });
       configPath = path;
       configExists = true;
@@ -488,7 +438,7 @@ chars = "\\u001B\\r"`;
     } else {
       // Ensure config directory exists (idempotent with recursive)
       await mkdir(dirname(configPath), {
-        recursive: true,
+        recursive: true
       });
     }
 
@@ -501,7 +451,7 @@ chars = "\\u001B\\r"`;
 
     // Write the updated config
     await writeFile(configPath, updatedContent, {
-      encoding: 'utf-8',
+      encoding: 'utf-8'
     });
     return `${color('success', theme)('Installed Alacritty Shift+Enter key binding')}${EOL}${color('success', theme)('You may need to restart Alacritty for changes to take effect')}${EOL}${chalk.dim(`See ${formatPathLink(configPath)}`)}${EOL}`;
   } catch (error) {
@@ -516,7 +466,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
   try {
     // Ensure zed directory exists (idempotent with recursive)
     await mkdir(zedDir, {
-      recursive: true,
+      recursive: true
     });
 
     // Read existing keymap file, or default to empty array if it doesn't exist
@@ -524,7 +474,7 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
     let fileExists = false;
     try {
       keymapContent = await readFile(keymapPath, {
-        encoding: 'utf-8',
+        encoding: 'utf-8'
       });
       fileExists = true;
     } catch (e: unknown) {
@@ -564,13 +514,13 @@ async function installBindingsForZed(theme: ThemeName): Promise<string> {
     keymap.push({
       context: 'Terminal',
       bindings: {
-        'shift-enter': ['terminal::SendText', '\u001b\r'],
-      },
+        'shift-enter': ['terminal::SendText', '\u001b\r']
+      }
     });
 
     // Write the updated keymap
     await writeFile(keymapPath, jsonStringify(keymap, null, 2) + '\n', {
-      encoding: 'utf-8',
+      encoding: 'utf-8'
     });
     return `${color('success', theme)('Installed Zed Shift+Enter key binding')}${EOL}${chalk.dim(`See ${formatPathLink(keymapPath)}`)}${EOL}`;
   } catch (error) {

@@ -1,38 +1,40 @@
 // Stub for external builds - classifier permissions feature is ANT-ONLY
 
-export const PROMPT_PREFIX = 'prompt:';
+export const PROMPT_PREFIX = 'prompt:'
 
 export type ClassifierResult = {
-  matches: boolean;
-  matchedDescription?: string;
-  confidence: 'high' | 'medium' | 'low';
-  reason: string;
-};
+  matches: boolean
+  matchedDescription?: string
+  confidence: 'high' | 'medium' | 'low'
+  reason: string
+}
 
-export type ClassifierBehavior = 'deny' | 'ask' | 'allow';
+export type ClassifierBehavior = 'deny' | 'ask' | 'allow'
 
-export function extractPromptDescription(_ruleContent: string | undefined): string | null {
-  return null;
+export function extractPromptDescription(
+  _ruleContent: string | undefined,
+): string | null {
+  return null
 }
 
 export function createPromptRuleContent(description: string): string {
-  return `${PROMPT_PREFIX} ${description.trim()}`;
+  return `${PROMPT_PREFIX} ${description.trim()}`
 }
 
 export function isClassifierPermissionsEnabled(): boolean {
-  return false;
+  return false
 }
 
 export function getBashPromptDenyDescriptions(_context: unknown): string[] {
-  return [];
+  return []
 }
 
 export function getBashPromptAskDescriptions(_context: unknown): string[] {
-  return [];
+  return []
 }
 
 export function getBashPromptAllowDescriptions(_context: unknown): string[] {
-  return [];
+  return []
 }
 
 export async function classifyBashCommand(
@@ -47,7 +49,7 @@ export async function classifyBashCommand(
     matches: false,
     confidence: 'high',
     reason: 'This feature is disabled',
-  };
+  }
 }
 
 export async function generateGenericDescription(
@@ -55,5 +57,5 @@ export async function generateGenericDescription(
   specificDescription: string | undefined,
   _signal: AbortSignal,
 ): Promise<string | null> {
-  return specificDescription || null;
+  return specificDescription || null
 }

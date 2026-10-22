@@ -545,13 +545,8 @@ function entityConfigurationPatch(state: DesignerState, entity: EntityType, rela
   };
 }
 export function replaceDesignerOntology(store: DesignerStore, ontology: Ontology) {
-  store.setState((state) => ({
-    ...historyPush(state),
-    ontology,
-    selectedEntityId: null,
-    selectedRelationshipId: null,
-    validationErrors: [],
-  }));
+  store.setState((state) => ({ ...historyPush(state), ontology,
+    selectedEntityId: null, selectedRelationshipId: null, validationErrors: [] }));
 }
 export const DesignerStoreContext = createContext<DesignerStore | null>(null);
 export function useDesignerApi() {

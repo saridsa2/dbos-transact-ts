@@ -1,19 +1,23 @@
-import memoize from 'lodash-es/memoize.js';
-import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js';
-import { getRegisteredHooks } from '../../bootstrap/state.js';
-import type { AppState } from '../../state/AppState.js';
-import { getAllHooks, type IndividualHookConfig, sortMatchersByPriority } from './hooksSettings.js';
+import memoize from 'lodash-es/memoize.js'
+import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js'
+import { getRegisteredHooks } from '../../bootstrap/state.js'
+import type { AppState } from '../../state/AppState.js'
+import {
+  getAllHooks,
+  type IndividualHookConfig,
+  sortMatchersByPriority,
+} from './hooksSettings.js'
 
 export type MatcherMetadata = {
-  fieldToMatch: string;
-  values: string[];
-};
+  fieldToMatch: string
+  values: string[]
+}
 
 export type HookEventMetadata = {
-  summary: string;
-  description: string;
-  matcherMetadata?: MatcherMetadata;
-};
+  summary: string
+  description: string
+  matcherMetadata?: MatcherMetadata
+}
 
 // Hook event metadata configuration.
 // Resolver uses sorted-joined string key so that callers passing a fresh
@@ -120,7 +124,8 @@ export const getHookEventMetadata = memoize(
         },
       },
       SubagentStop: {
-        summary: 'Right before a subagent (Agent tool call) concludes its response',
+        summary:
+          'Right before a subagent (Agent tool call) concludes its response',
         description:
           'Input to command is JSON with agent_id, agent_type, and agent_transcript_path.\nExit code 0 - stdout/stderr not shown\nExit code 2 - show stderr to subagent and continue having it run\nOther exit codes - show stderr to user only',
         matcherMetadata: {
@@ -212,7 +217,13 @@ export const getHookEventMetadata = memoize(
           'Input to command is JSON with source (user_settings, project_settings, local_settings, policy_settings, skills) and file_path.\nExit code 0 - allow the change\nExit code 2 - block the change from being applied to the session\nOther exit codes - show stderr to user only',
         matcherMetadata: {
           fieldToMatch: 'source',
-          values: ['user_settings', 'project_settings', 'local_settings', 'policy_settings', 'skills'],
+          values: [
+            'user_settings',
+            'project_settings',
+            'local_settings',
+            'policy_settings',
+            'skills',
+          ],
         },
       },
       InstructionsLoaded: {
@@ -221,7 +232,13 @@ export const getHookEventMetadata = memoize(
           'Input to command is JSON with file_path, memory_type (User, Project, Local, Managed), load_reason (session_start, nested_traversal, path_glob_match, include, compact), globs (optional — the paths: frontmatter patterns that matched), trigger_file_path (optional — the file Claude touched that caused the load), and parent_file_path (optional — the file that @-included this one).\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only\nThis hook is observability-only and does not support blocking.',
         matcherMetadata: {
           fieldToMatch: 'load_reason',
-          values: ['session_start', 'nested_traversal', 'path_glob_match', 'include', 'compact'],
+          values: [
+            'session_start',
+            'nested_traversal',
+            'path_glob_match',
+            'include',
+            'compact',
+          ],
         },
       },
       WorktreeCreate: {
@@ -244,10 +261,10 @@ export const getHookEventMetadata = memoize(
         description:
           'Input to command is JSON with file_path and event (change, add, unlink).\nCLAUDE_ENV_FILE is set — write bash exports there to apply env to subsequent BashTool commands.\nThe matcher field specifies filenames to watch in the current directory (e.g. ".envrc|.env").\nHook output can include hookSpecificOutput.watchPaths (array of absolute paths) to dynamically update the watch list.\nExit code 0 - command completes successfully\nOther exit codes - show stderr to user only',
       },
-    };
+    }
   },
-  (toolNames) => toolNames.slice().sort().join(','),
-);
+  toolNames => toolNames.slice().sort().join(','),
+)
 
 // Group hooks by event and matcher
 export function groupHooksByEventAndMatcher(
@@ -282,38 +299,41 @@ export function groupHooksByEventAndMatcher(
     InstructionsLoaded: {},
     CwdChanged: {},
     FileChanged: {},
-  };
+  }
 
-  const metadata = getHookEventMetadata(toolNames);
+  const metadata = getHookEventMetadata(toolNames)
 
   // Include hooks from settings files
-  getAllHooks(appState).forEach((hook) => {
-    const eventGroup = grouped[hook.event];
+  getAllHooks(appState).forEach(hook => {
+    const eventGroup = grouped[hook.event]
     if (eventGroup) {
       // For events without matchers, use empty string as key
-      const matcherKey = metadata[hook.event].matcherMetadata !== undefined ? hook.matcher || '' : '';
+      const matcherKey =
+        metadata[hook.event].matcherMetadata !== undefined
+          ? hook.matcher || ''
+          : ''
       if (!eventGroup[matcherKey]) {
-        eventGroup[matcherKey] = [];
+        eventGroup[matcherKey] = []
       }
-      eventGroup[matcherKey].push(hook);
+      eventGroup[matcherKey].push(hook)
     }
-  });
+  })
 
   // Include registered hooks (e.g., plugin hooks)
-  const registeredHooks = getRegisteredHooks();
+  const registeredHooks = getRegisteredHooks()
   if (registeredHooks) {
     for (const [event, matchers] of Object.entries(registeredHooks)) {
-      const hookEvent = event as HookEvent;
-      const eventGroup = grouped[hookEvent];
-      if (!eventGroup) continue;
+      const hookEvent = event as HookEvent
+      const eventGroup = grouped[hookEvent]
+      if (!eventGroup) continue
 
       for (const matcher of matchers) {
-        const matcherKey = matcher.matcher || '';
+        const matcherKey = matcher.matcher || ''
 
         // Only PluginHookMatcher has pluginRoot; HookCallbackMatcher (internal
         // callbacks like attributionHooks, sessionFileAccessHooks) does not.
         if ('pluginRoot' in matcher) {
-          eventGroup[matcherKey] ??= [];
+          eventGroup[matcherKey] ??= []
           for (const hook of matcher.hooks) {
             eventGroup[matcherKey].push({
               event: hookEvent,
@@ -321,10 +341,10 @@ export function groupHooksByEventAndMatcher(
               matcher: matcher.matcher,
               source: 'pluginHook',
               pluginName: matcher.pluginId,
-            });
+            })
           }
         } else if (process.env.USER_TYPE === 'ant') {
-          eventGroup[matcherKey] ??= [];
+          eventGroup[matcherKey] ??= []
           for (const _hook of matcher.hooks) {
             eventGroup[matcherKey].push({
               event: hookEvent,
@@ -334,38 +354,47 @@ export function groupHooksByEventAndMatcher(
               },
               matcher: matcher.matcher,
               source: 'builtinHook',
-            });
+            })
           }
         }
       }
     }
   }
 
-  return grouped;
+  return grouped
 }
 
 // Get sorted matchers for a specific event
 export function getSortedMatchersForEvent(
-  hooksByEventAndMatcher: Record<HookEvent, Record<string, IndividualHookConfig[]>>,
+  hooksByEventAndMatcher: Record<
+    HookEvent,
+    Record<string, IndividualHookConfig[]>
+  >,
   event: HookEvent,
 ): string[] {
-  const matchers = Object.keys(hooksByEventAndMatcher[event] || {});
-  return sortMatchersByPriority(matchers, hooksByEventAndMatcher, event);
+  const matchers = Object.keys(hooksByEventAndMatcher[event] || {})
+  return sortMatchersByPriority(matchers, hooksByEventAndMatcher, event)
 }
 
 // Get hooks for a specific event and matcher
 export function getHooksForMatcher(
-  hooksByEventAndMatcher: Record<HookEvent, Record<string, IndividualHookConfig[]>>,
+  hooksByEventAndMatcher: Record<
+    HookEvent,
+    Record<string, IndividualHookConfig[]>
+  >,
   event: HookEvent,
   matcher: string | null,
 ): IndividualHookConfig[] {
   // For events without matchers, hooks are stored with empty string as key
   // because the record keys must be strings.
-  const matcherKey = matcher ?? '';
-  return hooksByEventAndMatcher[event]?.[matcherKey] ?? [];
+  const matcherKey = matcher ?? ''
+  return hooksByEventAndMatcher[event]?.[matcherKey] ?? []
 }
 
 // Get metadata for a specific event's matcher
-export function getMatcherMetadata(event: HookEvent, toolNames: string[]): MatcherMetadata | undefined {
-  return getHookEventMetadata(toolNames)[event].matcherMetadata;
+export function getMatcherMetadata(
+  event: HookEvent,
+  toolNames: string[],
+): MatcherMetadata | undefined {
+  return getHookEventMetadata(toolNames)[event].matcherMetadata
 }

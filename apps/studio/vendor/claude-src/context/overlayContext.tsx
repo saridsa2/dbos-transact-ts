@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 /**
  * Overlay tracking for Escape key coordination.
  *
@@ -47,7 +47,7 @@ export function useRegisterOverlay(id, t0) {
       if (!enabled || !setAppState) {
         return;
       }
-      setAppState((prev) => {
+      setAppState(prev => {
         if (prev.activeOverlays.has(id)) {
           return prev;
         }
@@ -55,11 +55,11 @@ export function useRegisterOverlay(id, t0) {
         next.add(id);
         return {
           ...prev,
-          activeOverlays: next,
+          activeOverlays: next
         };
       });
       return () => {
-        setAppState((prev_0) => {
+        setAppState(prev_0 => {
           if (!prev_0.activeOverlays.has(id)) {
             return prev_0;
           }
@@ -67,7 +67,7 @@ export function useRegisterOverlay(id, t0) {
           next_0.delete(id);
           return {
             ...prev_0,
-            activeOverlays: next_0,
+            activeOverlays: next_0
           };
         });
       };

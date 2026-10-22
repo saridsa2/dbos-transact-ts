@@ -1,5 +1,5 @@
-import { z } from 'zod/v4';
-import { lazySchema } from '../../utils/lazySchema.js';
+import { z } from 'zod/v4'
+import { lazySchema } from '../../utils/lazySchema.js'
 
 /**
  * Discriminated union of all LSP operations
@@ -13,9 +13,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const goToDefinitionSchema = z.strictObject({
     operation: z.literal('goToDefinition'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Find References operation
@@ -24,9 +32,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const findReferencesSchema = z.strictObject({
     operation: z.literal('findReferences'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Hover operation
@@ -35,9 +51,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const hoverSchema = z.strictObject({
     operation: z.literal('hover'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Document Symbol operation
@@ -46,9 +70,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const documentSymbolSchema = z.strictObject({
     operation: z.literal('documentSymbol'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Workspace Symbol operation
@@ -57,9 +89,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const workspaceSymbolSchema = z.strictObject({
     operation: z.literal('workspaceSymbol'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Go to Implementation operation
@@ -68,9 +108,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const goToImplementationSchema = z.strictObject({
     operation: z.literal('goToImplementation'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Prepare Call Hierarchy operation
@@ -79,9 +127,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const prepareCallHierarchySchema = z.strictObject({
     operation: z.literal('prepareCallHierarchy'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Incoming Calls operation
@@ -90,9 +146,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const incomingCallsSchema = z.strictObject({
     operation: z.literal('incomingCalls'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   /**
    * Outgoing Calls operation
@@ -101,9 +165,17 @@ export const lspToolInputSchema = lazySchema(() => {
   const outgoingCallsSchema = z.strictObject({
     operation: z.literal('outgoingCalls'),
     filePath: z.string().describe('The absolute or relative path to the file'),
-    line: z.number().int().positive().describe('The line number (1-based, as shown in editors)'),
-    character: z.number().int().positive().describe('The character offset (1-based, as shown in editors)'),
-  });
+    line: z
+      .number()
+      .int()
+      .positive()
+      .describe('The line number (1-based, as shown in editors)'),
+    character: z
+      .number()
+      .int()
+      .positive()
+      .describe('The character offset (1-based, as shown in editors)'),
+  })
 
   return z.discriminatedUnion('operation', [
     goToDefinitionSchema,
@@ -115,18 +187,20 @@ export const lspToolInputSchema = lazySchema(() => {
     prepareCallHierarchySchema,
     incomingCallsSchema,
     outgoingCallsSchema,
-  ]);
-});
+  ])
+})
 
 /**
  * TypeScript type for LSPTool input
  */
-export type LSPToolInput = z.infer<ReturnType<typeof lspToolInputSchema>>;
+export type LSPToolInput = z.infer<ReturnType<typeof lspToolInputSchema>>
 
 /**
  * Type guard to check if an operation is a valid LSP operation
  */
-export function isValidLSPOperation(operation: string): operation is LSPToolInput['operation'] {
+export function isValidLSPOperation(
+  operation: string,
+): operation is LSPToolInput['operation'] {
   return [
     'goToDefinition',
     'findReferences',
@@ -137,5 +211,5 @@ export function isValidLSPOperation(operation: string): operation is LSPToolInpu
     'prepareCallHierarchy',
     'incomingCalls',
     'outgoingCalls',
-  ].includes(operation);
+  ].includes(operation)
 }

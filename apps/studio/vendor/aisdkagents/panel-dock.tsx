@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Cancel01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import { Cancel01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface PanelDockItem {
   id: string;
@@ -64,7 +64,7 @@ export interface PanelDockProps<T extends PanelDockItem = PanelDockItem> {
 export const panelAfterClose = (
   items: readonly PanelDockItem[],
   closingId: string,
-  activeId: string | undefined,
+  activeId: string | undefined
 ): string | undefined => {
   if (activeId !== closingId) {
     return activeId;
@@ -76,36 +76,50 @@ export const panelAfterClose = (
 const EDGE_FADE_PX = 20;
 
 const THEME_VARS = [
-  '[--panel-dock-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  'dark:[--panel-dock-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  '[--panel-dock-hover:color-mix(in_oklab,var(--foreground)_5%,transparent)]',
-  '[--panel-dock-active:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  'dark:[--panel-dock-hover:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  'dark:[--panel-dock-active:color-mix(in_oklab,var(--foreground)_12%,transparent)]',
-  '[--panel-dock-line:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  'dark:[--panel-dock-line:color-mix(in_oklab,var(--foreground)_12%,transparent)]',
-].join(' ');
+  "[--panel-dock-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "dark:[--panel-dock-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "[--panel-dock-hover:color-mix(in_oklab,var(--foreground)_5%,transparent)]",
+  "[--panel-dock-active:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "dark:[--panel-dock-hover:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "dark:[--panel-dock-active:color-mix(in_oklab,var(--foreground)_12%,transparent)]",
+  "[--panel-dock-line:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "dark:[--panel-dock-line:color-mix(in_oklab,var(--foreground)_12%,transparent)]",
+].join(" ");
 
 const FOCUS_CLASS =
-  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
 
 const ICON_BUTTON_CLASS = cn(
-  'inline-flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted-foreground transition-[background-color,color,scale] duration-100 ease-out hover:bg-(--panel-dock-hover) hover:text-card-foreground active:scale-[0.96] motion-reduce:transition-none [&_svg]:size-4',
-  FOCUS_CLASS,
+  "inline-flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted-foreground transition-[background-color,color,scale] duration-100 ease-out hover:bg-(--panel-dock-hover) hover:text-card-foreground active:scale-[0.96] motion-reduce:transition-none [&_svg]:size-4",
+  FOCUS_CLASS
 );
 
 const MARK_CLASS =
-  'inline-flex size-4 flex-none items-center justify-center [&_img]:size-full [&_img]:rounded-[3px] [&_img]:object-cover [&_svg]:size-4';
+  "inline-flex size-4 flex-none items-center justify-center [&_img]:size-full [&_img]:rounded-[3px] [&_img]:object-cover [&_svg]:size-4";
 
-const Icon = ({ className, icon }: { className?: string; icon: IconSvgElement }) => (
-  <HugeiconsIcon aria-hidden="true" className={className} icon={icon} strokeWidth={2} />
+const Icon = ({
+  className,
+  icon,
+}: {
+  className?: string;
+  icon: IconSvgElement;
+}) => (
+  <HugeiconsIcon
+    aria-hidden="true"
+    className={className}
+    icon={icon}
+    strokeWidth={2}
+  />
 );
 
 const Mark = ({ item }: { item: PanelDockItem }) => {
   if (item.busy) {
     return (
       <span className={MARK_CLASS}>
-        <Icon className="size-3.5! animate-spin motion-reduce:animate-none" icon={Loading03Icon} />
+        <Icon
+          className="size-3.5! animate-spin motion-reduce:animate-none"
+          icon={Loading03Icon}
+        />
       </span>
     );
   }
@@ -125,15 +139,19 @@ const useEdges = (count: number) => {
     const read = () => {
       const start = node.scrollLeft > 1;
       const end = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
-      setEdges((current) => (current.start === start && current.end === end ? current : { end, start }));
+      setEdges((current) =>
+        current.start === start && current.end === end
+          ? current
+          : { end, start }
+      );
     };
     read();
     const observer = new ResizeObserver(read);
     observer.observe(node);
-    node.addEventListener('scroll', read, { passive: true });
+    node.addEventListener("scroll", read, { passive: true });
     return () => {
       observer.disconnect();
-      node.removeEventListener('scroll', read);
+      node.removeEventListener("scroll", read);
     };
   }, [count]);
 
@@ -151,7 +169,7 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
   keepMounted = true,
   actions,
   empty,
-  label = 'Side panel',
+  label = "Side panel",
   className,
   classNames,
   style,
@@ -162,7 +180,9 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
 
   const [inner, setInner] = useState(defaultActiveId);
   // Ids that have been listed, to spot the one that was just opened.
-  const [known, setKnown] = useState<ReadonlySet<string>>(() => new Set(items.map((item) => item.id)));
+  const [known, setKnown] = useState<ReadonlySet<string>>(
+    () => new Set(items.map((item) => item.id))
+  );
   // Ids listed on the first render. Those tabs were not opened in view.
   const [baseline] = useState(known);
   const opened = items.filter((item) => !known.has(item.id));
@@ -180,7 +200,9 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
   const activeId = active?.id;
 
   // An item is mounted the first time it comes forward, then kept.
-  const [visited, setVisited] = useState<ReadonlySet<string>>(() => new Set(activeId ? [activeId] : []));
+  const [visited, setVisited] = useState<ReadonlySet<string>>(
+    () => new Set(activeId ? [activeId] : [])
+  );
   if (activeId && !visited.has(activeId)) {
     setVisited(new Set([...visited, activeId]));
   }
@@ -210,8 +232,10 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
     if (!activeId) {
       return;
     }
-    const tab = document.querySelector<HTMLElement>(`#${CSS.escape(`${uid}-tab-${activeId}`)}`);
-    tab?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const tab = document.querySelector<HTMLElement>(
+      `#${CSS.escape(`${uid}-tab-${activeId}`)}`
+    );
+    tab?.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (refocus.current) {
       refocus.current = false;
       tab?.focus({ preventScroll: true });
@@ -221,15 +245,19 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
   const onTabKey = (event: KeyboardEvent<HTMLButtonElement>, item: T) => {
     const at = items.findIndex((entry) => entry.id === item.id);
     let to: T | undefined;
-    if (event.key === 'ArrowRight') {
+    if (event.key === "ArrowRight") {
       to = items[(at + 1) % items.length];
-    } else if (event.key === 'ArrowLeft') {
+    } else if (event.key === "ArrowLeft") {
       to = items[(at - 1 + items.length) % items.length];
-    } else if (event.key === 'Home') {
+    } else if (event.key === "Home") {
       to = items.at(0);
-    } else if (event.key === 'End') {
+    } else if (event.key === "End") {
       to = items.at(-1);
-    } else if ((event.key === 'Delete' || event.key === 'Backspace') && onClose && item.closable !== false) {
+    } else if (
+      (event.key === "Delete" || event.key === "Backspace") &&
+      onClose &&
+      item.closable !== false
+    ) {
       event.preventDefault();
       refocus.current = true;
       close(item.id);
@@ -250,17 +278,17 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
       aria-label={label}
       className={cn(
         THEME_VARS,
-        'flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-card text-card-foreground shadow-(--panel-dock-shadow)',
+        "flex size-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl bg-card text-card-foreground shadow-(--panel-dock-shadow)",
         className,
-        classNames?.root,
+        classNames?.root
       )}
       data-slot="panel-dock"
       style={style}
     >
       <div
         className={cn(
-          'flex h-11 min-w-0 flex-none items-center gap-1 px-1.5 shadow-[inset_0_-1px_0_var(--panel-dock-line)]',
-          classNames?.header,
+          "flex h-11 min-w-0 flex-none items-center gap-1 px-1.5 shadow-[inset_0_-1px_0_var(--panel-dock-line)]",
+          classNames?.header
         )}
         data-slot="panel-dock-header"
       >
@@ -269,17 +297,21 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
             aria-label="Open items"
             aria-orientation="horizontal"
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-              '[mask-image:linear-gradient(to_right,transparent,black_var(--panel-dock-fade-start),black_calc(100%-var(--panel-dock-fade-end)),transparent)]',
-              classNames?.tabs,
+              "flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              "[mask-image:linear-gradient(to_right,transparent,black_var(--panel-dock-fade-start),black_calc(100%-var(--panel-dock-fade-end)),transparent)]",
+              classNames?.tabs
             )}
             data-slot="panel-dock-tabs"
             ref={strip}
             role="tablist"
             style={
               {
-                '--panel-dock-fade-end': edges.end ? `${EDGE_FADE_PX}px` : '0px',
-                '--panel-dock-fade-start': edges.start ? `${EDGE_FADE_PX}px` : '0px',
+                "--panel-dock-fade-end": edges.end
+                  ? `${EDGE_FADE_PX}px`
+                  : "0px",
+                "--panel-dock-fade-start": edges.start
+                  ? `${EDGE_FADE_PX}px`
+                  : "0px",
               } as CSSProperties
             }
           >
@@ -289,15 +321,15 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
               return (
                 <div
                   className={cn(
-                    'group/tab relative flex h-7 max-w-52 min-w-0 flex-none items-center rounded-lg transition-colors duration-100 ease-out motion-reduce:transition-none',
+                    "group/tab relative flex h-7 max-w-52 min-w-0 flex-none items-center rounded-lg transition-colors duration-100 ease-out motion-reduce:transition-none",
                     selected
-                      ? 'bg-(--panel-dock-active) text-card-foreground'
-                      : 'text-muted-foreground hover:bg-(--panel-dock-hover) hover:text-card-foreground',
+                      ? "bg-(--panel-dock-active) text-card-foreground"
+                      : "text-muted-foreground hover:bg-(--panel-dock-hover) hover:text-card-foreground",
                     !baseline.has(item.id) &&
-                      'animate-in duration-200 ease-out fade-in-0 zoom-in-95 motion-reduce:animate-none',
-                    classNames?.tab,
+                      "animate-in duration-200 ease-out fade-in-0 zoom-in-95 motion-reduce:animate-none",
+                    classNames?.tab
                   )}
-                  data-selected={selected ? 'true' : undefined}
+                  data-selected={selected ? "true" : undefined}
                   data-slot="panel-dock-tab"
                   key={item.id}
                   // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- a middle click closes, as on any tab
@@ -312,10 +344,10 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
                     aria-controls={panelId(item.id)}
                     aria-selected={selected}
                     className={cn(
-                      'flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent py-0 pl-2 text-left text-[13px] leading-4 tracking-[-0.01em] text-inherit',
-                      closable ? 'pr-7' : 'pr-2',
-                      selected && 'font-medium',
-                      FOCUS_CLASS,
+                      "flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent py-0 pl-2 text-left text-[13px] leading-4 tracking-[-0.01em] text-inherit",
+                      closable ? "pr-7" : "pr-2",
+                      selected && "font-medium",
+                      FOCUS_CLASS
                     )}
                     id={tabId(item.id)}
                     onClick={() => {
@@ -338,8 +370,10 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
                       className={cn(
                         "absolute top-1/2 right-1 inline-flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-[opacity,background-color,color] duration-100 ease-out after:absolute after:-inset-1 after:content-[''] hover:bg-(--panel-dock-active) hover:text-card-foreground focus-visible:opacity-100 motion-reduce:transition-none",
                         // Without hover, only the tab in front offers to close.
-                        selected ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100',
-                        FOCUS_CLASS,
+                        selected
+                          ? "opacity-100"
+                          : "opacity-0 group-hover/tab:opacity-100",
+                        FOCUS_CLASS
                       )}
                       data-slot="panel-dock-close"
                       onClick={() => {
@@ -358,8 +392,8 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
         ) : (
           <div
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-2 pl-2 text-[13px] leading-4 font-medium tracking-[-0.01em]',
-              classNames?.title,
+              "flex min-w-0 flex-1 items-center gap-2 pl-2 text-[13px] leading-4 font-medium tracking-[-0.01em]",
+              classNames?.title
             )}
             data-slot="panel-dock-title"
           >
@@ -377,7 +411,13 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
         )}
 
         {active && actions ? (
-          <div className={cn('flex flex-none items-center gap-1', classNames?.actions)} data-slot="panel-dock-actions">
+          <div
+            className={cn(
+              "flex flex-none items-center gap-1",
+              classNames?.actions
+            )}
+            data-slot="panel-dock-actions"
+          >
             {actions(active)}
           </div>
         ) : null}
@@ -395,10 +435,13 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
         ) : null}
       </div>
 
-      <div className="relative min-h-0 min-w-0 flex-1" data-slot="panel-dock-body">
+      <div
+        className="relative min-h-0 min-w-0 flex-1"
+        data-slot="panel-dock-body"
+      >
         {items.length === 0 ? (
           <div className="flex size-full items-center justify-center p-6 text-center text-[13px] leading-5 text-pretty text-muted-foreground">
-            {empty ?? 'Nothing is open.'}
+            {empty ?? "Nothing is open."}
           </div>
         ) : null}
         {items.map((item) => {
@@ -410,14 +453,14 @@ export const PanelDock = <T extends PanelDockItem = PanelDockItem>({
             <div
               aria-labelledby={tabbed ? tabId(item.id) : undefined}
               className={cn(
-                'absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-auto outline-none',
-                classNames?.panel,
+                "absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-auto outline-none",
+                classNames?.panel
               )}
               data-slot="panel-dock-panel"
               hidden={!selected}
               id={panelId(item.id)}
               key={item.id}
-              role={tabbed ? 'tabpanel' : undefined}
+              role={tabbed ? "tabpanel" : undefined}
             >
               {children?.(item, { active: selected })}
             </div>

@@ -227,18 +227,7 @@ export function AiChat3Composer({
           className="rb-agent-composer-field"
           textAreaClassName="rb-agent-composer-input"
         />
-        {running && allowGuidance && !!value.trim() && (
-          <Tooltip title="Send guidance">
-            <Button
-              type="submit"
-              color="primary"
-              size="sm"
-              iconLeading={PaperPlaneIcon}
-              aria-label="Send guidance"
-              isDisabled={disabled || busy}
-            />
-          </Tooltip>
-        )}
+        {running && allowGuidance && !!value.trim() && <Tooltip title="Send guidance"><Button type="submit" color="primary" size="sm" iconLeading={PaperPlaneIcon} aria-label="Send guidance" isDisabled={disabled||busy}/></Tooltip>}
         <Tooltip title={running ? 'Stop' : busy ? 'Sending…' : submitLabel}>
           <Button
             type={running ? 'button' : 'submit'}

@@ -1,4 +1,8 @@
-import type { Core, ElementDefinition, Position } from 'cytoscape';
+import type {
+  Core,
+  ElementDefinition,
+  Position,
+} from 'cytoscape';
 
 export interface GraphPositionSnapshot {
   positions: ReadonlyMap<string, Position>;
@@ -24,7 +28,9 @@ function edgeEndpoints(element: ElementDefinition): EdgeEndpoints | null {
     ? {
         source,
         target,
-        kind: typeof element.data.kind === 'string' ? element.data.kind : undefined,
+        kind: typeof element.data.kind === 'string'
+          ? element.data.kind
+          : undefined,
       }
     : null;
 }
@@ -62,13 +68,23 @@ function radialOffset(index: number): Position {
   };
 }
 
-function properIntersection(a: Position, b: Position, c: Position, d: Position): boolean {
-  const cross = (p: Position, q: Position, r: Position) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+function properIntersection(
+  a: Position,
+  b: Position,
+  c: Position,
+  d: Position,
+): boolean {
+  const cross = (p: Position, q: Position, r: Position) => (
+    (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x)
+  );
   const abC = cross(a, b, c);
   const abD = cross(a, b, d);
   const cdA = cross(c, d, a);
   const cdB = cross(c, d, b);
-  return ((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) && ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0));
+  return (
+    ((abC > 0 && abD < 0) || (abC < 0 && abD > 0))
+    && ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0))
+  );
 }
 
 function angleDistance(left: number, right: number): number {
@@ -77,11 +93,17 @@ function angleDistance(left: number, right: number): number {
 }
 
 function fallbackAngle(id: string): number {
-  const degrees = [...id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 360;
+  const degrees = [...id].reduce(
+    (sum, character) => sum + character.charCodeAt(0),
+    0,
+  ) % 360;
   return degrees * (Math.PI / 180);
 }
 
-export function captureGraphPositionSnapshot(cy: Core, anchorId?: string): GraphPositionSnapshot | null {
+export function captureGraphPositionSnapshot(
+  cy: Core,
+  anchorId?: string,
+): GraphPositionSnapshot | null {
   const positions = new Map<string, Position>();
   cy.nodes().forEach((node) => {
     const position = node.position();
@@ -118,7 +140,11 @@ export function preserveGraphElementPositions(
 
   const edges: EdgeEndpoints[] = [];
   const neighbors = new Map<string, Map<string, boolean>>();
-  const addNeighbor = (id: string, neighborId: string, isHierarchyParent: boolean) => {
+  const addNeighbor = (
+    id: string,
+    neighborId: string,
+    isHierarchyParent: boolean,
+  ) => {
     if (!neighbors.has(id)) neighbors.set(id, new Map());
     const current = neighbors.get(id)?.get(neighborId) ?? false;
     neighbors.get(id)?.set(neighborId, current || isHierarchyParent);
@@ -128,21 +154,33 @@ export function preserveGraphElementPositions(
     const endpoints = edgeEndpoints(element);
     if (!endpoints) continue;
     edges.push(endpoints);
-    addNeighbor(endpoints.source, endpoints.target, endpoints.kind === 'subclass');
+    addNeighbor(
+      endpoints.source,
+      endpoints.target,
+      endpoints.kind === 'subclass',
+    );
     addNeighbor(endpoints.target, endpoints.source, false);
   }
 
   const retainedPositions = [...assignedPositions.values()];
   const centroid = averagePosition(retainedPositions);
-  const anchorPosition = snapshot.anchorId ? assignedPositions.get(snapshot.anchorId) : undefined;
+  const anchorPosition = snapshot.anchorId
+    ? assignedPositions.get(snapshot.anchorId)
+    : undefined;
   const fallbackPosition = anchorPosition ?? centroid;
-  const unassignedNodeIds = new Set([...visibleNodeIds].filter((id) => !assignedPositions.has(id)));
+  const unassignedNodeIds = new Set(
+    [...visibleNodeIds].filter((id) => !assignedPositions.has(id)),
+  );
   const positionedEdgeIndexes = new Set<number>();
   const positionedSegments: Array<{ from: Position; to: Position }> = [];
   const addPositionedSegments = (nodeId?: string) => {
     edges.forEach((edge, index) => {
       if (positionedEdgeIndexes.has(index)) return;
-      if (nodeId && edge.source !== nodeId && edge.target !== nodeId) {
+      if (
+        nodeId
+        && edge.source !== nodeId
+        && edge.target !== nodeId
+      ) {
         return;
       }
       const from = assignedPositions.get(edge.source);
@@ -175,27 +213,38 @@ export function preserveGraphElementPositions(
     const placeableNodes = [...unassignedNodeIds]
       .map((id) => ({
         id,
-        assignedNeighbors: [...(neighbors.get(id) ?? [])].filter(([neighborId]) => assignedPositions.has(neighborId)),
+        assignedNeighbors: [...(neighbors.get(id) ?? [])]
+          .filter(([neighborId]) => assignedPositions.has(neighborId)),
       }))
       .filter(({ assignedNeighbors }) => assignedNeighbors.length > 0)
-      .sort(
-        (left, right) =>
-          right.assignedNeighbors.length - left.assignedNeighbors.length || left.id.localeCompare(right.id),
-      );
+      .sort((left, right) => (
+        right.assignedNeighbors.length - left.assignedNeighbors.length
+        || left.id.localeCompare(right.id)
+      ));
     if (placeableNodes.length === 0) break;
 
     for (const { id, assignedNeighbors } of placeableNodes) {
       if (!unassignedNodeIds.has(id)) continue;
-      const [anchorId] = assignedNeighbors.find(([, isHierarchyParent]) => isHierarchyParent) ?? assignedNeighbors[0];
+      const [anchorId] = (
+        assignedNeighbors.find(([, isHierarchyParent]) => isHierarchyParent)
+        ?? assignedNeighbors[0]
+      );
       const anchor = assignedPositions.get(anchorId);
       if (!anchor) continue;
-      const hierarchyParentId = [...(neighbors.get(anchorId) ?? [])].find(
-        ([, isHierarchyParent]) => isHierarchyParent,
-      )?.[0];
-      const hierarchyParent = hierarchyParentId ? assignedPositions.get(hierarchyParentId) : undefined;
+      const hierarchyParentId = [...(neighbors.get(anchorId) ?? [])]
+        .find(([, isHierarchyParent]) => isHierarchyParent)?.[0];
+      const hierarchyParent = hierarchyParentId
+        ? assignedPositions.get(hierarchyParentId)
+        : undefined;
       const directionOrigin = hierarchyParent ?? centroid;
-      let baseAngle = Math.atan2(anchor.y - directionOrigin.y, anchor.x - directionOrigin.x);
-      if (Math.abs(anchor.x - directionOrigin.x) < 1 && Math.abs(anchor.y - directionOrigin.y) < 1) {
+      let baseAngle = Math.atan2(
+        anchor.y - directionOrigin.y,
+        anchor.x - directionOrigin.x,
+      );
+      if (
+        Math.abs(anchor.x - directionOrigin.x) < 1
+        && Math.abs(anchor.y - directionOrigin.y) < 1
+      ) {
         baseAngle = fallbackAngle(id);
       }
 
@@ -215,7 +264,14 @@ export function preserveGraphElementPositions(
           let crossings = 0;
           for (const connection of connectionPositions) {
             for (const segment of positionedSegments) {
-              if (properIntersection(connection, position, segment.from, segment.to)) {
+              if (
+                properIntersection(
+                  connection,
+                  position,
+                  segment.from,
+                  segment.to,
+                )
+              ) {
                 crossings += 1;
               }
             }
@@ -232,11 +288,18 @@ export function preserveGraphElementPositions(
             }
           }
           const edgeLength = connectionPositions.reduce(
-            (sum, connection) => sum + Math.hypot(position.x - connection.x, position.y - connection.y),
+            (sum, connection) => sum + Math.hypot(
+              position.x - connection.x,
+              position.y - connection.y,
+            ),
             0,
           );
-          const score =
-            crossings * 1_000_000 + overlapPenalty * 1_000 + angleDistance(angle, baseAngle) * 100 + edgeLength;
+          const score = (
+            crossings * 1_000_000
+            + overlapPenalty * 1_000
+            + angleDistance(angle, baseAngle) * 100
+            + edgeLength
+          );
           if (score < bestScore) {
             bestPosition = position;
             bestScore = score;
@@ -272,7 +335,10 @@ export function preserveGraphElementPositions(
   });
 }
 
-export function restoreGraphViewport(cy: Core, snapshot: GraphPositionSnapshot): void {
+export function restoreGraphViewport(
+  cy: Core,
+  snapshot: GraphPositionSnapshot,
+): void {
   cy.zoom(snapshot.zoom);
   cy.pan(snapshot.pan);
 }

@@ -18,7 +18,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
   if (feature('BG_SESSIONS') && isBgSession()) {
     onDone();
     spawnSync('tmux', ['detach-client'], {
-      stdio: 'ignore',
+      stdio: 'ignore'
     });
     return null;
   }

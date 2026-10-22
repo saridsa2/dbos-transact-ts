@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { createContext, useContext, useMemo } from 'react';
 import { Mailbox } from '../utils/mailbox.js';
 const MailboxContext = createContext<Mailbox | undefined>(undefined);
@@ -7,9 +7,11 @@ type Props = {
 };
 export function MailboxProvider(t0) {
   const $ = _c(3);
-  const { children } = t0;
+  const {
+    children
+  } = t0;
   let t1;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = new Mailbox();
     $[0] = t1;
   } else {
@@ -29,7 +31,7 @@ export function MailboxProvider(t0) {
 export function useMailbox() {
   const mailbox = useContext(MailboxContext);
   if (!mailbox) {
-    throw new Error('useMailbox must be used within a MailboxProvider');
+    throw new Error("useMailbox must be used within a MailboxProvider");
   }
   return mailbox;
 }

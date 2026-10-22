@@ -1,8 +1,8 @@
-import { feature } from 'bun:bundle';
-import { satisfies } from 'src/utils/semver.js';
-import { isRunningWithBun } from '../utils/bundledMode.js';
-import { getPlatform } from '../utils/platform.js';
-import type { KeybindingBlock } from './types.js';
+import { feature } from 'bun:bundle'
+import { satisfies } from 'src/utils/semver.js'
+import { isRunningWithBun } from '../utils/bundledMode.js'
+import { getPlatform } from '../utils/platform.js'
+import type { KeybindingBlock } from './types.js'
 
 /**
  * Default keybindings that match current Claude Code behavior.
@@ -12,7 +12,7 @@ import type { KeybindingBlock } from './types.js';
 // Platform-specific image paste shortcut:
 // - Windows: alt+v (ctrl+v is system paste)
 // - Other platforms: ctrl+v
-const IMAGE_PASTE_KEY = getPlatform() === 'windows' ? 'alt+v' : 'ctrl+v';
+const IMAGE_PASTE_KEY = getPlatform() === 'windows' ? 'alt+v' : 'ctrl+v'
 
 // Modifier-only chords (like shift+tab) may fail on Windows Terminal without VT mode
 // See: https://github.com/microsoft/terminal/issues/879#issuecomment-618801651
@@ -22,12 +22,12 @@ const SUPPORTS_TERMINAL_VT_MODE =
   getPlatform() !== 'windows' ||
   (isRunningWithBun()
     ? satisfies(process.versions.bun, '>=1.2.23')
-    : satisfies(process.versions.node, '>=22.17.0 <23.0.0 || >=24.2.0'));
+    : satisfies(process.versions.node, '>=22.17.0 <23.0.0 || >=24.2.0'))
 
 // Platform-specific mode cycle shortcut:
 // - Windows without VT mode: meta+m (shift+tab doesn't work reliably)
 // - Other platforms: shift+tab
-const MODE_CYCLE_KEY = SUPPORTS_TERMINAL_VT_MODE ? 'shift+tab' : 'meta+m';
+const MODE_CYCLE_KEY = SUPPORTS_TERMINAL_VT_MODE ? 'shift+tab' : 'meta+m'
 
 export const DEFAULT_BINDINGS: KeybindingBlock[] = [
   {
@@ -42,7 +42,9 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+l': 'app:redraw',
       'ctrl+t': 'app:toggleTodos',
       'ctrl+o': 'app:toggleTranscript',
-      ...(feature('KAIROS') || feature('KAIROS_BRIEF') ? { 'ctrl+shift+b': 'app:toggleBrief' as const } : {}),
+      ...(feature('KAIROS') || feature('KAIROS_BRIEF')
+        ? { 'ctrl+shift+b': 'app:toggleBrief' as const }
+        : {}),
       'ctrl+shift+o': 'app:toggleTeammatePreview',
       'ctrl+r': 'history:search',
       // File navigation. cmd+ bindings only fire on kitty-protocol terminals;
@@ -83,7 +85,9 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+s': 'chat:stash',
       // Image paste shortcut (platform-specific key defined above)
       [IMAGE_PASTE_KEY]: 'chat:imagePaste',
-      ...(feature('MESSAGE_ACTIONS') ? { 'shift+up': 'chat:messageActions' as const } : {}),
+      ...(feature('MESSAGE_ACTIONS')
+        ? { 'shift+up': 'chat:messageActions' as const }
+        : {}),
       // Voice activation (hold-to-talk). Registered so getShortcutDisplay
       // finds it without hitting the fallback analytics log. To rebind,
       // add a voice:pushToTalk entry (last wins); to disable, use /voice
@@ -333,4 +337,4 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       i: 'plugin:install',
     },
   },
-];
+]

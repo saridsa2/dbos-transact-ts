@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import { Share05Icon, SidebarLeftIcon, SidebarRightIcon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
-import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import {
+  Share05Icon,
+  SidebarLeftIcon,
+  SidebarRightIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { IconSvgElement } from "@hugeicons/react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface ThreadHeaderClassNames {
   root?: string;
@@ -49,26 +53,29 @@ export interface ThreadHeaderProps {
 }
 
 const THEME_VARS = [
-  '[--thread-header-hover:color-mix(in_oklab,var(--foreground)_5%,transparent)]',
-  'dark:[--thread-header-hover:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  '[--thread-header-line:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  'dark:[--thread-header-line:color-mix(in_oklab,var(--foreground)_12%,transparent)]',
-].join(' ');
+  "[--thread-header-hover:color-mix(in_oklab,var(--foreground)_5%,transparent)]",
+  "dark:[--thread-header-hover:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "[--thread-header-line:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "dark:[--thread-header-line:color-mix(in_oklab,var(--foreground)_12%,transparent)]",
+].join(" ");
 
 const FOCUS_CLASS =
-  'focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none';
+  "focus-visible:ring-2 focus-visible:ring-ring/50 dark:focus-visible:ring-ring/80 focus-visible:outline-none";
 
 const ICON_BUTTON_CLASS = cn(
-  'inline-flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted-foreground transition-[background-color,color,scale] duration-100 ease-out hover:bg-(--thread-header-hover) hover:text-card-foreground active:scale-[0.96] aria-pressed:text-card-foreground motion-reduce:transition-none [&_svg]:size-4',
-  FOCUS_CLASS,
+  "inline-flex size-8 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-muted-foreground transition-[background-color,color,scale] duration-100 ease-out hover:bg-(--thread-header-hover) hover:text-card-foreground active:scale-[0.96] aria-pressed:text-card-foreground motion-reduce:transition-none [&_svg]:size-4",
+  FOCUS_CLASS
 );
 
 /** The title and the field that edits it share one box, so nothing shifts. */
-const TITLE_TEXT_CLASS = 'text-sm leading-5 font-medium tracking-[-0.01em] whitespace-pre';
+const TITLE_TEXT_CLASS =
+  "text-sm leading-5 font-medium tracking-[-0.01em] whitespace-pre";
 
-const tidy = (value: string): string => value.replaceAll(/\s+/gu, ' ').trim();
+const tidy = (value: string): string => value.replaceAll(/\s+/gu, " ").trim();
 
-const Icon = ({ icon }: { icon: IconSvgElement }) => <HugeiconsIcon aria-hidden="true" icon={icon} strokeWidth={2} />;
+const Icon = ({ icon }: { icon: IconSvgElement }) => (
+  <HugeiconsIcon aria-hidden="true" icon={icon} strokeWidth={2} />
+);
 
 const TitleField = ({
   className,
@@ -103,10 +110,10 @@ const TitleField = ({
     if (event.nativeEvent.isComposing) {
       return;
     }
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       finish(draft, true);
-    } else if (event.key === 'Escape') {
+    } else if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       finish(null, true);
@@ -118,9 +125,12 @@ const TitleField = ({
       {/* Sizes the field to the text it holds. */}
       <span
         aria-hidden="true"
-        className={cn(TITLE_TEXT_CLASS, 'invisible col-start-1 row-start-1 min-w-[4ch] overflow-hidden')}
+        className={cn(
+          TITLE_TEXT_CLASS,
+          "invisible col-start-1 row-start-1 min-w-[4ch] overflow-hidden"
+        )}
       >
-        {draft || ' '}
+        {draft || " "}
       </span>
       <input
         aria-label="Chat title"
@@ -128,8 +138,8 @@ const TitleField = ({
         autoComplete="off"
         className={cn(
           TITLE_TEXT_CLASS,
-          'col-start-1 row-start-1 w-full min-w-0 border-0 bg-transparent p-0 text-card-foreground outline-none',
-          className,
+          "col-start-1 row-start-1 w-full min-w-0 border-0 bg-transparent p-0 text-card-foreground outline-none",
+          className
         )}
         data-slot="thread-header-input"
         maxLength={maxLength}
@@ -150,7 +160,7 @@ const TitleField = ({
 
 export const ThreadHeader = ({
   title,
-  placeholder = 'New chat',
+  placeholder = "New chat",
   titlePending = false,
   onRename,
   maxTitleLength = 80,
@@ -159,16 +169,16 @@ export const ThreadHeader = ({
   children,
   actions,
   onShare,
-  shareLabel = 'Share',
+  shareLabel = "Share",
   onTogglePanel,
   panelOpen = false,
-  panelLabel = 'side panel',
+  panelLabel = "side panel",
   scrolled = false,
   className,
   classNames,
   style,
 }: ThreadHeaderProps) => {
-  const shown = tidy(title ?? '');
+  const shown = tidy(title ?? "");
   const [editing, setEditing] = useState(false);
   const titleButton = useRef<HTMLButtonElement>(null);
   const refocus = useRef(false);
@@ -196,7 +206,7 @@ export const ThreadHeader = ({
   const finish = (next: string | null, byKey: boolean) => {
     refocus.current = byKey;
     setEditing(false);
-    const value = next === null ? '' : tidy(next);
+    const value = next === null ? "" : tidy(next);
     if (value && value !== shown) {
       typed.current = value;
       onRename?.(value);
@@ -206,11 +216,12 @@ export const ThreadHeader = ({
   const text = (
     <span
       className={cn(
-        'block truncate',
+        "block truncate",
         TITLE_TEXT_CLASS,
-        shown ? 'text-card-foreground' : 'text-muted-foreground',
-        titlePending && !shown && 'animate-pulse motion-reduce:animate-none',
-        arrival > 0 && 'animate-in duration-300 ease-out fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none',
+        shown ? "text-card-foreground" : "text-muted-foreground",
+        titlePending && !shown && "animate-pulse motion-reduce:animate-none",
+        arrival > 0 &&
+          "animate-in duration-300 ease-out fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none"
       )}
       key={arrival}
     >
@@ -218,23 +229,32 @@ export const ThreadHeader = ({
     </span>
   );
 
-  let heading: ReactNode = <span className="block max-w-full min-w-0 px-2 py-1.5">{text}</span>;
+  let heading: ReactNode = (
+    <span className="block max-w-full min-w-0 px-2 py-1.5">{text}</span>
+  );
   if (onRename && editing) {
-    heading = <TitleField className={classNames?.input} initial={shown} maxLength={maxTitleLength} onDone={finish} />;
+    heading = (
+      <TitleField
+        className={classNames?.input}
+        initial={shown}
+        maxLength={maxTitleLength}
+        onDone={finish}
+      />
+    );
   } else if (onRename) {
     heading = (
       <button
         aria-label={`${shown || placeholder}. Rename chat`}
         className={cn(
-          'block max-w-full min-w-0 cursor-text rounded-lg border-0 bg-transparent px-2 py-1.5 text-left transition-colors duration-100 ease-out hover:bg-(--thread-header-hover) motion-reduce:transition-none',
-          FOCUS_CLASS,
+          "block max-w-full min-w-0 cursor-text rounded-lg border-0 bg-transparent px-2 py-1.5 text-left transition-colors duration-100 ease-out hover:bg-(--thread-header-hover) motion-reduce:transition-none",
+          FOCUS_CLASS
         )}
         data-slot="thread-header-rename"
         onClick={() => {
           setEditing(true);
         }}
         onKeyDown={(event) => {
-          if (event.key === 'F2') {
+          if (event.key === "F2") {
             event.preventDefault();
             setEditing(true);
           }
@@ -252,24 +272,24 @@ export const ThreadHeader = ({
     <header
       className={cn(
         THEME_VARS,
-        '@container/header relative z-10 flex h-12 w-full min-w-0 flex-none items-center gap-1 bg-card px-2 text-card-foreground',
+        "@container/header relative z-10 flex h-12 w-full min-w-0 flex-none items-center gap-1 bg-card px-2 text-card-foreground",
         "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-(--thread-header-line) after:opacity-0 after:transition-opacity after:duration-200 after:ease-out after:content-[''] motion-reduce:after:transition-none",
-        scrolled && 'after:opacity-100',
+        scrolled && "after:opacity-100",
         className,
-        classNames?.root,
+        classNames?.root
       )}
-      data-scrolled={scrolled ? 'true' : undefined}
+      data-scrolled={scrolled ? "true" : undefined}
       data-slot="thread-header"
       style={style}
     >
       {onToggleSidebar ? (
         <button
           aria-expanded={sidebarOpen}
-          aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           className={cn(ICON_BUTTON_CLASS, classNames?.button)}
           data-slot="thread-header-sidebar"
           onClick={onToggleSidebar}
-          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           type="button"
         >
           <Icon icon={SidebarLeftIcon} />
@@ -278,7 +298,10 @@ export const ThreadHeader = ({
 
       <div className="flex min-w-0 flex-1 items-center gap-1">
         <h1
-          className={cn('m-0 flex min-w-0 flex-initial items-center', classNames?.title)}
+          className={cn(
+            "m-0 flex min-w-0 flex-initial items-center",
+            classNames?.title
+          )}
           data-slot="thread-header-title"
         >
           {heading}
@@ -286,8 +309,8 @@ export const ThreadHeader = ({
         {children ? (
           <div
             className={cn(
-              'flex flex-none items-center gap-1 text-[13px] leading-4 text-muted-foreground',
-              classNames?.detail,
+              "flex flex-none items-center gap-1 text-[13px] leading-4 text-muted-foreground",
+              classNames?.detail
             )}
             data-slot="thread-header-detail"
           >
@@ -296,15 +319,18 @@ export const ThreadHeader = ({
         ) : null}
       </div>
 
-      <div className={cn('flex flex-none items-center gap-1', classNames?.actions)} data-slot="thread-header-actions">
+      <div
+        className={cn("flex flex-none items-center gap-1", classNames?.actions)}
+        data-slot="thread-header-actions"
+      >
         {actions}
         {onShare ? (
           <button
             aria-label={shareLabel}
             className={cn(
-              'inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent px-2 text-[13px] leading-4 font-medium text-card-foreground transition-[background-color,scale] duration-100 ease-out hover:bg-(--thread-header-hover) active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-4 [&_svg]:text-muted-foreground',
+              "inline-flex h-8 flex-none cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent px-2 text-[13px] leading-4 font-medium text-card-foreground transition-[background-color,scale] duration-100 ease-out hover:bg-(--thread-header-hover) active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-4 [&_svg]:text-muted-foreground",
               FOCUS_CLASS,
-              classNames?.button,
+              classNames?.button
             )}
             data-slot="thread-header-share"
             onClick={onShare}

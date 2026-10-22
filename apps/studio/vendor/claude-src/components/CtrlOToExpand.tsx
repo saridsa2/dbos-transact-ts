@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import chalk from 'chalk';
 import React, { useContext } from 'react';
 import { Text } from '../ink.js';
@@ -13,7 +13,9 @@ import { InVirtualListContext } from './messageActions.js';
 const SubAgentContext = React.createContext(false);
 export function SubAgentProvider(t0) {
   const $ = _c(2);
-  const { children } = t0;
+  const {
+    children
+  } = t0;
   let t1;
   if ($[0] !== children) {
     t1 = <SubAgentContext.Provider value={true}>{children}</SubAgentContext.Provider>;
@@ -28,17 +30,13 @@ export function CtrlOToExpand() {
   const $ = _c(2);
   const isInSubAgent = useContext(SubAgentContext);
   const inVirtualList = useContext(InVirtualListContext);
-  const expandShortcut = useShortcutDisplay('app:toggleTranscript', 'Global', 'ctrl+o');
+  const expandShortcut = useShortcutDisplay("app:toggleTranscript", "Global", "ctrl+o");
   if (isInSubAgent || inVirtualList) {
     return null;
   }
   let t0;
   if ($[0] !== expandShortcut) {
-    t0 = (
-      <Text dimColor={true}>
-        <KeyboardShortcutHint shortcut={expandShortcut} action="expand" parens={true} />
-      </Text>
-    );
+    t0 = <Text dimColor={true}><KeyboardShortcutHint shortcut={expandShortcut} action="expand" parens={true} /></Text>;
     $[0] = expandShortcut;
     $[1] = t0;
   } else {

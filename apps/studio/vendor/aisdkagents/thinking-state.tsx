@@ -1,17 +1,21 @@
-'use client';
+"use client";
 
-import { AlertCircleIcon, ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { ChatStatus, UIMessage } from 'ai';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import {
+  AlertCircleIcon,
+  ArrowDown01Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import type { ChatStatus, UIMessage } from "ai";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-export type ThinkingStatus = 'working' | 'done' | 'error';
-export type ThinkingStepStatus = 'pending' | 'active' | 'done' | 'error';
-export type ThinkingStateVariant = 'panel' | 'inline';
+export type ThinkingStatus = "working" | "done" | "error";
+export type ThinkingStepStatus = "pending" | "active" | "done" | "error";
+export type ThinkingStateVariant = "panel" | "inline";
 
 export interface ThinkingSource {
   id: string;
@@ -39,10 +43,10 @@ export const formatElapsed = (ms: number): string => {
   const minutes = Math.floor(total / 60) % 60;
   const hours = Math.floor(total / 3600);
   if (hours > 0) {
-    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+    return `${hours}h ${String(minutes).padStart(2, "0")}m`;
   }
   if (minutes > 0) {
-    return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
   }
   return `${seconds}s`;
 };
@@ -53,7 +57,7 @@ export const sourceDomain = (url?: string): string | undefined => {
     return undefined;
   }
   try {
-    return new URL(url).hostname.replace(/^www\./u, '');
+    return new URL(url).hostname.replace(/^www\./u, "");
   } catch {
     return undefined;
   }
@@ -62,12 +66,12 @@ export const sourceDomain = (url?: string): string | undefined => {
 /** `search_web`, `searchWeb`, and `search-web` all read as `Search web`. */
 export const toolLabel = (name: string): string => {
   const words = name
-    .replaceAll(/([a-z0-9])([A-Z])/gu, '$1 $2')
-    .replaceAll(/[_\-.]+/gu, ' ')
+    .replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replaceAll(/[_\-.]+/gu, " ")
     .trim()
     .toLowerCase();
   if (!words) {
-    return 'Tool';
+    return "Tool";
   }
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
@@ -76,13 +80,15 @@ const DETAIL_LIMIT = 140;
 
 const lastLine = (text: string): string | undefined => {
   const line = text
-    .split('\n')
+    .split("\n")
     .map((part) => part.trim())
     .findLast((part) => part.length > 0);
   if (!line) {
     return undefined;
   }
-  return line.length > DETAIL_LIMIT ? `${line.slice(0, DETAIL_LIMIT - 1).trimEnd()}…` : line;
+  return line.length > DETAIL_LIMIT
+    ? `${line.slice(0, DETAIL_LIMIT - 1).trimEnd()}…`
+    : line;
 };
 
 export interface ThinkingStateLabels {
@@ -92,9 +98,9 @@ export interface ThinkingStateLabels {
 }
 
 const DEFAULT_LABELS: ThinkingStateLabels = {
-  sources: 'Reading sources',
-  thinking: 'Thinking',
-  writing: 'Writing the answer',
+  sources: "Reading sources",
+  thinking: "Thinking",
+  writing: "Writing the answer",
 };
 
 export interface ThinkingStateSource {
@@ -112,50 +118,54 @@ export interface ThinkingStateSnapshot {
   steps: ThinkingStep[];
 }
 
-type MessagePart = UIMessage['parts'][number];
+type MessagePart = UIMessage["parts"][number];
 type DraftStep = ThinkingStep & {
-  kind: 'reasoning' | 'tool' | 'sources' | 'text';
+  kind: "reasoning" | "tool" | "sources" | "text";
 };
 
 const toolStepStatus = (state: string): ThinkingStepStatus => {
-  if (state === 'output-available') {
-    return 'done';
+  if (state === "output-available") {
+    return "done";
   }
-  if (state === 'output-error' || state === 'output-denied') {
-    return 'error';
+  if (state === "output-error" || state === "output-denied") {
+    return "error";
   }
-  return 'active';
+  return "active";
 };
 
-const toolStep = (part: MessagePart, toolLabels: Record<string, string>): DraftStep | null => {
-  const isDynamic = part.type === 'dynamic-tool';
-  if (!(isDynamic || part.type.startsWith('tool-'))) {
+const toolStep = (
+  part: MessagePart,
+  toolLabels: Record<string, string>
+): DraftStep | null => {
+  const isDynamic = part.type === "dynamic-tool";
+  if (!(isDynamic || part.type.startsWith("tool-"))) {
     return null;
   }
-  if (!('toolCallId' in part && 'state' in part)) {
+  if (!("toolCallId" in part && "state" in part)) {
     return null;
   }
-  const name = isDynamic && 'toolName' in part ? part.toolName : part.type.slice(5);
-  const title = 'title' in part ? part.title : undefined;
-  const errorText = 'errorText' in part ? part.errorText : undefined;
+  const name =
+    isDynamic && "toolName" in part ? part.toolName : part.type.slice(5);
+  const title = "title" in part ? part.title : undefined;
+  const errorText = "errorText" in part ? part.errorText : undefined;
   return {
-    detail: typeof errorText === 'string' ? lastLine(errorText) : undefined,
+    detail: typeof errorText === "string" ? lastLine(errorText) : undefined,
     id: part.toolCallId,
-    kind: 'tool',
+    kind: "tool",
     label: toolLabels[name] ?? title ?? toolLabel(name),
     status: toolStepStatus(String(part.state)),
   };
 };
 
 const sourceOf = (part: MessagePart): ThinkingSource | null => {
-  if (part.type === 'source-url') {
+  if (part.type === "source-url") {
     return {
       id: part.sourceId,
       title: part.title ?? sourceDomain(part.url) ?? part.url,
       url: part.url,
     };
   }
-  if (part.type === 'source-document') {
+  if (part.type === "source-document") {
     return { id: part.sourceId, title: part.title };
   }
   return null;
@@ -164,58 +174,66 @@ const sourceOf = (part: MessagePart): ThinkingSource | null => {
 const readParts = (
   parts: readonly MessagePart[],
   labels: ThinkingStateLabels,
-  toolLabels: Record<string, string>,
+  toolLabels: Record<string, string>
 ): DraftStep[] => {
   const steps: DraftStep[] = [];
   for (const [index, part] of parts.entries()) {
     const last = steps.at(-1);
     const source = sourceOf(part);
     const tool = toolStep(part, toolLabels);
-    if (part.type === 'reasoning') {
+    if (part.type === "reasoning") {
       steps.push({
         detail: lastLine(part.text),
         id: `reasoning-${index}`,
-        kind: 'reasoning',
+        kind: "reasoning",
         label: labels.thinking,
-        status: part.state === 'streaming' ? 'active' : 'done',
+        status: part.state === "streaming" ? "active" : "done",
       });
     } else if (tool) {
       steps.push(tool);
-    } else if (source && last && (last.kind === 'tool' || last.kind === 'sources')) {
+    } else if (
+      source &&
+      last &&
+      (last.kind === "tool" || last.kind === "sources")
+    ) {
       last.sources = [...(last.sources ?? []), source];
     } else if (source) {
       steps.push({
         id: `sources-${index}`,
-        kind: 'sources',
+        kind: "sources",
         label: labels.sources,
         sources: [source],
-        status: 'done',
+        status: "done",
       });
-    } else if (part.type === 'text' && last?.kind !== 'text') {
+    } else if (part.type === "text" && last?.kind !== "text") {
       steps.push({
         id: `text-${index}`,
-        kind: 'text',
+        kind: "text",
         label: labels.writing,
-        status: part.state === 'done' ? 'done' : 'active',
+        status: part.state === "done" ? "done" : "active",
       });
     }
   }
   return steps;
 };
 
-const settle = (step: DraftStep, status: ThinkingStatus, isLast: boolean): ThinkingStep => {
+const settle = (
+  step: DraftStep,
+  status: ThinkingStatus,
+  isLast: boolean
+): ThinkingStep => {
   const { kind: _kind, ...rest } = step;
-  if (rest.status !== 'active') {
+  if (rest.status !== "active") {
     return rest;
   }
-  if (status === 'done') {
-    return { ...rest, status: 'done' };
+  if (status === "done") {
+    return { ...rest, status: "done" };
   }
-  if (status === 'error') {
-    return { ...rest, status: 'error' };
+  if (status === "error") {
+    return { ...rest, status: "error" };
   }
   // Only the newest step can still be running; earlier ones were superseded.
-  return isLast ? rest : { ...rest, status: 'done' };
+  return isLast ? rest : { ...rest, status: "done" };
 };
 
 /**
@@ -237,19 +255,25 @@ export const thinkingStateFromMessage = ({
   toolLabels = {},
   labels,
 }: ThinkingStateSource): ThinkingStateSnapshot => {
-  let status: ThinkingStatus = 'working';
-  if (chatStatus === 'ready') {
-    status = 'done';
-  } else if (chatStatus === 'error') {
-    status = 'error';
+  let status: ThinkingStatus = "working";
+  if (chatStatus === "ready") {
+    status = "done";
+  } else if (chatStatus === "error") {
+    status = "error";
   }
-  if (!message || message.role !== 'assistant') {
+  if (!message || message.role !== "assistant") {
     return { status, steps: [] };
   }
-  const drafts = readParts(message.parts, { ...DEFAULT_LABELS, ...labels }, toolLabels);
+  const drafts = readParts(
+    message.parts,
+    { ...DEFAULT_LABELS, ...labels },
+    toolLabels
+  );
   return {
     status,
-    steps: drafts.map((step, index) => settle(step, status, index === drafts.length - 1)),
+    steps: drafts.map((step, index) =>
+      settle(step, status, index === drafts.length - 1)
+    ),
   };
 };
 
@@ -292,30 +316,30 @@ export interface ThinkingStateProps {
 }
 
 const DEFAULT_STEPS: ThinkingStep[] = [
-  { id: 'read', label: 'Reading the question' },
+  { id: "read", label: "Reading the question" },
   {
-    detail: 'csp frame-src 3ds redirect safari',
-    id: 'search',
-    label: 'Searching the web',
+    detail: "csp frame-src 3ds redirect safari",
+    id: "search",
+    label: "Searching the web",
     sources: [
       {
-        id: 's1',
-        title: 'CSP: frame-src',
-        url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src',
+        id: "s1",
+        title: "CSP: frame-src",
+        url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src",
       },
       {
-        id: 's2',
-        title: '3D Secure authentication',
-        url: 'https://docs.stripe.com/payments/3d-secure',
+        id: "s2",
+        title: "3D Secure authentication",
+        url: "https://docs.stripe.com/payments/3d-secure",
       },
       {
-        id: 's3',
-        title: 'Content Security Policy Level 3',
-        url: 'https://www.w3.org/TR/CSP3/',
+        id: "s3",
+        title: "Content Security Policy Level 3",
+        url: "https://www.w3.org/TR/CSP3/",
       },
     ],
   },
-  { id: 'deploys', label: 'Checking deploys', status: 'active' },
+  { id: "deploys", label: "Checking deploys", status: "active" },
 ];
 
 const DEFAULT_MAX_SOURCES = 4;
@@ -324,16 +348,16 @@ const COLLAPSE_MS = 900;
 const EASE = [0.4, 0, 0.2, 1] as const;
 
 const THEME_VARS = [
-  '[--thinking-state-done:#15803d] dark:[--thinking-state-done:#4ade80]',
-  '[--thinking-state-error:var(--destructive)]',
-  '[--thinking-state-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  '[--thinking-state-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
-  'dark:[--thinking-state-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  'dark:[--thinking-state-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]',
-].join(' ');
+  "[--thinking-state-done:#15803d] dark:[--thinking-state-done:#4ade80]",
+  "[--thinking-state-error:var(--destructive)]",
+  "[--thinking-state-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--thinking-state-shadow-hover:0_0_0_1px_rgba(0,0,0,0.08),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--thinking-state-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--thinking-state-shadow-hover:0_0_0_1px_rgba(255,255,255,0.13)]",
+].join(" ");
 
 const ENTER_CLASS =
-  'fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none';
+  "fade-in-0 slide-in-from-bottom-2 animate-in fill-mode-both duration-300 ease-out motion-reduce:animate-none";
 
 /** Ticks while `running`, then holds the last value. */
 const useElapsed = ({
@@ -366,7 +390,8 @@ const useElapsed = ({
   return durationMs ?? elapsed;
 };
 
-const stepStatus = (step: ThinkingStep): ThinkingStepStatus => step.status ?? 'done';
+const stepStatus = (step: ThinkingStep): ThinkingStepStatus =>
+  step.status ?? "done";
 
 const resolveLabel = ({
   elapsed,
@@ -379,16 +404,16 @@ const resolveLabel = ({
   status: ThinkingStatus;
   steps: readonly ThinkingStep[];
 }): string => {
-  if (status === 'error') {
-    return label ?? 'Stopped';
+  if (status === "error") {
+    return label ?? "Stopped";
   }
-  if (status === 'done') {
+  if (status === "done") {
     if (label) {
       return label;
     }
-    return elapsed >= 1000 ? `Thought for ${formatElapsed(elapsed)}` : 'Done';
+    return elapsed >= 1000 ? `Thought for ${formatElapsed(elapsed)}` : "Done";
   }
-  const running = steps.findLast((step) => stepStatus(step) === 'active');
+  const running = steps.findLast((step) => stepStatus(step) === "active");
   return label ?? running?.label ?? DEFAULT_LABELS.thinking;
 };
 
@@ -400,8 +425,9 @@ const DashedRing = ({ spinning }: { spinning: boolean }) => {
     <svg
       aria-hidden="true"
       className={cn(
-        'size-full',
-        spinning && 'animate-spin text-card-foreground [animation-duration:1.8s] motion-reduce:animate-none',
+        "size-full",
+        spinning &&
+          "animate-spin text-card-foreground [animation-duration:1.8s] motion-reduce:animate-none"
       )}
       viewBox="0 0 24 24"
     >
@@ -421,43 +447,49 @@ const DashedRing = ({ spinning }: { spinning: boolean }) => {
 };
 
 const GLYPH_TONE: Record<ThinkingStepStatus, string> = {
-  active: 'text-card-foreground',
-  done: 'text-(--thinking-state-done)',
-  error: 'text-(--thinking-state-error)',
-  pending: 'text-muted-foreground/70',
+  active: "text-card-foreground",
+  done: "text-(--thinking-state-done)",
+  error: "text-(--thinking-state-error)",
+  pending: "text-muted-foreground/70",
 };
 
-const StatusGlyph = ({ status, className }: { status: ThinkingStepStatus; className?: string }) => {
+const StatusGlyph = ({
+  status,
+  className,
+}: {
+  status: ThinkingStepStatus;
+  className?: string;
+}) => {
   const reduce = useReducedMotion();
-  const settled = status === 'done' || status === 'error';
+  const settled = status === "done" || status === "error";
   return (
     <span
       className={cn(
-        'relative inline-flex size-3.5 flex-none items-center justify-center',
+        "relative inline-flex size-3.5 flex-none items-center justify-center",
         GLYPH_TONE[status],
-        className,
+        className
       )}
       data-slot="thinking-state-glyph"
       data-status={status}
     >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
-          animate={{ filter: 'blur(0px)', opacity: 1, scale: 1 }}
+          animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
           className="inline-flex size-full items-center justify-center"
-          exit={{ filter: 'blur(2px)', opacity: 0, scale: 0.4 }}
-          initial={{ filter: 'blur(2px)', opacity: 0, scale: 0.4 }}
-          key={settled ? status : 'ring'}
+          exit={{ filter: "blur(2px)", opacity: 0, scale: 0.4 }}
+          initial={{ filter: "blur(2px)", opacity: 0, scale: 0.4 }}
+          key={settled ? status : "ring"}
           transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
         >
           {settled ? (
             <HugeiconsIcon
               aria-hidden="true"
               className="size-full"
-              icon={status === 'done' ? Tick02Icon : AlertCircleIcon}
+              icon={status === "done" ? Tick02Icon : AlertCircleIcon}
               strokeWidth={2.4}
             />
           ) : (
-            <DashedRing spinning={status === 'active'} />
+            <DashedRing spinning={status === "active"} />
           )}
         </motion.span>
       </AnimatePresence>
@@ -473,16 +505,16 @@ const Shimmer = ({ children }: { children: string }) => {
   }
   return (
     <motion.span
-      animate={{ backgroundPosition: '-50% center' }}
+      animate={{ backgroundPosition: "-50% center" }}
       className="bg-size-[200%_100%] bg-clip-text text-transparent"
-      initial={{ backgroundPosition: '150% center' }}
+      initial={{ backgroundPosition: "150% center" }}
       style={{
         backgroundImage:
-          'linear-gradient(90deg, var(--muted-foreground) 35%, var(--card-foreground) 50%, var(--muted-foreground) 65%)',
+          "linear-gradient(90deg, var(--muted-foreground) 35%, var(--card-foreground) 50%, var(--muted-foreground) 65%)",
       }}
       transition={{
         duration: 1.8,
-        ease: 'linear',
+        ease: "linear",
         repeat: Number.POSITIVE_INFINITY,
       }}
     >
@@ -491,16 +523,27 @@ const Shimmer = ({ children }: { children: string }) => {
   );
 };
 
-const RollingLabel = ({ className, label, shimmer }: { className?: string; label: string; shimmer: boolean }) => {
+const RollingLabel = ({
+  className,
+  label,
+  shimmer,
+}: {
+  className?: string;
+  label: string;
+  shimmer: boolean;
+}) => {
   const reduce = useReducedMotion();
   return (
-    <span className={cn('relative inline-flex min-w-0', className)} data-slot="thinking-state-label">
+    <span
+      className={cn("relative inline-flex min-w-0", className)}
+      data-slot="thinking-state-label"
+    >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
-          animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
+          animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
           className="block min-w-0 truncate"
-          exit={{ filter: 'blur(3px)', opacity: 0, y: '-0.5em' }}
-          initial={{ filter: 'blur(3px)', opacity: 0, y: '0.5em' }}
+          exit={{ filter: "blur(3px)", opacity: 0, y: "-0.5em" }}
+          initial={{ filter: "blur(3px)", opacity: 0, y: "0.5em" }}
           key={label}
           transition={{ duration: reduce ? 0 : 0.28, ease: EASE }}
         >
@@ -514,13 +557,21 @@ const RollingLabel = ({ className, label, shimmer }: { className?: string; label
 const faviconUrl = (domain: string): string =>
   `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
 
-const SourceMark = ({ favicons, source }: { favicons: boolean; source: ThinkingSource }) => {
+const SourceMark = ({
+  favicons,
+  source,
+}: {
+  favicons: boolean;
+  source: ThinkingSource;
+}) => {
   const [failed, setFailed] = useState(false);
   const domain = sourceDomain(source.url);
   const letter = (domain ?? source.title).trim().charAt(0);
   if (source.icon) {
     return (
-      <span className="inline-flex size-4 flex-none items-center justify-center [&_svg]:size-3">{source.icon}</span>
+      <span className="inline-flex size-4 flex-none items-center justify-center [&_svg]:size-3">
+        {source.icon}
+      </span>
     );
   }
   if (favicons && domain && !failed) {
@@ -550,7 +601,7 @@ const SourceMark = ({ favicons, source }: { favicons: boolean; source: ThinkingS
 };
 
 const CHIP_CLASS =
-  'inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-muted pr-2 pl-1 text-xs leading-4 text-card-foreground dark:bg-background';
+  "inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-muted pr-2 pl-1 text-xs leading-4 text-card-foreground dark:bg-background";
 
 const SourceChip = ({
   className,
@@ -573,10 +624,10 @@ const SourceChip = ({
   );
   return (
     <motion.li
-      animate={{ filter: 'blur(0px)', opacity: 1, scale: 1 }}
+      animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
       className="flex max-w-full min-w-0"
       data-slot="thinking-state-source"
-      initial={{ filter: 'blur(3px)', opacity: 0, scale: 0.94 }}
+      initial={{ filter: "blur(3px)", opacity: 0, scale: 0.94 }}
       transition={{
         delay: reduce ? 0 : Math.min(index, 6) * 0.04,
         duration: reduce ? 0 : 0.25,
@@ -587,8 +638,8 @@ const SourceChip = ({
         <a
           className={cn(
             CHIP_CLASS,
-            'transition-colors duration-150 ease-out hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none dark:hover:bg-foreground/10 dark:focus-visible:ring-ring/80',
-            className,
+            "transition-colors duration-150 ease-out hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none dark:hover:bg-foreground/10 dark:focus-visible:ring-ring/80",
+            className
           )}
           href={source.url}
           rel="noreferrer"
@@ -620,9 +671,18 @@ const SourceList = ({
   const shown = expanded ? sources : sources.slice(0, limit);
   const hidden = sources.length - shown.length;
   return (
-    <ul className="m-0 flex min-w-0 list-none flex-wrap gap-1 p-0" data-slot="thinking-state-sources">
+    <ul
+      className="m-0 flex min-w-0 list-none flex-wrap gap-1 p-0"
+      data-slot="thinking-state-sources"
+    >
       {shown.map((source, index) => (
-        <SourceChip className={className} favicons={favicons} index={index} key={source.id} source={source} />
+        <SourceChip
+          className={className}
+          favicons={favicons}
+          index={index}
+          key={source.id}
+          source={source}
+        />
       ))}
       {hidden > 0 ? (
         <li className="flex">
@@ -642,10 +702,10 @@ const SourceList = ({
 };
 
 const STEP_LABEL_TONE: Record<ThinkingStepStatus, string> = {
-  active: 'text-card-foreground',
-  done: 'text-card-foreground',
-  error: 'text-card-foreground',
-  pending: 'text-muted-foreground',
+  active: "text-card-foreground",
+  done: "text-card-foreground",
+  error: "text-card-foreground",
+  pending: "text-muted-foreground",
 };
 
 const ThinkingStepRow = ({
@@ -667,24 +727,30 @@ const ThinkingStepRow = ({
   return (
     <motion.li
       animate={{
-        filter: 'blur(0px)',
-        height: 'auto',
+        filter: "blur(0px)",
+        height: "auto",
         opacity: 1,
         // Clip only while growing, so focus rings on sources are not cut off.
-        transitionEnd: { overflow: 'visible' },
+        transitionEnd: { overflow: "visible" },
       }}
       className="relative"
       data-slot="thinking-state-step"
       data-status={status}
       initial={{
-        filter: 'blur(4px)',
+        filter: "blur(4px)",
         height: 0,
         opacity: 0,
-        overflow: 'hidden',
+        overflow: "hidden",
       }}
       transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
     >
-      <div className={cn('flex min-w-0 gap-2', isLast ? 'pb-0' : 'pb-2.5', classNames?.step)}>
+      <div
+        className={cn(
+          "flex min-w-0 gap-2",
+          isLast ? "pb-0" : "pb-2.5",
+          classNames?.step
+        )}
+      >
         <span className="relative flex w-6 flex-none justify-center pt-[3px]">
           <StatusGlyph status={status} />
           {isLast ? null : (
@@ -695,19 +761,33 @@ const ThinkingStepRow = ({
           )}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className={cn('text-[13px] leading-5 text-pretty', STEP_LABEL_TONE[status])}>{step.label}</div>
+          <div
+            className={cn(
+              "text-[13px] leading-5 text-pretty",
+              STEP_LABEL_TONE[status]
+            )}
+          >
+            {step.label}
+          </div>
           {step.detail ? (
             <p
               className={cn(
-                '-mt-1 line-clamp-2 text-xs leading-4 text-pretty',
-                status === 'error' ? 'text-(--thinking-state-error)' : 'text-muted-foreground',
+                "-mt-1 line-clamp-2 text-xs leading-4 text-pretty",
+                status === "error"
+                  ? "text-(--thinking-state-error)"
+                  : "text-muted-foreground"
               )}
             >
               {step.detail}
             </p>
           ) : null}
           {sources.length > 0 ? (
-            <SourceList className={classNames?.source} favicons={favicons} max={maxSources} sources={sources} />
+            <SourceList
+              className={classNames?.source}
+              favicons={favicons}
+              max={maxSources}
+              sources={sources}
+            />
           ) : null}
         </div>
       </div>
@@ -716,19 +796,27 @@ const ThinkingStepRow = ({
 };
 
 const overallGlyph = (status: ThinkingStatus): ThinkingStepStatus => {
-  if (status === 'working') {
-    return 'active';
+  if (status === "working") {
+    return "active";
   }
   return status;
 };
 
-const Timer = ({ className, elapsed, visible }: { className?: string; elapsed: number; visible: boolean }) => (
+const Timer = ({
+  className,
+  elapsed,
+  visible,
+}: {
+  className?: string;
+  elapsed: number;
+  visible: boolean;
+}) => (
   <span
     aria-hidden="true"
     className={cn(
-      'flex-none text-xs leading-4 text-muted-foreground tabular-nums transition-opacity duration-200 ease-out motion-reduce:transition-none',
-      visible ? 'opacity-100' : 'opacity-0',
-      className,
+      "flex-none text-xs leading-4 text-muted-foreground tabular-nums transition-opacity duration-200 ease-out motion-reduce:transition-none",
+      visible ? "opacity-100" : "opacity-0",
+      className
     )}
     data-slot="thinking-state-timer"
   >
@@ -755,7 +843,7 @@ const usePanelOpen = ({
   const isOpen = open ?? uncontrolled;
 
   useEffect(() => {
-    if (!collapseOnDone || touched || status !== 'done') {
+    if (!collapseOnDone || touched || status !== "done") {
       return;
     }
     const timer = setTimeout(() => {
@@ -779,8 +867,8 @@ const usePanelOpen = ({
 };
 
 export const ThinkingState = ({
-  variant = 'panel',
-  status = 'working',
+  variant = "panel",
+  status = "working",
   steps = DEFAULT_STEPS,
   label,
   startedAt,
@@ -797,7 +885,7 @@ export const ThinkingState = ({
   style,
 }: ThinkingStateProps) => {
   const reduce = useReducedMotion();
-  const working = status === 'working';
+  const working = status === "working";
   const elapsed = useElapsed({ durationMs, running: working, startedAt });
   const { isOpen, toggle } = usePanelOpen({
     collapseOnDone,
@@ -809,15 +897,15 @@ export const ThinkingState = ({
   const text = resolveLabel({ elapsed, label, status, steps });
   const glyph = overallGlyph(status);
 
-  if (variant === 'inline') {
+  if (variant === "inline") {
     return (
       <span
         className={cn(
           THEME_VARS,
           ENTER_CLASS,
-          'inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-card pr-2.5 pl-2 text-[13px] leading-5 text-card-foreground shadow-(--thinking-state-shadow)',
+          "inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-full bg-card pr-2.5 pl-2 text-[13px] leading-5 text-card-foreground shadow-(--thinking-state-shadow)",
           className,
-          classNames?.root,
+          classNames?.root
         )}
         data-slot="thinking-state"
         data-status={status}
@@ -825,10 +913,15 @@ export const ThinkingState = ({
         style={style}
       >
         <StatusGlyph status={glyph} />
-        <output aria-live="polite" className={cn('flex min-w-0 font-medium', classNames?.label)}>
+        <output
+          aria-live="polite"
+          className={cn("flex min-w-0 font-medium", classNames?.label)}
+        >
           <RollingLabel label={text} shimmer={working} />
         </output>
-        {showTimer && working ? <Timer className={classNames?.timer} elapsed={elapsed} visible /> : null}
+        {showTimer && working ? (
+          <Timer className={classNames?.timer} elapsed={elapsed} visible />
+        ) : null}
       </span>
     );
   }
@@ -840,12 +933,12 @@ export const ThinkingState = ({
       className={cn(
         THEME_VARS,
         ENTER_CLASS,
-        'flex w-full max-w-full min-w-0 flex-col rounded-2xl bg-card p-3 text-card-foreground shadow-(--thinking-state-shadow) transition-shadow duration-150 ease-out hover:shadow-(--thinking-state-shadow-hover)',
+        "flex w-full max-w-full min-w-0 flex-col rounded-2xl bg-card p-3 text-card-foreground shadow-(--thinking-state-shadow) transition-shadow duration-150 ease-out hover:shadow-(--thinking-state-shadow-hover)",
         className,
-        classNames?.root,
+        classNames?.root
       )}
       data-slot="thinking-state"
-      data-state={isOpen ? 'open' : 'closed'}
+      data-state={isOpen ? "open" : "closed"}
       data-status={status}
       data-variant="panel"
       style={style}
@@ -854,8 +947,8 @@ export const ThinkingState = ({
         aria-expanded={hasSteps ? isOpen : undefined}
         className={cn(
           "relative flex h-6 w-full min-w-0 items-center gap-2 rounded-md border-0 bg-transparent p-0 text-left after:absolute after:-inset-1.5 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none dark:focus-visible:ring-ring/80",
-          hasSteps ? 'cursor-pointer' : 'cursor-default',
-          classNames?.header,
+          hasSteps ? "cursor-pointer" : "cursor-default",
+          classNames?.header
         )}
         data-slot="thinking-state-header"
         disabled={!hasSteps}
@@ -867,17 +960,26 @@ export const ThinkingState = ({
         </span>
         <output
           aria-live="polite"
-          className={cn('flex min-w-0 flex-1 text-[13px] leading-5 font-medium tracking-[-0.01em]', classNames?.label)}
+          className={cn(
+            "flex min-w-0 flex-1 text-[13px] leading-5 font-medium tracking-[-0.01em]",
+            classNames?.label
+          )}
         >
           <RollingLabel label={text} shimmer={working} />
         </output>
-        {showTimer ? <Timer className={classNames?.timer} elapsed={elapsed} visible={working} /> : null}
+        {showTimer ? (
+          <Timer
+            className={classNames?.timer}
+            elapsed={elapsed}
+            visible={working}
+          />
+        ) : null}
         {hasSteps ? (
           <HugeiconsIcon
             aria-hidden="true"
             className={cn(
-              'size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none',
-              isOpen ? 'rotate-0' : '-rotate-90',
+              "size-3 flex-none text-muted-foreground transition-transform duration-150 ease-out motion-reduce:transition-none",
+              isOpen ? "rotate-0" : "-rotate-90"
             )}
             icon={ArrowDown01Icon}
             strokeWidth={2}
@@ -887,7 +989,7 @@ export const ThinkingState = ({
       <AnimatePresence initial={false}>
         {isOpen && hasSteps ? (
           <motion.div
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             className="overflow-hidden"
             exit={{ height: 0, opacity: 0 }}
             initial={{ height: 0, opacity: 0 }}
@@ -895,7 +997,10 @@ export const ThinkingState = ({
             transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
           >
             <ul
-              className={cn('m-0 flex list-none flex-col p-0 pt-3', classNames?.steps)}
+              className={cn(
+                "m-0 flex list-none flex-col p-0 pt-3",
+                classNames?.steps
+              )}
               data-slot="thinking-state-steps"
             >
               {steps.map((step, index) => (

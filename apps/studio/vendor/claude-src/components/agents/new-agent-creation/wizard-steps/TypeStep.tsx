@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { type ReactNode, useState } from 'react';
 import { Box, Text } from '../../../../ink.js';
 import { useKeybinding } from '../../../../keybindings/useKeybinding.js';
@@ -16,23 +16,28 @@ type Props = {
 };
 export function TypeStep(_props) {
   const $ = _c(15);
-  const { goNext, goBack, updateWizardData, wizardData } = useWizard();
-  const [agentType, setAgentType] = useState(wizardData.agentType || '');
+  const {
+    goNext,
+    goBack,
+    updateWizardData,
+    wizardData
+  } = useWizard();
+  const [agentType, setAgentType] = useState(wizardData.agentType || "");
   const [error, setError] = useState(null);
   const [cursorOffset, setCursorOffset] = useState(agentType.length);
   let t0;
-  if ($[0] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t0 = {
-      context: 'Settings',
+      context: "Settings"
     };
     $[0] = t0;
   } else {
     t0 = $[0];
   }
-  useKeybinding('confirm:no', goBack, t0);
+  useKeybinding("confirm:no", goBack, t0);
   let t1;
   if ($[1] !== goNext || $[2] !== updateWizardData) {
-    t1 = (value) => {
+    t1 = value => {
       const trimmedValue = value.trim();
       const validationError = validateAgentType(trimmedValue);
       if (validationError) {
@@ -41,7 +46,7 @@ export function TypeStep(_props) {
       }
       setError(null);
       updateWizardData({
-        agentType: trimmedValue,
+        agentType: trimmedValue
       });
       goNext();
     };
@@ -53,20 +58,14 @@ export function TypeStep(_props) {
   }
   const handleSubmit = t1;
   let t2;
-  if ($[4] === Symbol.for('react.memo_cache_sentinel')) {
-    t2 = (
-      <Byline>
-        <KeyboardShortcutHint shortcut="Type" action="enter text" />
-        <KeyboardShortcutHint shortcut="Enter" action="continue" />
-        <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="go back" />
-      </Byline>
-    );
+  if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
+    t2 = <Byline><KeyboardShortcutHint shortcut="Type" action="enter text" /><KeyboardShortcutHint shortcut="Enter" action="continue" /><ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="go back" /></Byline>;
     $[4] = t2;
   } else {
     t2 = $[4];
   }
   let t3;
-  if ($[5] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
     t3 = <Text>Enter a unique identifier for your agent:</Text>;
     $[5] = t3;
   } else {
@@ -74,21 +73,7 @@ export function TypeStep(_props) {
   }
   let t4;
   if ($[6] !== agentType || $[7] !== cursorOffset || $[8] !== handleSubmit) {
-    t4 = (
-      <Box marginTop={1}>
-        <TextInput
-          value={agentType}
-          onChange={setAgentType}
-          onSubmit={handleSubmit}
-          placeholder="e.g., test-runner, tech-lead, etc"
-          columns={60}
-          cursorOffset={cursorOffset}
-          onChangeCursorOffset={setCursorOffset}
-          focus={true}
-          showCursor={true}
-        />
-      </Box>
-    );
+    t4 = <Box marginTop={1}><TextInput value={agentType} onChange={setAgentType} onSubmit={handleSubmit} placeholder="e.g., test-runner, tech-lead, etc" columns={60} cursorOffset={cursorOffset} onChangeCursorOffset={setCursorOffset} focus={true} showCursor={true} /></Box>;
     $[6] = agentType;
     $[7] = cursorOffset;
     $[8] = handleSubmit;
@@ -98,11 +83,7 @@ export function TypeStep(_props) {
   }
   let t5;
   if ($[10] !== error) {
-    t5 = error && (
-      <Box marginTop={1}>
-        <Text color="error">{error}</Text>
-      </Box>
-    );
+    t5 = error && <Box marginTop={1}><Text color="error">{error}</Text></Box>;
     $[10] = error;
     $[11] = t5;
   } else {
@@ -110,15 +91,7 @@ export function TypeStep(_props) {
   }
   let t6;
   if ($[12] !== t4 || $[13] !== t5) {
-    t6 = (
-      <WizardDialogLayout subtitle="Agent type (identifier)" footerText={t2}>
-        <Box flexDirection="column">
-          {t3}
-          {t4}
-          {t5}
-        </Box>
-      </WizardDialogLayout>
-    );
+    t6 = <WizardDialogLayout subtitle="Agent type (identifier)" footerText={t2}><Box flexDirection="column">{t3}{t4}{t5}</Box></WizardDialogLayout>;
     $[12] = t4;
     $[13] = t5;
     $[14] = t6;

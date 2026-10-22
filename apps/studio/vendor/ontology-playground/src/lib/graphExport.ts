@@ -23,24 +23,34 @@ export function computePngExportBounds(
   maxDimension = MAX_EXPORT_DIMENSION,
   maxPixelArea = MAX_EXPORT_PIXEL_AREA,
 ): PngExportBounds {
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+  if (
+    !Number.isFinite(width)
+    || !Number.isFinite(height)
+    || width <= 0
+    || height <= 0
+  ) {
     throw new RangeError('Graph export bounds must be finite positive values.');
   }
   if (
-    !Number.isFinite(desiredScale) ||
-    !Number.isFinite(maxDimension) ||
-    !Number.isFinite(maxPixelArea) ||
-    desiredScale <= 0 ||
-    maxDimension <= 0 ||
-    maxPixelArea <= 0
+    !Number.isFinite(desiredScale)
+    || !Number.isFinite(maxDimension)
+    || !Number.isFinite(maxPixelArea)
+    || desiredScale <= 0
+    || maxDimension <= 0
+    || maxPixelArea <= 0
   ) {
     throw new RangeError('Graph export limits must be finite positive values.');
   }
 
   const canvasWidth = Math.ceil(width);
   const canvasHeight = Math.ceil(height);
-  const dimensionScale = Math.min(maxDimension / canvasWidth, maxDimension / canvasHeight);
-  const areaScale = Math.sqrt(maxPixelArea / (canvasWidth * canvasHeight));
+  const dimensionScale = Math.min(
+    maxDimension / canvasWidth,
+    maxDimension / canvasHeight,
+  );
+  const areaScale = Math.sqrt(
+    maxPixelArea / (canvasWidth * canvasHeight),
+  );
   const scale = Math.min(desiredScale, dimensionScale, areaScale);
 
   return {
@@ -49,7 +59,11 @@ export function computePngExportBounds(
   };
 }
 
-export function createPngExportOptions(width: number, height: number, bg: string): PngExportOptions {
+export function createPngExportOptions(
+  width: number,
+  height: number,
+  bg: string,
+): PngExportOptions {
   return {
     ...computePngExportBounds(width, height),
     full: true,
@@ -76,7 +90,11 @@ function readBlobPrefix(blob: Blob, length: number): Promise<Uint8Array> {
 }
 
 export async function isValidPngBlob(value: unknown): Promise<boolean> {
-  if (!(value instanceof Blob) || value.type !== 'image/png' || value.size < MIN_PNG_BYTES) {
+  if (
+    !(value instanceof Blob)
+    || value.type !== 'image/png'
+    || value.size < MIN_PNG_BYTES
+  ) {
     return false;
   }
 

@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { type ReactNode } from 'react';
 import { isAutoMemoryEnabled } from '../../../memdir/paths.js';
 import type { Tools } from '../../../Tool.js';
@@ -25,7 +25,12 @@ type Props = {
 };
 export function CreateAgentWizard(t0) {
   const $ = _c(17);
-  const { tools, existingAgents, onComplete, onCancel } = t0;
+  const {
+    tools,
+    existingAgents,
+    onComplete,
+    onCancel
+  } = t0;
   let t1;
   if ($[0] !== existingAgents) {
     t1 = () => <TypeStep existingAgents={existingAgents} />;
@@ -43,7 +48,7 @@ export function CreateAgentWizard(t0) {
     t2 = $[3];
   }
   let t3;
-  if ($[4] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
     t3 = isAutoMemoryEnabled() ? [MemoryStep] : [];
     $[4] = t3;
   } else {
@@ -71,7 +76,7 @@ export function CreateAgentWizard(t0) {
   }
   const steps = t5;
   let t6;
-  if ($[13] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
     t6 = {};
     $[13] = t6;
   } else {
@@ -79,16 +84,7 @@ export function CreateAgentWizard(t0) {
   }
   let t7;
   if ($[14] !== onCancel || $[15] !== steps) {
-    t7 = (
-      <WizardProvider
-        steps={steps}
-        initialData={t6}
-        onComplete={_temp}
-        onCancel={onCancel}
-        title="Create new agent"
-        showStepCounter={false}
-      />
-    );
+    t7 = <WizardProvider steps={steps} initialData={t6} onComplete={_temp} onCancel={onCancel} title="Create new agent" showStepCounter={false} />;
     $[14] = onCancel;
     $[15] = steps;
     $[16] = t7;

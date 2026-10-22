@@ -1,3 +1,7 @@
 **/node_modules/
 **/dist/
 **/coverage/
+
+# Preserve imported source snapshots and generated assets byte-for-byte.
+apps/studio/vendor/
+apps/studio/app/ontology-vendor.css

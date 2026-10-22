@@ -8,36 +8,29 @@ export function renderToolUseMessage(input: Partial<Input>): React.ReactNode {
   if (input.value === undefined) {
     return <Text dimColor>Getting {input.setting}</Text>;
   }
-  return (
-    <Text dimColor>
+  return <Text dimColor>
       Setting {input.setting} to {jsonStringify(input.value)}
-    </Text>
-  );
+    </Text>;
 }
 export function renderToolResultMessage(content: Output): React.ReactNode {
   if (!content.success) {
-    return (
-      <MessageResponse>
+    return <MessageResponse>
         <Text color="error">Failed: {content.error}</Text>
-      </MessageResponse>
-    );
+      </MessageResponse>;
   }
   if (content.operation === 'get') {
-    return (
-      <MessageResponse>
+    return <MessageResponse>
         <Text>
           <Text bold>{content.setting}</Text> = {jsonStringify(content.value)}
         </Text>
-      </MessageResponse>
-    );
+      </MessageResponse>;
   }
-  return (
-    <MessageResponse>
+  return <MessageResponse>
       <Text>
-        Set <Text bold>{content.setting}</Text> to <Text bold>{jsonStringify(content.newValue)}</Text>
+        Set <Text bold>{content.setting}</Text> to{' '}
+        <Text bold>{jsonStringify(content.newValue)}</Text>
       </Text>
-    </MessageResponse>
-  );
+    </MessageResponse>;
 }
 export function renderToolUseRejectedMessage(): React.ReactNode {
   return <Text color="warning">Config change rejected</Text>;

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { ArrowUp02Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
+import { ArrowUp02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface SlashCommandArgument {
   name: string;
@@ -53,21 +53,21 @@ const DEFAULT_COMMANDS: SlashCommand[] = [
   {
     arguments: [
       {
-        description: 'A file, a folder, or a pull request',
-        name: 'target',
+        description: "A file, a folder, or a pull request",
+        name: "target",
         required: true,
       },
     ],
-    description: 'Look for bugs and risky changes',
-    name: 'review',
-    prompt: 'Review {target} for bugs, risky changes, and missing tests.',
+    description: "Look for bugs and risky changes",
+    name: "review",
+    prompt: "Review {target} for bugs, risky changes, and missing tests.",
   },
   {
-    description: 'Sum up the conversation so far',
-    name: 'summarize',
-    prompt: 'Summarize this conversation so far in five lines or fewer.',
+    description: "Sum up the conversation so far",
+    name: "summarize",
+    prompt: "Summarize this conversation so far in five lines or fewer.",
   },
-  { description: 'Start a new conversation', name: 'clear' },
+  { description: "Start a new conversation", name: "clear" },
 ];
 
 const RECENT_MAX = 3;
@@ -83,7 +83,7 @@ interface ArgToken {
 
 /** Where the command's name ends, when the text starts with a slash. */
 const readName = (text: string): { name: string; end: number } | null => {
-  if (!text.startsWith('/')) {
+  if (!text.startsWith("/")) {
     return null;
   }
   const space = text.search(SPACE_CHAR);
@@ -97,7 +97,10 @@ const readTokens = (text: string, from: number, to: number): ArgToken[] =>
     text: match[0],
   }));
 
-const findCommand = (commands: readonly SlashCommand[], name: string): SlashCommand | undefined => {
+const findCommand = (
+  commands: readonly SlashCommand[],
+  name: string
+): SlashCommand | undefined => {
   const wanted = name.toLowerCase();
   return commands.find((command) => command.name.toLowerCase() === wanted);
 };
@@ -110,12 +113,15 @@ const findCommand = (commands: readonly SlashCommand[], name: string): SlashComm
  * fillSlashPrompt("Review {target} for bugs.", { target: "checkout.ts" });
  * // "Review checkout.ts for bugs."
  */
-export const fillSlashPrompt = (prompt: NonNullable<SlashCommand['prompt']>, args: Record<string, string>): string =>
-  typeof prompt === 'function'
+export const fillSlashPrompt = (
+  prompt: NonNullable<SlashCommand["prompt"]>,
+  args: Record<string, string>
+): string =>
+  typeof prompt === "function"
     ? prompt(args)
     : prompt
-        .replaceAll(PLACEHOLDER, (_, name: string) => args[name] ?? '')
-        .replaceAll(SPACE_RUN, ' ')
+        .replaceAll(PLACEHOLDER, (_, name: string) => args[name] ?? "")
+        .replaceAll(SPACE_RUN, " ")
         .trim();
 
 /**
@@ -127,7 +133,10 @@ export const fillSlashPrompt = (prompt: NonNullable<SlashCommand['prompt']>, arg
  * parseSlashCommand("/deploy preview main", commands)?.args;
  * // { environment: "preview", branch: "main" }
  */
-export const parseSlashCommand = (text: string, commands: readonly SlashCommand[]): SlashCommandRun | null => {
+export const parseSlashCommand = (
+  text: string,
+  commands: readonly SlashCommand[]
+): SlashCommandRun | null => {
   const line = text.trim();
   const head = readName(line);
   const command = head ? findCommand(commands, head.name) : undefined;
@@ -140,20 +149,28 @@ export const parseSlashCommand = (text: string, commands: readonly SlashCommand[
   for (const [index, argument] of declared.entries()) {
     const token = tokens[index];
     if (token) {
-      args[argument.name] = index === declared.length - 1 ? line.slice(token.start) : token.text;
+      args[argument.name] =
+        index === declared.length - 1 ? line.slice(token.start) : token.text;
     }
   }
   return {
     args,
     command,
-    prompt: command.prompt === undefined ? undefined : fillSlashPrompt(command.prompt, args),
+    prompt:
+      command.prompt === undefined
+        ? undefined
+        : fillSlashPrompt(command.prompt, args),
     text: line,
   };
 };
 
 /** `target [branch]`: what is still to type, optional ones in brackets. */
 const argumentHint = (declared: readonly SlashCommandArgument[]): string =>
-  declared.map((argument) => (argument.required ? argument.name : `[${argument.name}]`)).join(' ');
+  declared
+    .map((argument) =>
+      argument.required ? argument.name : `[${argument.name}]`
+    )
+    .join(" ");
 
 interface CommandSection {
   label: string;
@@ -179,29 +196,36 @@ const matchRank = (command: SlashCommand, query: string): number | null => {
 const pickSections = (
   commands: readonly SlashCommand[],
   recent: readonly string[],
-  query: string,
+  query: string
 ): CommandSection[] => {
   const needle = query.toLowerCase();
-  if (needle !== '') {
+  if (needle !== "") {
     const ranked = commands
       .map((command, index) => ({
         command,
         index,
         rank: matchRank(command, needle),
       }))
-      .filter((entry): entry is typeof entry & { rank: number } => entry.rank !== null)
-      .toSorted((left, right) => left.rank - right.rank || left.index - right.index);
-    return ranked.length > 0 ? [{ commands: ranked.map((entry) => entry.command), label: 'Commands' }] : [];
+      .filter(
+        (entry): entry is typeof entry & { rank: number } => entry.rank !== null
+      )
+      .toSorted(
+        (left, right) => left.rank - right.rank || left.index - right.index
+      );
+    return ranked.length > 0
+      ? [{ commands: ranked.map((entry) => entry.command), label: "Commands" }]
+      : [];
   }
 
   const recents = recent
     .map((name) => findCommand(commands, name))
     .filter((command): command is SlashCommand => command !== undefined)
     .slice(0, RECENT_MAX);
-  const sections: CommandSection[] = recents.length > 0 ? [{ commands: recents, label: 'Recent' }] : [];
+  const sections: CommandSection[] =
+    recents.length > 0 ? [{ commands: recents, label: "Recent" }] : [];
   for (const command of commands) {
     if (!recents.includes(command)) {
-      const label = command.group ?? 'Commands';
+      const label = command.group ?? "Commands";
       const section = sections.find((entry) => entry.label === label);
       if (section) {
         section.commands.push(command);
@@ -222,7 +246,12 @@ interface ArgumentAtCaret {
 }
 
 /** The argument the caret is in, once the caret is past the name. */
-const readArgument = (command: SlashCommand, text: string, nameEnd: number, caret: number): ArgumentAtCaret | null => {
+const readArgument = (
+  command: SlashCommand,
+  text: string,
+  nameEnd: number,
+  caret: number
+): ArgumentAtCaret | null => {
   const declared = command.arguments ?? [];
   if (declared.length === 0 || caret <= nameEnd) {
     return null;
@@ -244,7 +273,7 @@ const readArgument = (command: SlashCommand, text: string, nameEnd: number, care
   return {
     argument: declared[index],
     index,
-    partial: fresh ? '' : tokens[index].text,
+    partial: fresh ? "" : tokens[index].text,
     start: fresh ? caret : tokens[index].start,
   };
 };
@@ -252,7 +281,10 @@ const readArgument = (command: SlashCommand, text: string, nameEnd: number, care
 const isChoice = (options: readonly string[], value: string): boolean =>
   options.some((option) => option.toLowerCase() === value.toLowerCase());
 
-const matchOptions = (options: readonly string[], partial: string): string[] => {
+const matchOptions = (
+  options: readonly string[],
+  partial: string
+): string[] => {
   const typed = partial.toLowerCase();
   // A choice typed out in full needs no list.
   if (options.some((option) => option.toLowerCase() === typed)) {
@@ -262,9 +294,9 @@ const matchOptions = (options: readonly string[], partial: string): string[] => 
 };
 
 type MenuState =
-  | { kind: 'commands'; key: string; sections: CommandSection[] }
-  | { kind: 'options'; key: string; at: ArgumentAtCaret; options: string[] }
-  | { kind: 'hint'; key: string; argument: SlashCommandArgument }
+  | { kind: "commands"; key: string; sections: CommandSection[] }
+  | { kind: "options"; key: string; at: ArgumentAtCaret; options: string[] }
+  | { kind: "hint"; key: string; argument: SlashCommandArgument }
   | null;
 
 export interface SlashCommandMenuClassNames {
@@ -292,7 +324,7 @@ export interface SlashCommandMenuProps {
   /** Enter on anything that is not a command. The field clears. */
   onSubmit?: (text: string) => void;
   /** Where the menu opens. A composer at the foot of a chat opens upward. */
-  side?: 'top' | 'bottom';
+  side?: "top" | "bottom";
   placeholder?: string;
   disabled?: boolean;
   /** Focuses the field on mount without scrolling to it. */
@@ -305,38 +337,39 @@ export interface SlashCommandMenuProps {
 }
 
 const THEME_VARS = [
-  '[--slash-menu-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]',
-  '[--slash-menu-shadow-focus:0_0_0_1px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]',
-  'dark:[--slash-menu-shadow:0_0_0_1px_rgba(255,255,255,0.08)]',
-  'dark:[--slash-menu-shadow-focus:0_0_0_1px_rgba(255,255,255,0.16)]',
-  '[--slash-menu-popup-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_2px_4px_-2px_rgba(0,0,0,0.08),0_8px_20px_-6px_rgba(0,0,0,0.14)]',
-  'dark:[--slash-menu-popup-shadow:0_0_0_1px_rgba(255,255,255,0.1),0_8px_24px_-6px_rgba(0,0,0,0.6)]',
-  '[--slash-menu-tint:color-mix(in_oklab,var(--primary)_14%,transparent)]',
-  'dark:[--slash-menu-tint:color-mix(in_oklab,var(--primary)_28%,transparent)]',
-  '[--slash-menu-accent:var(--primary)]',
-  'dark:[--slash-menu-accent:color-mix(in_oklab,var(--primary)_45%,white)]',
-  '[--slash-menu-soft:color-mix(in_oklab,var(--foreground)_8%,transparent)]',
-  'dark:[--slash-menu-soft:color-mix(in_oklab,var(--foreground)_14%,transparent)]',
-].join(' ');
+  "[--slash-menu-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0px_rgba(0,0,0,0.04)]",
+  "[--slash-menu-shadow-focus:0_0_0_1px_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.08),0_2px_4px_0px_rgba(0,0,0,0.06)]",
+  "dark:[--slash-menu-shadow:0_0_0_1px_rgba(255,255,255,0.08)]",
+  "dark:[--slash-menu-shadow-focus:0_0_0_1px_rgba(255,255,255,0.16)]",
+  "[--slash-menu-popup-shadow:0_0_0_1px_rgba(0,0,0,0.06),0_2px_4px_-2px_rgba(0,0,0,0.08),0_8px_20px_-6px_rgba(0,0,0,0.14)]",
+  "dark:[--slash-menu-popup-shadow:0_0_0_1px_rgba(255,255,255,0.1),0_8px_24px_-6px_rgba(0,0,0,0.6)]",
+  "[--slash-menu-tint:color-mix(in_oklab,var(--primary)_14%,transparent)]",
+  "dark:[--slash-menu-tint:color-mix(in_oklab,var(--primary)_28%,transparent)]",
+  "[--slash-menu-accent:var(--primary)]",
+  "dark:[--slash-menu-accent:color-mix(in_oklab,var(--primary)_45%,white)]",
+  "[--slash-menu-soft:color-mix(in_oklab,var(--foreground)_8%,transparent)]",
+  "dark:[--slash-menu-soft:color-mix(in_oklab,var(--foreground)_14%,transparent)]",
+].join(" ");
 
-const FOCUS_CLASS = 'focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none';
+const FOCUS_CLASS =
+  "focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none";
 
 /** The textarea and the layer that draws its text must wrap at the same places. */
 const TEXT_CLASS =
-  'col-start-1 row-start-1 m-0 min-h-[44px] w-full min-w-0 border-0 p-0 text-[14px] leading-[22px] tracking-normal break-words whitespace-pre-wrap';
+  "col-start-1 row-start-1 m-0 min-h-[44px] w-full min-w-0 border-0 p-0 text-[14px] leading-[22px] tracking-normal break-words whitespace-pre-wrap";
 
 const MENU_CLASS =
-  'fade-in-0 zoom-in-[0.98] absolute inset-x-0 z-50 max-h-[420px] animate-in overflow-y-auto overscroll-contain rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-(--slash-menu-popup-shadow) duration-150 ease-out motion-reduce:animate-none';
+  "fade-in-0 zoom-in-[0.98] absolute inset-x-0 z-50 max-h-[420px] animate-in overflow-y-auto overscroll-contain rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-(--slash-menu-popup-shadow) duration-150 ease-out motion-reduce:animate-none";
 
 const ROW_CLASS =
-  'flex h-8 w-full min-w-0 items-center gap-2 rounded-[10px] border-0 bg-transparent px-2 text-left text-[13px] leading-5 text-popover-foreground outline-none';
+  "flex h-8 w-full min-w-0 items-center gap-2 rounded-[10px] border-0 bg-transparent px-2 text-left text-[13px] leading-5 text-popover-foreground outline-none";
 
 const EnterKey = ({ shown }: { shown: boolean }) => (
   <kbd
     aria-hidden="true"
     className={cn(
-      'inline-flex size-4.5 flex-none items-center justify-center rounded-[4px] bg-foreground/6 font-sans text-[10px] leading-none font-medium text-muted-foreground',
-      !shown && 'invisible',
+      "inline-flex size-4.5 flex-none items-center justify-center rounded-[4px] bg-foreground/6 font-sans text-[10px] leading-none font-medium text-muted-foreground",
+      !shown && "invisible"
     )}
   >
     ↵
@@ -372,12 +405,12 @@ export const SlashCommandMenu = ({
   defaultRecent = [],
   onRecentChange,
   value,
-  defaultValue = '',
+  defaultValue = "",
   onValueChange,
   onRun,
   onSubmit,
-  side = 'top',
-  placeholder = 'Message, or type / for commands',
+  side = "top",
+  placeholder = "Message, or type / for commands",
   disabled = false,
   autoFocus = false,
   children,
@@ -410,40 +443,55 @@ export const SlashCommandMenu = ({
   if (head && caret !== null && !disabled) {
     if (caret <= head.end) {
       const sections = pickSections(commands, recents, head.name);
-      menu = sections.length > 0 ? { key: 'commands', kind: 'commands', sections } : null;
+      menu =
+        sections.length > 0
+          ? { key: "commands", kind: "commands", sections }
+          : null;
     } else if (command) {
       const at = readArgument(command, text, head.end, caret);
-      const options = at?.argument.options ? matchOptions(at.argument.options, at.partial) : [];
+      const options = at?.argument.options
+        ? matchOptions(at.argument.options, at.partial)
+        : [];
       const required = declared.find((argument) => argument.name === missing);
       if (at && options.length > 0) {
-        menu = { at, key: `options:${at.index}`, kind: 'options', options };
+        menu = { at, key: `options:${at.index}`, kind: "options", options };
       } else if (required) {
-        menu = { argument: required, key: 'missing', kind: 'hint' };
+        menu = { argument: required, key: "missing", kind: "hint" };
       } else if (at?.argument.description && !at.argument.options) {
         menu = {
           argument: at.argument,
           key: `hint:${at.index}`,
-          kind: 'hint',
+          kind: "hint",
         };
       }
     }
   }
   const open = menu !== null && menu.key !== dismissed;
-  const commandRows = menu?.kind === 'commands' ? menu.sections.flatMap((section) => section.commands) : [];
-  const rowCount = menu?.kind === 'options' ? menu.options.length : commandRows.length;
+  const commandRows =
+    menu?.kind === "commands"
+      ? menu.sections.flatMap((section) => section.commands)
+      : [];
+  const rowCount =
+    menu?.kind === "options" ? menu.options.length : commandRows.length;
   const activeIndex = Math.min(active, rowCount - 1);
 
   // What is left to type, shown after the text once the next slot is empty.
   const typed = head ? readTokens(text, head.end, text.length).length : 0;
   const ghost =
-    command && head && text.length > head.end && SPACE_CHAR.test(text.at(-1) ?? '')
+    command &&
+    head &&
+    text.length > head.end &&
+    SPACE_CHAR.test(text.at(-1) ?? "")
       ? argumentHint(declared.slice(typed))
-      : '';
+      : "";
 
   // Restores the caret after an edit the browser did not make itself.
   useLayoutEffect(() => {
     if (pendingCaret.current !== null) {
-      field.current?.setSelectionRange(pendingCaret.current, pendingCaret.current);
+      field.current?.setSelectionRange(
+        pendingCaret.current,
+        pendingCaret.current
+      );
       pendingCaret.current = null;
     }
   }, [text]);
@@ -475,7 +523,11 @@ export const SlashCommandMenu = ({
   };
 
   const readCaret = (element: HTMLTextAreaElement) => {
-    setCaret(element.selectionStart === element.selectionEnd ? element.selectionStart : null);
+    setCaret(
+      element.selectionStart === element.selectionEnd
+        ? element.selectionStart
+        : null
+    );
   };
 
   useEffect(() => {
@@ -499,7 +551,7 @@ export const SlashCommandMenu = ({
     element.setSelectionRange(start, end);
     // execCommand is the only edit a textarea records for undo. Where it is
     // gone, the text is set directly and the caret restored by hand.
-    if (!document.execCommand('insertText', false, insert)) {
+    if (!document.execCommand("insertText", false, insert)) {
       pendingCaret.current = start + insert.length;
       setText(text.slice(0, start) + insert + text.slice(end));
       setCaret(start + insert.length);
@@ -507,7 +559,7 @@ export const SlashCommandMenu = ({
   };
 
   const clear = () => {
-    setText('');
+    setText("");
     setMissing(null);
     setDismissed(null);
     setActive(0);
@@ -516,7 +568,10 @@ export const SlashCommandMenu = ({
 
   const run = (next: SlashCommandRun) => {
     onRun?.(next);
-    const names = [next.command.name, ...recents.filter((name) => name !== next.command.name)].slice(0, RECENT_MAX);
+    const names = [
+      next.command.name,
+      ...recents.filter((name) => name !== next.command.name),
+    ].slice(0, RECENT_MAX);
     if (recent === undefined) {
       setInnerRecent(names);
     }
@@ -529,7 +584,7 @@ export const SlashCommandMenu = ({
     if (!head) {
       return;
     }
-    const spaced = SPACE_CHAR.test(text[head.end] ?? '');
+    const spaced = SPACE_CHAR.test(text[head.end] ?? "");
     setActive(0);
     replaceRange(0, head.end + (spaced ? 1 : 0), `/${picked.name} `);
   };
@@ -542,25 +597,32 @@ export const SlashCommandMenu = ({
     run({
       args: {},
       command: picked,
-      prompt: picked.prompt === undefined ? undefined : fillSlashPrompt(picked.prompt, {}),
+      prompt:
+        picked.prompt === undefined
+          ? undefined
+          : fillSlashPrompt(picked.prompt, {}),
       text: `/${picked.name}`,
     });
   };
 
   const chooseOption = (option: string) => {
-    if (menu?.kind !== 'options' || caret === null) {
+    if (menu?.kind !== "options" || caret === null) {
       return;
     }
     const rest = text.slice(caret).search(SPACE_CHAR);
     const end = rest === -1 ? text.length : caret + rest;
     const more = menu.at.index < declared.length - 1;
     setActive(0);
-    replaceRange(menu.at.start, end, more && !SPACE_CHAR.test(text[end] ?? '') ? `${option} ` : option);
+    replaceRange(
+      menu.at.start,
+      end,
+      more && !SPACE_CHAR.test(text[end] ?? "") ? `${option} ` : option
+    );
   };
 
   const submit = () => {
     const line = text.trim();
-    if (disabled || line === '') {
+    if (disabled || line === "") {
       return;
     }
     const parsed = parseSlashCommand(line, commands);
@@ -597,32 +659,32 @@ export const SlashCommandMenu = ({
       readCaret(element);
       return;
     }
-    replaceRange(0, text.length, '/');
+    replaceRange(0, text.length, "/");
   };
 
   const onMenuKey = (event: KeyboardEvent<HTMLTextAreaElement>): boolean => {
     if (!open || !menu) {
       return false;
     }
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       setDismissed(menu.key);
       setMissing(null);
       return true;
     }
-    if (menu.kind === 'hint' || rowCount === 0) {
+    if (menu.kind === "hint" || rowCount === 0) {
       return false;
     }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      const step = event.key === 'ArrowDown' ? 1 : -1;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const step = event.key === "ArrowDown" ? 1 : -1;
       setActive((activeIndex + step + rowCount) % rowCount);
       return true;
     }
-    if (event.key !== 'Enter' && event.key !== 'Tab') {
+    if (event.key !== "Enter" && event.key !== "Tab") {
       return false;
     }
-    if (menu.kind === 'options') {
+    if (menu.kind === "options") {
       chooseOption(menu.options[activeIndex]);
-    } else if (event.key === 'Tab') {
+    } else if (event.key === "Tab") {
       complete(commandRows[activeIndex]);
     } else {
       choose(commandRows[activeIndex]);
@@ -638,7 +700,7 @@ export const SlashCommandMenu = ({
       event.preventDefault();
       return;
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       submit();
     }
@@ -648,8 +710,8 @@ export const SlashCommandMenu = ({
   const hasIcons = commands.some((item) => item.icon !== undefined);
   // Enter found a value where a choice was expected.
   const wrongChoice =
-    menu?.kind === 'hint' &&
-    menu.key === 'missing' &&
+    menu?.kind === "hint" &&
+    menu.key === "missing" &&
     parseSlashCommand(text, commands)?.args[menu.argument.name] !== undefined;
 
   // The field's own text is invisible. This layer draws it, so the command
@@ -659,14 +721,14 @@ export const SlashCommandMenu = ({
     drawn.push(
       <mark
         className={cn(
-          'rounded-[4px] bg-(--slash-menu-tint) text-(--slash-menu-accent) shadow-[0_0_0_1px_var(--slash-menu-tint)]',
-          classNames?.command,
+          "rounded-[4px] bg-(--slash-menu-tint) text-(--slash-menu-accent) shadow-[0_0_0_1px_var(--slash-menu-tint)]",
+          classNames?.command
         )}
         data-slot="slash-command-menu-command"
         key="command"
       >
         {text.slice(0, head.end)}
-      </mark>,
+      </mark>
     );
     let cursor = head.end;
     const tokens = readTokens(text, head.end, text.length);
@@ -683,7 +745,7 @@ export const SlashCommandMenu = ({
             key={token.start}
           >
             {token.text}
-          </mark>,
+          </mark>
         );
         cursor = token.start + token.text.length;
       }
@@ -692,24 +754,29 @@ export const SlashCommandMenu = ({
   } else {
     drawn.push(text);
   }
-  const hasHeadings = menu?.kind === 'commands' && menu.sections.length > 1;
+  const hasHeadings = menu?.kind === "commands" && menu.sections.length > 1;
   // One column for every name, so the descriptions line up.
   const nameWidth = `${Math.max(...commands.map((item) => item.name.length), 4) + 1}ch`;
 
   return (
     <div
-      className={cn(THEME_VARS, 'relative w-full max-w-full min-w-0 text-card-foreground', className, classNames?.root)}
+      className={cn(
+        THEME_VARS,
+        "relative w-full max-w-full min-w-0 text-card-foreground",
+        className,
+        classNames?.root
+      )}
       data-slot="slash-command-menu"
       style={style}
     >
-      {open && menu?.kind === 'hint' ? (
+      {open && menu?.kind === "hint" ? (
         <div
           className={cn(
             MENU_CLASS,
-            side === 'top'
-              ? 'bottom-[calc(100%+8px)] origin-bottom slide-in-from-bottom-1'
-              : 'top-[calc(100%+8px)] origin-top slide-in-from-top-1',
-            classNames?.menu,
+            side === "top"
+              ? "bottom-[calc(100%+8px)] origin-bottom slide-in-from-bottom-1"
+              : "top-[calc(100%+8px)] origin-top slide-in-from-top-1",
+            classNames?.menu
           )}
           data-slot="slash-command-menu-hint"
           id={listId}
@@ -717,35 +784,38 @@ export const SlashCommandMenu = ({
         >
           <div className={ROW_CLASS}>
             <span className="min-w-0 flex-1 truncate">
-              {menu.key === 'missing' ? (
+              {menu.key === "missing" ? (
                 <span className="mr-2 font-medium">
                   {menu.argument.name}
-                  {wrongChoice ? ' must be one of' : ' is required'}
+                  {wrongChoice ? " must be one of" : " is required"}
                 </span>
               ) : null}
               <span className="text-muted-foreground">
                 {wrongChoice
-                  ? menu.argument.options?.join(', ')
-                  : (menu.argument.description ?? menu.argument.options?.join(', '))}
+                  ? menu.argument.options?.join(", ")
+                  : (menu.argument.description ??
+                    menu.argument.options?.join(", "))}
               </span>
             </span>
           </div>
         </div>
       ) : null}
 
-      {open && menu && menu.kind !== 'hint' ? (
+      {open && menu && menu.kind !== "hint" ? (
         <div
-          aria-label={menu.kind === 'options' ? menu.at.argument.name : 'Commands'}
+          aria-label={
+            menu.kind === "options" ? menu.at.argument.name : "Commands"
+          }
           className={cn(
             MENU_CLASS,
-            side === 'top'
-              ? 'bottom-[calc(100%+8px)] origin-bottom slide-in-from-bottom-1'
-              : 'top-[calc(100%+8px)] origin-top slide-in-from-top-1',
-            classNames?.menu,
+            side === "top"
+              ? "bottom-[calc(100%+8px)] origin-bottom slide-in-from-bottom-1"
+              : "top-[calc(100%+8px)] origin-top slide-in-from-top-1",
+            classNames?.menu
           )}
           data-slot="slash-command-menu-list"
           id={listId}
-          style={{ '--slash-menu-name': nameWidth } as CSSProperties}
+          style={{ "--slash-menu-name": nameWidth } as CSSProperties}
           // Swapping lists is not a second entrance.
           key="list"
           // Pressing a row must not take focus, and the caret, from the field.
@@ -756,15 +826,20 @@ export const SlashCommandMenu = ({
           role="listbox"
           tabIndex={-1}
         >
-          {menu.kind === 'commands'
+          {menu.kind === "commands"
             ? menu.sections.map((section) => (
-                <div aria-label={section.label} data-slot="slash-command-menu-group" key={section.label} role="group">
+                <div
+                  aria-label={section.label}
+                  data-slot="slash-command-menu-group"
+                  key={section.label}
+                  role="group"
+                >
                   {hasHeadings ? (
                     <div
                       aria-hidden="true"
                       className={cn(
-                        'px-2 pt-2 pb-1 text-[11px] leading-4 font-medium text-muted-foreground',
-                        classNames?.group,
+                        "px-2 pt-2 pb-1 text-[11px] leading-4 font-medium text-muted-foreground",
+                        classNames?.group
                       )}
                     >
                       {section.label}
@@ -776,7 +851,12 @@ export const SlashCommandMenu = ({
                     return (
                       <button
                         aria-selected={selected}
-                        className={cn(ROW_CLASS, 'cursor-pointer', selected && 'bg-foreground/6', classNames?.item)}
+                        className={cn(
+                          ROW_CLASS,
+                          "cursor-pointer",
+                          selected && "bg-foreground/6",
+                          classNames?.item
+                        )}
                         data-slot="slash-command-menu-item"
                         id={optionId(index)}
                         key={item.name}
@@ -802,7 +882,9 @@ export const SlashCommandMenu = ({
                           <span className="text-muted-foreground">/</span>
                           {item.name}
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-muted-foreground">{item.description}</span>
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                          {item.description}
+                        </span>
                         <EnterKey shown={selected} />
                       </button>
                     );
@@ -814,7 +896,12 @@ export const SlashCommandMenu = ({
                 return (
                   <button
                     aria-selected={selected}
-                    className={cn(ROW_CLASS, 'cursor-pointer', selected && 'bg-foreground/6', classNames?.item)}
+                    className={cn(
+                      ROW_CLASS,
+                      "cursor-pointer",
+                      selected && "bg-foreground/6",
+                      classNames?.item
+                    )}
                     data-slot="slash-command-menu-option"
                     id={optionId(index)}
                     key={option}
@@ -830,7 +917,9 @@ export const SlashCommandMenu = ({
                     tabIndex={-1}
                     type="button"
                   >
-                    <span className="min-w-0 flex-1 truncate font-medium">{option}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {option}
+                    </span>
                     <EnterKey shown={selected} />
                   </button>
                 );
@@ -840,17 +929,26 @@ export const SlashCommandMenu = ({
 
       <div
         className={cn(
-          'flex flex-col gap-1.5 rounded-2xl bg-card p-2 shadow-(--slash-menu-shadow) transition-shadow duration-150 ease-out focus-within:shadow-(--slash-menu-shadow-focus) motion-reduce:transition-none',
-          disabled && 'opacity-60',
-          classNames?.frame,
+          "flex flex-col gap-1.5 rounded-2xl bg-card p-2 shadow-(--slash-menu-shadow) transition-shadow duration-150 ease-out focus-within:shadow-(--slash-menu-shadow-focus) motion-reduce:transition-none",
+          disabled && "opacity-60",
+          classNames?.frame
         )}
         data-slot="slash-command-menu-frame"
       >
         <div className="grid max-h-[176px] overflow-y-auto px-1.5 pt-1">
-          <div aria-hidden="true" className={cn(TEXT_CLASS, 'pointer-events-none text-card-foreground select-none')}>
+          <div
+            aria-hidden="true"
+            className={cn(
+              TEXT_CLASS,
+              "pointer-events-none text-card-foreground select-none"
+            )}
+          >
             {drawn}
             {ghost ? (
-              <span className="text-muted-foreground" data-slot="slash-command-menu-ghost">
+              <span
+                className="text-muted-foreground"
+                data-slot="slash-command-menu-ghost"
+              >
                 {ghost}
               </span>
             ) : null}
@@ -858,15 +956,17 @@ export const SlashCommandMenu = ({
             <br />
           </div>
           <textarea
-            aria-activedescendant={open && rowCount > 0 ? optionId(activeIndex) : undefined}
+            aria-activedescendant={
+              open && rowCount > 0 ? optionId(activeIndex) : undefined
+            }
             aria-autocomplete="list"
             aria-controls={open ? listId : undefined}
-            aria-expanded={open && menu?.kind !== 'hint'}
+            aria-expanded={open && menu?.kind !== "hint"}
             aria-label="Message"
             className={cn(
               TEXT_CLASS,
-              'resize-none overflow-hidden bg-transparent text-transparent caret-card-foreground outline-none selection:bg-primary/20 selection:text-transparent placeholder:text-muted-foreground disabled:cursor-not-allowed',
-              classNames?.input,
+              "resize-none overflow-hidden bg-transparent text-transparent caret-card-foreground outline-none selection:bg-primary/20 selection:text-transparent placeholder:text-muted-foreground disabled:cursor-not-allowed",
+              classNames?.input
             )}
             data-slot="slash-command-menu-input"
             disabled={disabled}
@@ -880,7 +980,7 @@ export const SlashCommandMenu = ({
               setText(event.target.value);
               setActive(0);
               setMissing(null);
-              if (!event.target.value.startsWith('/')) {
+              if (!event.target.value.startsWith("/")) {
                 setDismissed(null);
               }
               readCaret(event.target);
@@ -904,12 +1004,12 @@ export const SlashCommandMenu = ({
           <button
             aria-label="Commands"
             className={cn(
-              'inline-flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-[15px] leading-none font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 ease-out hover:enabled:bg-foreground/6 hover:enabled:text-card-foreground active:enabled:scale-[0.96] disabled:cursor-default disabled:opacity-40 motion-reduce:transition-none',
-              FOCUS_CLASS,
+              "inline-flex size-7 flex-none cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-[15px] leading-none font-medium text-muted-foreground transition-[background-color,color,transform] duration-150 ease-out hover:enabled:bg-foreground/6 hover:enabled:text-card-foreground active:enabled:scale-[0.96] disabled:cursor-default disabled:opacity-40 motion-reduce:transition-none",
+              FOCUS_CLASS
             )}
             data-slot="slash-command-menu-trigger"
             // A slash only means a command at the start of the message.
-            disabled={disabled || (text !== '' && !head)}
+            disabled={disabled || (text !== "" && !head)}
             onClick={openCommands}
             onMouseDown={(event) => {
               event.preventDefault();
@@ -920,17 +1020,22 @@ export const SlashCommandMenu = ({
           </button>
           {children}
           <button
-            aria-disabled={disabled || text.trim() === ''}
+            aria-disabled={disabled || text.trim() === ""}
             aria-label="Send"
             className={cn(
-              'ml-auto inline-flex size-7 flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-primary p-0 text-primary-foreground transition-[opacity,transform] duration-150 ease-out active:scale-[0.96] aria-disabled:cursor-default aria-disabled:opacity-30 aria-disabled:active:scale-100 motion-reduce:transition-none',
-              FOCUS_CLASS,
+              "ml-auto inline-flex size-7 flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-primary p-0 text-primary-foreground transition-[opacity,transform] duration-150 ease-out active:scale-[0.96] aria-disabled:cursor-default aria-disabled:opacity-30 aria-disabled:active:scale-100 motion-reduce:transition-none",
+              FOCUS_CLASS
             )}
             data-slot="slash-command-menu-send"
             onClick={submit}
             type="button"
           >
-            <HugeiconsIcon aria-hidden="true" className="size-4" icon={ArrowUp02Icon} strokeWidth={1.8} />
+            <HugeiconsIcon
+              aria-hidden="true"
+              className="size-4"
+              icon={ArrowUp02Icon}
+              strokeWidth={1.8}
+            />
           </button>
         </div>
       </div>

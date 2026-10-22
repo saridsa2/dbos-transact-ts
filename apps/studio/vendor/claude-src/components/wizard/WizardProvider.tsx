@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React, { createContext, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useExitOnCtrlCDWithKeybindings } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
 import type { WizardContextValue, WizardProviderProps } from './types.js';
@@ -8,10 +8,18 @@ import type { WizardContextValue, WizardProviderProps } from './types.js';
 export const WizardContext = createContext<WizardContextValue<any> | null>(null);
 export function WizardProvider(t0) {
   const $ = _c(38);
-  const { steps, initialData: t1, onComplete, onCancel, children, title, showStepCounter: t2 } = t0;
+  const {
+    steps,
+    initialData: t1,
+    onComplete,
+    onCancel,
+    children,
+    title,
+    showStepCounter: t2
+  } = t0;
   let t3;
   if ($[0] !== t1) {
-    t3 = t1 === undefined ? ({} as T) : t1;
+    t3 = t1 === undefined ? {} as T : t1;
     $[0] = t1;
     $[1] = t3;
   } else {
@@ -23,7 +31,7 @@ export function WizardProvider(t0) {
   const [wizardData, setWizardData] = useState(initialData);
   const [isCompleted, setIsCompleted] = useState(false);
   let t4;
-  if ($[2] === Symbol.for('react.memo_cache_sentinel')) {
+  if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
     t4 = [];
     $[2] = t4;
   } else {
@@ -56,7 +64,7 @@ export function WizardProvider(t0) {
     t7 = () => {
       if (currentStepIndex < steps.length - 1) {
         if (navigationHistory.length > 0) {
-          setNavigationHistory((prev) => [...prev, currentStepIndex]);
+          setNavigationHistory(prev => [...prev, currentStepIndex]);
         }
         setCurrentStepIndex(_temp);
       } else {
@@ -100,9 +108,9 @@ export function WizardProvider(t0) {
   const goBack = t8;
   let t9;
   if ($[16] !== currentStepIndex || $[17] !== steps.length) {
-    t9 = (index) => {
+    t9 = index => {
       if (index >= 0 && index < steps.length) {
-        setNavigationHistory((prev_3) => [...prev_3, currentStepIndex]);
+        setNavigationHistory(prev_3 => [...prev_3, currentStepIndex]);
         setCurrentStepIndex(index);
       }
     };
@@ -128,11 +136,11 @@ export function WizardProvider(t0) {
   }
   const cancel = t10;
   let t11;
-  if ($[21] === Symbol.for('react.memo_cache_sentinel')) {
-    t11 = (updates) => {
-      setWizardData((prev_4) => ({
+  if ($[21] === Symbol.for("react.memo_cache_sentinel")) {
+    t11 = updates => {
+      setWizardData(prev_4 => ({
         ...prev_4,
-        ...updates,
+        ...updates
       }));
     };
     $[21] = t11;
@@ -141,17 +149,7 @@ export function WizardProvider(t0) {
   }
   const updateWizardData = t11;
   let t12;
-  if (
-    $[22] !== cancel ||
-    $[23] !== currentStepIndex ||
-    $[24] !== goBack ||
-    $[25] !== goNext ||
-    $[26] !== goToStep ||
-    $[27] !== showStepCounter ||
-    $[28] !== steps.length ||
-    $[29] !== title ||
-    $[30] !== wizardData
-  ) {
+  if ($[22] !== cancel || $[23] !== currentStepIndex || $[24] !== goBack || $[25] !== goNext || $[26] !== goToStep || $[27] !== showStepCounter || $[28] !== steps.length || $[29] !== title || $[30] !== wizardData) {
     t12 = {
       currentStepIndex,
       totalSteps: steps.length,
@@ -163,7 +161,7 @@ export function WizardProvider(t0) {
       goToStep,
       cancel,
       title,
-      showStepCounter,
+      showStepCounter
     };
     $[22] = cancel;
     $[23] = currentStepIndex;

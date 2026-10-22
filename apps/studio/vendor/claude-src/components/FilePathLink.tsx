@@ -1,4 +1,4 @@
-import { c as _c } from 'react/compiler-runtime';
+import { c as _c } from "react/compiler-runtime";
 import React from 'react';
 import { pathToFileURL } from 'url';
 import Link from '../ink/components/Link.js';
@@ -16,7 +16,10 @@ type Props = {
  */
 export function FilePathLink(t0) {
   const $ = _c(5);
-  const { filePath, children } = t0;
+  const {
+    filePath,
+    children
+  } = t0;
   let t1;
   if ($[0] !== filePath) {
     t1 = pathToFileURL(filePath);
